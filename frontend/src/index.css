@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+@layer components {
+  /* ---------- Status badges ---------- */
+  .status-badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize;
+  }
+  .status-active { @apply bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20; }
+  .status-inactive { @apply bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20; }
+  .status-graduated { @apply bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-600/20; }
+  .status-draft { @apply bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20; }
+  .status-submitted { @apply bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20; }
+  .status-approved { @apply bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20; }
+  .status-rejected { @apply bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20; }
+  .status-final { @apply bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-600/20; }
+
+  /* ---------- Cards ---------- */
+  .card {
+    @apply rounded-xl bg-card p-5 shadow-card ring-1 ring-border/60;
+  }
+  .card-hover {
+    @apply transition-shadow hover:shadow-elevated;
+  }
+
+  /* ---------- Buttons ---------- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary { @apply bg-primary text-white hover:bg-primary-dark; }
+  .btn-secondary { @apply bg-white text-slate-700 ring-1 ring-inset ring-border hover:bg-slate-50; }
+  .btn-ghost { @apply text-slate-600 hover:bg-slate-100 hover:text-slate-900; }
+  .btn-danger { @apply bg-rose-600 text-white hover:bg-rose-700; }
+  .btn-success { @apply bg-emerald-600 text-white hover:bg-emerald-700; }
+  .btn-sm { @apply px-2.5 py-1.5 text-xs; }
+
+  /* ---------- Form controls ---------- */
+  .label { @apply mb-1.5 block text-sm font-medium text-slate-700; }
+  .input {
+    @apply block w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary;
+  }
+  .select {
+    @apply block rounded-lg border border-border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary;
+  }
+
+  /* ---------- Page headers ---------- */
+  .page-header { @apply mb-6 flex flex-wrap items-start justify-between gap-4; }
+  .page-title { @apply text-xl font-semibold tracking-tight text-slate-900; }
+  .page-desc { @apply mt-1 text-sm text-slate-500; }
+
+  /* ---------- Tables ---------- */
+  .table-wrap { @apply overflow-hidden rounded-xl bg-white shadow-card ring-1 ring-border/60; }
+  .table { @apply min-w-full divide-y divide-border; }
+  .table thead th {
+    @apply bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500;
+  }
+  .table tbody td { @apply px-4 py-3 text-sm text-slate-700; }
+  .table tbody tr { @apply transition-colors hover:bg-slate-50; }
+  .table tbody tr:not(:last-child) { @apply border-b border-border; }
+
+  /* ---------- Tabs ---------- */
+  .tabs { @apply flex space-x-1 rounded-lg bg-slate-100 p-1; }
+  .tab {
+    @apply flex-1 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900;
+  }
+  .tab-active { @apply bg-white text-primary shadow-sm; }
+
+  /* ---------- Misc ---------- */
+  .empty-state { @apply flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-white py-16 px-6 text-center; }
+  .empty-title { @apply mt-4 text-sm font-medium text-slate-900; }
+  .empty-desc { @apply mt-1 text-sm text-slate-500; }
+  .avatar { @apply flex h-9 w-9 items-center justify-center rounded-full bg-primary-light text-sm font-semibold text-primary; }
+  .modal-backdrop { @apply fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4; }
+  .modal { @apply w-full max-w-md rounded-xl bg-white p-6 shadow-elevated; }
+  .spinner {
+    @apply inline-block h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent;
+  }
+  .stat-icon { @apply flex h-11 w-11 items-center justify-center rounded-xl; }
+}

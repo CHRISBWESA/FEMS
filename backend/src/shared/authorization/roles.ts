@@ -1,0 +1,166 @@
+import { PERMISSIONS, Permission } from './permissions';
+
+export const ROLES = {
+  ADMIN: 'admin',
+  SECRETARY: 'secretary',
+  ASSISTANT_SECRETARY: 'assistant_secretary',
+  CHAIRPERSON: 'chairperson',
+  ASSISTANT_CHAIRPERSON: 'assistant_chairperson',
+  TREASURER: 'treasurer',
+  DEPARTMENT_SECRETARY: 'department_secretary',
+  DEPARTMENT_CHAIRPERSON: 'department_chairperson',
+  GENDER_LEADER: 'gender_leader',
+  ORDINARY_MEMBER: 'ordinary_member',
+} as const;
+
+export type RoleName = (typeof ROLES)[keyof typeof ROLES];
+
+export interface RoleConfig {
+  name: RoleName;
+  description: string;
+  permissions: Permission[];
+}
+
+export const ROLE_DEFINITIONS: RoleConfig[] = [
+  {
+    name: ROLES.ADMIN,
+    description: 'System administrator',
+    permissions: Object.values(PERMISSIONS) as Permission[],
+  },
+  {
+    name: ROLES.SECRETARY,
+    description: 'Main Secretary managing members, departments, activities, reports',
+    permissions: [
+      PERMISSIONS.MEMBER_REGISTER,
+      PERMISSIONS.MEMBER_EDIT,
+      PERMISSIONS.MEMBER_STATUS_CHANGE,
+      PERMISSIONS.MEMBER_VIEW_ALL,
+      PERMISSIONS.DEPARTMENT_MANAGE,
+      PERMISSIONS.DEPARTMENT_LEADERS_MANAGE,
+      PERMISSIONS.DEPARTMENT_MEMBER_ADD,
+      PERMISSIONS.DEPARTMENT_MEMBER_REMOVE,
+      PERMISSIONS.DEPARTMENT_TRANSFER,
+      PERMISSIONS.ACTIVITY_CREATE,
+      PERMISSIONS.ACTIVITY_EDIT,
+      PERMISSIONS.ACTIVITY_CANCEL,
+      PERMISSIONS.REPORT_SUBMIT,
+      PERMISSIONS.REPORT_REVIEW,
+      PERMISSIONS.REPORT_FINAL_APPROVE,
+      PERMISSIONS.FINANCE_VIEW,
+      PERMISSIONS.FINANCE_CONTRIBUTION_RECORD,
+      PERMISSIONS.FINANCE_CONTRIBUTION_EDIT,
+      PERMISSIONS.FINANCE_EXPENSE_RECORD,
+      PERMISSIONS.FINANCE_EXPENSE_APPROVE,
+      PERMISSIONS.FINANCE_BUDGET_CREATE,
+      PERMISSIONS.FINANCE_BUDGET_APPROVE,
+      PERMISSIONS.FINANCE_MONEY_REQUEST_CREATE,
+      PERMISSIONS.FINANCE_MONEY_REQUEST_APPROVE,
+      PERMISSIONS.USER_PASSWORD_RESET,
+      PERMISSIONS.USER_MANAGE,
+      PERMISSIONS.RECYCLE_RESTORE,
+      PERMISSIONS.BACKUP_RESTORE,
+      PERMISSIONS.ACTIVITY_ATTENDANCE,
+      PERMISSIONS.ACTIVITY_SHARE_LINK,
+      PERMISSIONS.ADMIN_AUDIT_VIEW,
+    ],
+  },
+  {
+    name: ROLES.ASSISTANT_SECRETARY,
+    description: 'Assistant Secretary with same access except Secretary-only actions',
+    permissions: [
+      PERMISSIONS.MEMBER_REGISTER,
+      PERMISSIONS.MEMBER_VIEW_ALL,
+      PERMISSIONS.DEPARTMENT_MANAGE,
+      PERMISSIONS.DEPARTMENT_LEADERS_MANAGE,
+      PERMISSIONS.DEPARTMENT_MEMBER_ADD,
+      PERMISSIONS.DEPARTMENT_MEMBER_REMOVE,
+      PERMISSIONS.DEPARTMENT_TRANSFER,
+      PERMISSIONS.ACTIVITY_CREATE,
+      PERMISSIONS.ACTIVITY_EDIT,
+      PERMISSIONS.ACTIVITY_CANCEL,
+      PERMISSIONS.REPORT_REVIEW,
+      PERMISSIONS.FINANCE_VIEW,
+      PERMISSIONS.USER_PASSWORD_RESET,
+      PERMISSIONS.RECYCLE_RESTORE,
+      PERMISSIONS.BACKUP_RESTORE,
+      PERMISSIONS.ACTIVITY_ATTENDANCE,
+      PERMISSIONS.ACTIVITY_SHARE_LINK,
+      PERMISSIONS.ADMIN_AUDIT_VIEW,
+    ],
+  },
+  {
+    name: ROLES.CHAIRPERSON,
+    description: 'Chairperson with approval and oversight access',
+    permissions: [
+      PERMISSIONS.REPORT_FINAL_APPROVE,
+      PERMISSIONS.FINANCE_VIEW,
+      PERMISSIONS.FINANCE_EXPENSE_APPROVE,
+      PERMISSIONS.FINANCE_BUDGET_APPROVE,
+      PERMISSIONS.FINANCE_MONEY_REQUEST_APPROVE,
+      PERMISSIONS.ADMIN_AUDIT_VIEW,
+      PERMISSIONS.FINANCE_CONTRIBUTION_EDIT,
+    ],
+  },
+  {
+    name: ROLES.ASSISTANT_CHAIRPERSON,
+    description: 'Assistant Chairperson, same as Chairperson for approvals',
+    permissions: [
+      PERMISSIONS.REPORT_FINAL_APPROVE,
+      PERMISSIONS.FINANCE_VIEW,
+      PERMISSIONS.FINANCE_EXPENSE_APPROVE,
+      PERMISSIONS.FINANCE_BUDGET_APPROVE,
+      PERMISSIONS.FINANCE_MONEY_REQUEST_APPROVE,
+      PERMISSIONS.ADMIN_AUDIT_VIEW,
+      PERMISSIONS.FINANCE_CONTRIBUTION_EDIT,
+    ],
+  },
+  {
+    name: ROLES.TREASURER,
+    description: 'Treasurer managing contributions, expenses, budgets, money requests',
+    permissions: [
+      PERMISSIONS.FINANCE_VIEW,
+      PERMISSIONS.FINANCE_CONTRIBUTION_RECORD,
+      PERMISSIONS.FINANCE_CONTRIBUTION_EDIT,
+      PERMISSIONS.FINANCE_EXPENSE_RECORD,
+      PERMISSIONS.FINANCE_BUDGET_CREATE,
+      PERMISSIONS.FINANCE_MONEY_REQUEST_APPROVE,
+    ],
+  },
+  {
+    name: ROLES.DEPARTMENT_SECRETARY,
+    description: 'Department Secretary for own department',
+    permissions: [
+      PERMISSIONS.MEMBER_VIEW_OWN_DEPT,
+      PERMISSIONS.DEPARTMENT_MEMBER_ADD,
+      PERMISSIONS.DEPARTMENT_MEMBER_REMOVE,
+      PERMISSIONS.REPORT_SUBMIT,
+      PERMISSIONS.FINANCE_VIEW,
+    ],
+  },
+  {
+    name: ROLES.DEPARTMENT_CHAIRPERSON,
+    description: 'Department Chairperson for own department',
+    permissions: [
+      PERMISSIONS.MEMBER_VIEW_OWN_DEPT,
+      PERMISSIONS.DEPARTMENT_MEMBER_ADD,
+      PERMISSIONS.DEPARTMENT_MEMBER_REMOVE,
+      PERMISSIONS.REPORT_SUBMIT,
+      PERMISSIONS.FINANCE_VIEW,
+    ],
+  },
+  {
+    name: ROLES.GENDER_LEADER,
+    description: 'Gender Leader who can register members of their gender',
+    permissions: [
+      PERMISSIONS.MEMBER_REGISTER,
+    ],
+  },
+  {
+    name: ROLES.ORDINARY_MEMBER,
+    description: 'Ordinary fellowship member',
+    permissions: [],
+  },
+];
+
+export const getRoleByName = (name: string): RoleConfig | undefined =>
+  ROLE_DEFINITIONS.find((r) => r.name === name);

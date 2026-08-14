@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "paths": {
+      "@app/*": ["src/*"]
+    },
+    "sourceMap": true,
+    "resolveJsonModule": true,
+    "strictNullChecks": true,
+    "strictNullChecks": false,
+    "noUnusedLocals": false,
+    "skipLibCheck": true
+  }
+}
