@@ -28,7 +28,7 @@ export default function PlatformPricing() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/v1/public/site/plans')
+    fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1'}/public/site/plans`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('unavailable'))))
       .then((d) => {
         if (!cancelled && Array.isArray(d)) setPlans(d);

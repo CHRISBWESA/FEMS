@@ -64,7 +64,7 @@ export function LiveStats() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/v1/public/site/stats')
+    fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1'}/public/site/stats`)
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (!cancelled && d && typeof d.fellowships === 'number') setStats(d);
