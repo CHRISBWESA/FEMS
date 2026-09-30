@@ -11,6 +11,7 @@ export class MembersController {
 
   @Get()
   @Roles(
+    ROLES.ADMIN,
     ROLES.SECRETARY,
     ROLES.ASSISTANT_SECRETARY,
     ROLES.CHAIRPERSON,
@@ -25,6 +26,7 @@ export class MembersController {
 
   @Get(':id')
   @Roles(
+    ROLES.ADMIN,
     ROLES.SECRETARY,
     ROLES.ASSISTANT_SECRETARY,
     ROLES.CHAIRPERSON,
@@ -38,7 +40,7 @@ export class MembersController {
   }
 
   @Post()
-  @Roles(ROLES.SECRETARY, ROLES.GENDER_LEADER)
+  @Roles(ROLES.SECRETARY, ROLES.GENDER_LEADER, ROLES.ADMIN)
   async create(@Body() body: CreateMemberDto, @Req() req) {
     return this.membersService.create(body, req.user);
   }
@@ -51,8 +53,8 @@ export class MembersController {
 
   @Put(':id/status')
   @Roles(ROLES.SECRETARY)
-  async changeStatus(@Param('id') id: string, @Body() body: { status: string }, @Req() req) {
-    return this.membersService.changeStatus(id, body.status, req.user);
+  async changeStatus(@Param('id') id: string, @Body() body: { status: string; reason?: string }, @Req() req) {
+    return this.membersService.changeStatus(id, body.status, req.user, body.reason);
   }
 
   @Put(':id/graduation')
@@ -67,7 +69,7 @@ export class MembersController {
 
   @Post('bulk-upload')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 2 * 1024 * 1024 } }))
-  @Roles(ROLES.SECRETARY)
+  @Roles(ROLES.SECRETARY, ROLES.ADMIN)
   async bulkUpload(@UploadedFile() file: Express.Multer.File, @Req() req) {
     return this.membersService.bulkCreate(file, req.user);
   }

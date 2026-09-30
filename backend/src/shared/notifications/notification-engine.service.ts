@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Notification } from '../../shared/schemas/system.schema';
-import { Model, Types } from 'mongoose';
+import { PrismaService } from '../../prisma/prisma.service';
+import { Notification } from '@prisma/client';
 
 export interface NotificationPayload {
   recipientUserId: string;
@@ -11,33 +10,45 @@ export interface NotificationPayload {
   entityType?: string;
   entityId?: string;
   actorUserId?: string;
+  fellowshipId?: string | null;
 }
 
 @Injectable()
 export class NotificationEngineService {
   private readonly logger = new Logger(NotificationEngineService.name);
 
-  constructor(
-    @InjectModel(Notification.name) private notificationModel: Model<Notification>,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
   async create(payload: NotificationPayload): Promise<Notification> {
+    if (!payload.recipientUserId) {
+      return null;
+    }
     try {
-      return await this.notificationModel.create({
-        recipient_user_id: new Types.ObjectId(payload.recipientUserId),
-        event_type: payload.eventType,
-        title: payload.title,
-        message: payload.message,
-        entity_type: payload.entityType,
-        entity_id: payload.entityId ? new Types.ObjectId(payload.entityId) : undefined,
-        is_read: false,
-        actor_user_id: payload.actorUserId
-          ? new Types.ObjectId(payload.actorUserId)
-          : undefined,
-        created_at: new Date(),
+      let fellowshipId = payload.fellowshipId;
+      if (!fellowshipId) {
+        const ref = await this.prisma.user.findUnique({
+          where: { id: payload.actorUserId || payload.recipientUserId },
+          select: { fellowship_id: true },
+        });
+        fellowshipId = ref?.fellowship_id ?? null;
+      }
+      return await this.prisma.notification.create({
+        data: {
+          recipient_user_id: payload.recipientUserId,
+          event_type: payload.eventType,
+          title: payload.title,
+          message: payload.message,
+          entity_type: payload.entityType,
+          entity_id: payload.entityId,
+          is_read: false,
+          actor_user_id: payload.actorUserId,
+          fellowship_id: fellowshipId,
+          created_at: new Date(),
+        },
       });
-    } catch (e) {
-      this.logger.error('Failed to create notification', e);
+    } catch (error) {
+      const code = error && typeof error === 'object' && 'code' in error && typeof error.code === 'string' ? error.code : 'unknown';
+      this.logger.error(`Failed to create notification event=${payload.eventType} code=${code}`);
       return null;
     }
   }
@@ -56,51 +67,44 @@ export class NotificationEngineService {
     const limit = Math.max(1, Math.min(100, filters.limit || 20));
     const skip = (page - 1) * limit;
 
-    const query: Record<string, unknown> = {
-      recipient_user_id: new Types.ObjectId(userId),
+    const where: Record<string, unknown> = {
+      recipient_user_id: userId,
     };
     if (filters.unreadOnly) {
-      query.is_read = false;
+      where.is_read = false;
     }
 
     const [data, total] = await Promise.all([
-      this.notificationModel
-        .find(query)
-        .sort({ created_at: -1 })
-        .skip(skip)
-        .limit(limit)
-        .populate('actor_user_id', 'first_name last_name')
-        .exec(),
-      this.notificationModel.countDocuments(query).exec(),
+      this.prisma.notification.findMany({
+        where,
+        orderBy: { created_at: 'desc' },
+        skip,
+        take: limit,
+        include: { actor: { select: { first_name: true, last_name: true } } },
+      }),
+      this.prisma.notification.count({ where }),
     ]);
 
     return { data, total };
   }
 
   async unreadCount(userId: string): Promise<number> {
-    return this.notificationModel
-      .countDocuments({
-        recipient_user_id: new Types.ObjectId(userId),
-        is_read: false,
-      })
-      .exec();
+    return this.prisma.notification.count({
+      where: { recipient_user_id: userId, is_read: false },
+    });
   }
 
   async markRead(userId: string, notificationId: string): Promise<void> {
-    await this.notificationModel
-      .updateOne(
-        { _id: new Types.ObjectId(notificationId), recipient_user_id: new Types.ObjectId(userId) },
-        { is_read: true },
-      )
-      .exec();
+    await this.prisma.notification.updateMany({
+      where: { id: notificationId, recipient_user_id: userId },
+      data: { is_read: true },
+    });
   }
 
   async markAllRead(userId: string): Promise<void> {
-    await this.notificationModel
-      .updateMany(
-        { recipient_user_id: new Types.ObjectId(userId), is_read: false },
-        { is_read: true },
-      )
-      .exec();
+    await this.prisma.notification.updateMany({
+      where: { recipient_user_id: userId, is_read: false },
+      data: { is_read: true },
+    });
   }
 }

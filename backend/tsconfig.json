@@ -15,7 +15,6 @@
     },
     "sourceMap": true,
     "resolveJsonModule": true,
-    "strictNullChecks": true,
     "strictNullChecks": false,
     "noUnusedLocals": false,
     "skipLibCheck": true

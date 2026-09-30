@@ -2,7 +2,9 @@ import { Controller, Get, Patch, Param, Req } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { Roles } from '../shared/decorators/role.decorators';
 import { ROLES } from '../shared/authorization/roles';
+import { PlatformAccess } from '../shared/decorators/platform.decorators';
 
+@PlatformAccess()
 @Controller('notifications')
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}

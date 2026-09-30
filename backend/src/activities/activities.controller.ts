@@ -5,19 +5,30 @@
   Put,
   Body,
   Param,
+  Query,
   Req,
   UseGuards,
+  Res,
 } from '@nestjs/common';
+import { withTotalHeader } from '../shared/utils/paging.util';
+import { Throttle } from '@nestjs/throttler';
+import { PUBLIC_THROTTLE } from '../shared/throttle';
+import { AttendanceSyncService } from './attendance-sync.service';
 import { ActivitiesService, CreateActivityDto } from './activities.service';
 import { Roles } from '../shared/decorators/role.decorators';
+import { Public } from '../shared/decorators/public.decorator';
 import { ROLES } from '../shared/authorization/roles';
 
 @Controller('activities')
 export class ActivitiesController {
-  constructor(private readonly activitiesService: ActivitiesService) {}
+  constructor(
+    private readonly activitiesService: ActivitiesService,
+    private readonly attendanceSync: AttendanceSyncService,
+  ) {}
 
   @Get()
   @Roles(
+    ROLES.ADMIN,
     ROLES.SECRETARY,
     ROLES.ASSISTANT_SECRETARY,
     ROLES.CHAIRPERSON,
@@ -26,12 +37,19 @@ export class ActivitiesController {
     ROLES.DEPARTMENT_CHAIRPERSON,
     ROLES.ORDINARY_MEMBER,
   )
-  async findAll(@Req() req) {
-    return this.activitiesService.findAll(req.user);
+  async findAll(
+    @Req() req,
+    @Res({ passthrough: true }) res,
+    @Query('fellowshipId') fellowshipId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return withTotalHeader(res, await this.activitiesService.findAll(req.user, fellowshipId, page, limit));
   }
 
   @Get(':id')
   @Roles(
+    ROLES.ADMIN,
     ROLES.SECRETARY,
     ROLES.ASSISTANT_SECRETARY,
     ROLES.CHAIRPERSON,
@@ -69,15 +87,41 @@ export class ActivitiesController {
   }
 
   @Post('attendance')
-  async recordAttendance(@Body() body: { activityId: string; memberName?: string; memberId?: string }) {
+  @Public()
+  @Throttle(PUBLIC_THROTTLE)
+  async recordAttendance(@Body() body: { activityId: string; memberName?: string }) {
+    // Public route: name only. A client-supplied memberId is intentionally ignored.
     return this.activitiesService.recordAttendance(body.activityId, {
-      memberId: body.memberId,
       memberName: body.memberName,
     });
   }
 
+  // Offline attendance: what a device downloads, and the idempotent sync of what it recorded offline.
+  @Get(':id/attendance/roster')
+  @Roles(ROLES.SECRETARY, ROLES.ASSISTANT_SECRETARY)
+  async attendanceRoster(@Param('id') id: string, @Req() req) {
+    return this.attendanceSync.roster(id, req.user);
+  }
+
+  @Post(':id/attendance/sync')
+  @Roles(ROLES.SECRETARY, ROLES.ASSISTANT_SECRETARY)
+  async syncAttendance(@Param('id') id: string, @Body() body: { ops: unknown }, @Req() req) {
+    return this.attendanceSync.sync(id, body, req.user);
+  }
+
+  @Post(':id/attendance/members')
+  @Roles(ROLES.ADMIN, ROLES.SECRETARY, ROLES.ASSISTANT_SECRETARY)
+  async recordMemberAttendance(
+    @Param('id') id: string,
+    @Body() body: { memberIds: string[] },
+    @Req() req,
+  ) {
+    return this.activitiesService.recordMemberAttendance(id, body?.memberIds, req.user);
+  }
+
   @Get(':id/attendance')
   @Roles(
+    ROLES.ADMIN,
     ROLES.SECRETARY,
     ROLES.ASSISTANT_SECRETARY,
     ROLES.DEPARTMENT_SECRETARY,

@@ -5,6 +5,7 @@
   Put,
   Body,
   Param,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -18,6 +19,7 @@ export class DepartmentsController {
 
   @Get()
   @Roles(
+    ROLES.ADMIN,
     ROLES.SECRETARY,
     ROLES.ASSISTANT_SECRETARY,
     ROLES.CHAIRPERSON,
@@ -25,12 +27,13 @@ export class DepartmentsController {
     ROLES.DEPARTMENT_SECRETARY,
     ROLES.DEPARTMENT_CHAIRPERSON,
   )
-  async findAll(@Req() req) {
-    return this.departmentsService.findAll(req.user);
+  async findAll(@Req() req, @Query('fellowshipId') fellowshipId?: string) {
+    return this.departmentsService.findAll(req.user, fellowshipId);
   }
 
   @Get(':id')
   @Roles(
+    ROLES.ADMIN,
     ROLES.SECRETARY,
     ROLES.ASSISTANT_SECRETARY,
     ROLES.CHAIRPERSON,
@@ -44,6 +47,7 @@ export class DepartmentsController {
 
   @Get(':id/members')
   @Roles(
+    ROLES.ADMIN,
     ROLES.SECRETARY,
     ROLES.ASSISTANT_SECRETARY,
     ROLES.CHAIRPERSON,
@@ -71,6 +75,12 @@ export class DepartmentsController {
   @Roles(ROLES.SECRETARY)
   async assignLeader(@Param('id') id: string, @Body() body: AssignLeaderDto, @Req() req) {
     return this.departmentsService.assignLeader(id, body, req.user);
+  }
+
+  @Post(':id/leaders/:userId/remove')
+  @Roles(ROLES.SECRETARY)
+  async removeLeader(@Param('id') id: string, @Param('userId') userId: string, @Req() req) {
+    return this.departmentsService.removeLeader(id, userId, req.user);
   }
 
   @Post('transfers')

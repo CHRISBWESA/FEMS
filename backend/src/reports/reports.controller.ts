@@ -1,4 +1,5 @@
-﻿import { Controller, Get, Post, Body, Param, Req } from '@nestjs/common';
+﻿import { Controller, Get, Post, Body, Param, Query, Req, Res } from '@nestjs/common';
+import { withTotalHeader } from '../shared/utils/paging.util';
 import { ReportsService, SubmitReportDto } from './reports.service';
 import { Roles } from '../shared/decorators/role.decorators';
 import { ROLES } from '../shared/authorization/roles';
@@ -9,6 +10,7 @@ export class ReportsController {
 
   @Get()
   @Roles(
+    ROLES.ADMIN,
     ROLES.SECRETARY,
     ROLES.ASSISTANT_SECRETARY,
     ROLES.CHAIRPERSON,
@@ -16,12 +18,19 @@ export class ReportsController {
     ROLES.DEPARTMENT_SECRETARY,
     ROLES.DEPARTMENT_CHAIRPERSON,
   )
-  async findAll(@Req() req) {
-    return this.reportsService.findAll(req.user);
+  async findAll(
+    @Req() req,
+    @Res({ passthrough: true }) res,
+    @Query('fellowshipId') fellowshipId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return withTotalHeader(res, await this.reportsService.findAll(req.user, fellowshipId, page, limit));
   }
 
   @Get(':id')
   @Roles(
+    ROLES.ADMIN,
     ROLES.SECRETARY,
     ROLES.ASSISTANT_SECRETARY,
     ROLES.CHAIRPERSON,

@@ -1,0 +1,1806 @@
+// Prisma schema for the Fellowship Management System.
+// Ported from Mongoose (see git history for the removed *.schema.ts files) onto the
+// relational design in ../../DATABASE.md, per DECISIONS.md's original PostgreSQL + Prisma choice.
+//
+// Deviations from DATABASE.md (documented in DECISIONS.md):
+// - User.roles / User.permissions stay as Postgres text[] columns instead of user_roles/
+//   role_permissions junction tables, to avoid rewriting RBAC guards as a side effect.
+// - Only the three embedded Mongoose subdocument arrays (Member.departments, Department.leaders,
+//   Approval.steps) were normalized into real child tables. activity_audiences and
+//   department_custom_values were never used by the app and are skipped.
+// - "Audit stamp" foreign keys (created_by, recorded_by, submitted_by, uploaded_by, requester_id,
+//   approver_user_id, acted_by, deleted_by, assigned_by, admin_user_id, target_user_id,
+//   status_changed_by, recipient_user_id, restored_from, impersonation_session_id) are plain
+//   scalar UUID columns without an enforced FK constraint or Prisma relation, matching Mongoose's
+//   `ref:` (population hint only, never enforced) rather than introducing new FK-violation failure
+//   modes that didn't exist before. Real relations (with cascade) are used only where the app
+//   actually needs relational joins or cascading child-row deletes.
+//
+// Multi-tenancy (added): every Fellowship-scoped entity carries `fellowship_id`. Admin is global
+// (fellowship_id = null) and can see/manage all fellowships; every other role belongs to exactly
+// one fellowship and is scoped to it automatically.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Shared enums ----------
+
+enum ApprovalStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  RESUBMITTED
+  FINAL_APPROVED
+  CANCELLED
+}
+
+enum ApprovalStepStatus {
+  pending
+  approved
+  rejected
+  skipped
+}
+
+enum MembershipStatus {
+  active
+  inactive
+  graduated
+}
+
+enum AudienceType {
+  all_members
+  department
+  leaders
+  specific_group
+}
+
+enum BackupStorageLocation {
+  cloud
+  local
+}
+
+enum BackupStatus {
+  success
+  failed
+}
+
+enum ImpersonationStatus {
+  requested
+  approved
+  active
+  expired
+  cancelled
+}
+
+enum AssetCondition {
+  new
+  good
+  fair
+  poor
+  damaged
+}
+
+enum AssetStatus {
+  available
+  checked_out
+  in_maintenance
+  retired
+  lost
+}
+
+enum MaintenanceType {
+  scheduled
+  repair
+  inspection
+}
+
+enum MaintenanceStatus {
+  scheduled
+  in_progress
+  completed
+  cancelled
+}
+
+enum AssetEventType {
+  created
+  updated
+  condition_changed
+  transferred
+  checked_out
+  checked_in
+  maintenance_scheduled
+  maintenance_started
+  maintenance_completed
+  maintenance_cancelled
+  quantity_adjusted
+  document_attached
+  document_removed
+  retired
+  lost
+}
+
+enum FinanceCategoryKind {
+  contribution
+  income
+  expense
+}
+
+enum CampaignStatus {
+  active
+  closed
+}
+
+enum PledgeFrequency {
+  one_time
+  weekly
+  monthly
+  quarterly
+  yearly
+}
+
+enum MembershipEventType {
+  registered
+  status_changed
+  department_joined
+  department_transferred
+  department_removed
+}
+
+// ---------- Users & Roles ----------
+
+model User {
+  id                    String    @id @default(uuid()) @db.Uuid
+  email                 String    @unique
+  password_hash         String
+  first_name            String
+  last_name             String
+  phone                 String?
+  gender                String?
+  roles                 String[]  @default([])
+  permissions           String[]  @default([])
+  department_id         String?   @db.Uuid
+  fellowship_id         String?   @db.Uuid
+  is_active             Boolean   @default(true)
+  must_change_password  Boolean   @default(false)
+  // Session/credential hardening (Phase 22). token_version is embedded in every token: changing or resetting
+  // the password bumps it, which invalidates all tokens issued before (stateless revocation).
+  token_version         Int       @default(0)
+  password_changed_at   DateTime?
+  failed_login_count    Int       @default(0)
+  last_failed_login_at  DateTime?
+  locked_until          DateTime?
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+  deleted_at            DateTime?
+
+  member                Member?
+  notificationsAsActor  Notification[] @relation("NotificationActor")
+  invitationsSent       Invitation[] @relation("InvitationInvitedBy")
+  invitationsAccepted   Invitation[] @relation("InvitationAcceptedBy")
+
+  @@index([fellowship_id])
+  @@map("users")
+}
+
+model Role {
+  id             String   @id @default(uuid()) @db.Uuid
+  name           String   @unique
+  description    String?
+  permissions    String[] @default([])
+  is_system_role Boolean  @default(false)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  @@map("roles")
+}
+
+// A fellowship is a tenant. `status` is the lifecycle (active / suspended); `is_active` is kept in step with it
+// for older code and clients (is_active = status is 'active').
+enum FellowshipStatus {
+  active
+  suspended
+}
+
+model Fellowship {
+  id       String  @id @default(uuid()) @db.Uuid
+  name     String  @unique
+  location String?
+  description String?
+
+  // The DNS label this fellowship is published at, e.g. `casfeta` for casfeta.example.com. Nullable so existing
+  // tenants keep working before the public sites are switched on; a null subdomain simply has no public site yet.
+  // The value is a bare label - never a full host and never a leading dot - so the host can be rebuilt whenever
+  // the platform's own base domain changes.
+  subdomain String? @unique
+
+  // Public sites are opt-in. Nothing a fellowship uploads becomes reachable on the internet until somebody with
+  // permission turns this on, so enabling the feature cannot retroactively publish content that was uploaded
+  // while it was being built.
+  public_site_enabled Boolean @default(false)
+
+  is_active             Boolean          @default(true)
+  status                FellowshipStatus @default(active)
+  // When the public site was last changed (profile, page copy, subdomain or publication). Read by the sitemap's
+  // `lastmod`, so a crawler is not told a page is new every time it looks, nor left thinking nothing ever changes.
+  site_updated_at       DateTime?
+  suspended_at       DateTime?
+  suspended_by       String?          @db.Uuid
+  suspension_reason  String?
+  created_by         String           @db.Uuid
+  created_at         DateTime         @default(now())
+  updated_at         DateTime         @updatedAt
+
+  modules            FellowshipModuleSetting[]
+  supportGrants      SupportAccessGrant[]
+  subscription       SaasSubscription?
+  saasInvoices       SaasInvoice[]
+  publicProfile      PublicProfile?
+  publicPages        PublicPage[]
+  publicPosts        PublicPost[]
+  publicEnquiries    PublicEnquiry[]
+  invitations        Invitation[]
+
+  @@map("fellowships")
+}
+
+// Per-tenant module availability. No row means the module is available (so existing tenants are unaffected).
+// ---------- Invitations ----------
+
+enum InvitationStatus {
+  pending
+  accepted
+  revoked
+  expired
+}
+
+// An invitation for a named person to join a fellowship in a named role.
+//
+// This replaces the old behaviour of creating six accounts up front and editing their e-mail addresses once the
+// real office holders were known. An invitation has no account behind it, cannot be signed in to, and grants
+// nothing until it is accepted - so a half-provisioned fellowship has no usable credentials lying around in it.
+//
+// A high-privilege role may only be invited by somebody holding USER_ROLE_ASSIGN_GOV, checked at BOTH ends: on
+// creation and again on acceptance. Checking only on creation would let an invitation outlive the authority that
+// made it, so the guard is repeated where the grant actually happens.
+model Invitation {
+  id            String           @id @default(uuid()) @db.Uuid
+  fellowship_id String           @db.Uuid
+  email         String
+  first_name    String
+  last_name     String
+  phone         String?
+  roles         String[]         @default([])
+  department_id String?          @db.Uuid
+  status        InvitationStatus @default(pending)
+  // A single-use, expiring token. Stored hashed, never in the clear, so a database leak does not hand over a
+  // working invitation; and the token is single-use, so forwarding a link cannot be used to take over the account.
+  token_hash    String           @unique
+  expires_at    DateTime
+  accepted_at   DateTime?
+  accepted_user_id String?        @db.Uuid
+  invited_by    String           @db.Uuid
+  revoked_by    String?          @db.Uuid
+  revoked_at    DateTime?
+  // The fellowship's own base domain, so the acceptance link can be built at invite time even if the domain
+  // changes before the invitation is used.
+  site_host     String?
+  created_at    DateTime         @default(now())
+  updated_at    DateTime         @updatedAt
+
+  fellowship    Fellowship @relation(fields: [fellowship_id], references: [id], onDelete: Cascade)
+  invitedBy     User       @relation("InvitationInvitedBy", fields: [invited_by], references: [id])
+  acceptedUser  User?      @relation("InvitationAcceptedBy", fields: [accepted_user_id], references: [id])
+
+  @@index([fellowship_id, status])
+  @@index([email, status])
+  @@index([expires_at])
+  @@map("invitations")
+}
+
+model FellowshipModuleSetting {
+  fellowship_id  String     @db.Uuid
+  module_key     String
+  enabled        Boolean    @default(true)
+  updated_by     String?    @db.Uuid
+  updated_at     DateTime   @updatedAt
+
+  fellowship     Fellowship @relation(fields: [fellowship_id], references: [id], onDelete: Cascade)
+
+  @@id([fellowship_id, module_key])
+  @@map("fellowship_module_settings")
+}
+
+enum SupportGrantStatus {
+  requested
+  approved
+  denied
+  revoked
+}
+
+// Scoped, time-boxed, tenant-approved access for platform support staff. It replaces impersonation: a grant
+// never lets anyone act as a tenant user, it only unlocks specific read-only diagnostic views.
+model SupportAccessGrant {
+  id                String              @id @default(uuid()) @db.Uuid
+  fellowship_id     String              @db.Uuid
+  requested_by      String              @db.Uuid
+  reason            String
+  scopes            String[]
+  duration_minutes  Int
+  status            SupportGrantStatus  @default(requested)
+  decided_by        String?             @db.Uuid
+  decided_at        DateTime?
+  expires_at        DateTime?
+  revoked_at        DateTime?
+  created_at        DateTime            @default(now())
+  updated_at        DateTime            @updatedAt
+
+  fellowship        Fellowship          @relation(fields: [fellowship_id], references: [id], onDelete: Cascade)
+
+  @@index([fellowship_id, status])
+  @@index([requested_by, status])
+  @@map("support_access_grants")
+}
+
+enum RegistrationStatus {
+  pending
+  approved
+  rejected
+}
+
+// A request to join the platform, submitted by a prospective fellowship owner from the public signup form.
+// It exists BEFORE any account does, so it carries its own copy of the contact details rather than a user_id.
+// Nothing here grants access: approval is a platform decision that runs the normal onboarding service.
+model FellowshipRegistration {
+  id                   String             @id @default(uuid()) @db.Uuid
+  fellowship_name       String
+  location             String?
+  description          String?
+  contact_first_name   String
+  contact_last_name    String
+  email                String
+  phone                String?
+  // A plan code the applicant asked about. Not a foreign key on purpose: a plan may be renamed or retired
+  // while a request is waiting, and the request must stay readable either way.
+  requested_plan_code  String?
+  reason               String?
+  status               RegistrationStatus @default(pending)
+  reviewed_by          String?            @db.Uuid
+  reviewed_at          DateTime?
+  decision_note        String?
+  // Set once approval has created the fellowship, so a request and its tenant stay linked.
+  created_fellowship_id String?           @db.Uuid
+  submitted_ip         String?
+  created_at           DateTime           @default(now())
+  updated_at           DateTime           @updatedAt
+
+  @@index([status, created_at])
+  @@index([email])
+  @@index([created_fellowship_id])
+  @@map("fellowship_registrations")
+}
+
+// ---------- Members & Departments ----------
+
+model Member {
+  id                         String    @id @default(uuid()) @db.Uuid
+  user_id                    String?   @unique @db.Uuid
+  fellowship_id              String?   @db.Uuid
+  member_code                String    @unique
+  full_name                  String
+  phone                      String?
+  email                      String?
+  gender                     String?
+  programme                  String?
+  year_of_study              String?
+  university                 String?
+  expected_graduation_year   Int
+  expected_graduation_month  Int
+  membership_status          MembershipStatus @default(active)
+  status_changed_by          String?   @db.Uuid
+  status_changed_at          DateTime?
+  department_custom_fields   Json?
+  created_by                 String    @db.Uuid
+  created_at                 DateTime  @default(now())
+  updated_at                 DateTime  @updatedAt
+
+  user                       User?     @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  departmentMemberships      DepartmentMember[]
+  contributions              Contribution[]
+  attendances                Attendance[]
+  youthProfile               YouthProfile?
+  guardianOfYouth            YouthGuardian[]
+  profile                    MemberProfile?
+  membershipHistory          MembershipHistory[]
+  groupMemberships           MemberGroupMember[]
+  pledges                    ContributionPledge[]
+  custodianOfAssets          Asset[]
+  assetLoans                 AssetLoan[]
+  coordinatedOpportunities   ServiceOpportunity[]
+  serviceAssignments         ServiceAssignment[]
+
+  @@index([fellowship_id])
+  @@map("members")
+}
+
+model Department {
+  id                    String   @id @default(uuid()) @db.Uuid
+  // Unique per fellowship, NOT globally: two congregations must both be able to have a "Choir" or a "Media"
+  // department. The Secretary of each fellowship owns this list.
+  name                  String
+  description           String?
+  fellowship_id         String?  @db.Uuid
+  is_active             Boolean  @default(false)
+  custom_fields_schema  Json?
+  created_by            String   @db.Uuid
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  members               DepartmentMember[]
+  leaders               DepartmentLeader[]
+  youthProfiles         YouthProfile[]
+  assets                Asset[]
+  serviceOpportunities  ServiceOpportunity[]
+
+  @@index([fellowship_id])
+  @@unique([fellowship_id, name], map: "departments_fellowship_id_name_key")
+  @@map("departments")
+}
+
+model DepartmentMember {
+  id                    String    @id @default(uuid()) @db.Uuid
+  member_id             String    @db.Uuid
+  department_id         String    @db.Uuid
+  joined_at             DateTime  @default(now())
+  removed               Boolean   @default(false)
+  removed_at            DateTime?
+  removal_approval_id   String?   @db.Uuid
+
+  member                Member     @relation(fields: [member_id], references: [id], onDelete: Cascade)
+  department            Department @relation(fields: [department_id], references: [id], onDelete: Cascade)
+
+  @@index([department_id, removed])
+  @@map("department_members")
+  // Foreign key without an index (found in the Phase 22 database review): a join or a parent delete scanned the whole table.
+  @@index([member_id])
+}
+
+model DepartmentLeader {
+  id                   String    @id @default(uuid()) @db.Uuid
+  department_id        String    @db.Uuid
+  user_id              String    @db.Uuid
+  role_in_department   String
+  start_date           DateTime  @default(now())
+  end_date             DateTime?
+  created_at           DateTime  @default(now())
+  fellowship_id        String?   @db.Uuid
+
+  department           Department @relation(fields: [department_id], references: [id], onDelete: Cascade)
+
+  @@index([fellowship_id])
+  @@map("department_leaders")
+  // Foreign key without an index (found in the Phase 22 database review): a join or a parent delete scanned the whole table.
+  @@index([department_id])
+}
+
+// ---------- Programmes ----------
+
+model Programme {
+  id            String   @id @default(uuid()) @db.Uuid
+  // Unique per fellowship, for the same reason departments are: a fellowship's ministries are its own.
+  name          String
+  description   String?
+  fellowship_id String?  @db.Uuid
+  created_by    String   @db.Uuid
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  @@index([fellowship_id])
+  @@unique([fellowship_id, name], map: "programmes_fellowship_id_name_key")
+  @@map("programmes")
+}
+
+// ---------- Activities & Reports ----------
+
+model Activity {
+  id             String       @id @default(uuid()) @db.Uuid
+  title          String
+  description    String?
+  date           DateTime
+  end_date       DateTime?
+  audience_type  AudienceType
+  department_id  String?      @db.Uuid
+  fellowship_id  String?      @db.Uuid
+  specific_group String?
+  created_by     String       @db.Uuid
+  created_at     DateTime     @default(now())
+  updated_at     DateTime     @updatedAt
+
+  attendances    Attendance[]
+  serviceShifts  ServiceShift[]
+
+  @@index([fellowship_id])
+  @@index([fellowship_id, date])
+  @@map("activities")
+}
+
+model Attendance {
+  id                 String   @id @default(uuid()) @db.Uuid
+  activity_id        String   @db.Uuid
+  member_id          String?  @db.Uuid
+  // Set when the attendee is a youth/child participant tracked via YouthProfile rather than a
+  // full Member record (children often don't have one - see YouthProfile doc comment). Nullable
+  // and additive: every existing Attendance caller is unaffected.
+  youth_profile_id   String?  @db.Uuid
+  recorded_by_name   String?
+  public_checkin_key  String?       @db.VarChar(300)
+  recorded_at        DateTime @default(now())
+  is_confirmed       Boolean  @default(true)
+  fellowship_id      String?  @db.Uuid
+
+  activity           Activity      @relation(fields: [activity_id], references: [id], onDelete: Cascade)
+  member             Member?       @relation(fields: [member_id], references: [id], onDelete: SetNull)
+  youthProfile       YouthProfile? @relation(fields: [youth_profile_id], references: [id], onDelete: SetNull)
+
+  @@index([fellowship_id])
+  @@index([youth_profile_id])
+  // Added in the analytics phase: activity_id is the join key of every per-event query (and of the
+  // ON DELETE CASCADE from activities) but had no index; member_id serves per-member engagement lookups.
+  @@index([activity_id])
+  @@index([member_id])
+  @@map("attendance")
+}
+
+model Report {
+  id                    String         @id @default(uuid()) @db.Uuid
+  department_id         String         @db.Uuid
+  fellowship_id         String?        @db.Uuid
+  title                 String
+  content               String
+  attachments           String[]       @default([])
+  submitted_by          String         @db.Uuid
+  submitted_at          DateTime       @default(now())
+  status                ApprovalStatus @default(DRAFT)
+  approval_workflow_id  String?        @db.Uuid
+  created_at            DateTime       @default(now())
+  updated_at            DateTime       @updatedAt
+
+  @@index([fellowship_id])
+  @@map("reports")
+}
+
+model Announcement {
+  id             String       @id @default(uuid()) @db.Uuid
+  title          String
+  content        String
+  audience_type  AudienceType @default(all_members)
+  department_id  String?      @db.Uuid
+  fellowship_id  String?      @db.Uuid
+  created_by     String       @db.Uuid
+  status         ApprovalStatus @default(DRAFT)
+  created_at     DateTime     @default(now())
+  updated_at     DateTime     @updatedAt
+
+  @@index([fellowship_id])
+  @@map("announcements")
+}
+
+// ---------- Finance ----------
+
+model Contribution {
+  id                    String         @id @default(uuid()) @db.Uuid
+  member_id             String         @db.Uuid
+  fellowship_id         String?        @db.Uuid
+  amount                Decimal        @db.Decimal(12, 2)
+  contribution_type     String
+  date                  DateTime
+  recorded_by           String         @db.Uuid
+  recorded_at           DateTime       @default(now())
+  approval_status       ApprovalStatus @default(FINAL_APPROVED)
+  approval_workflow_id  String?        @db.Uuid
+  campaign_id           String?        @db.Uuid
+  category_id           String?        @db.Uuid
+  // Receipts reuse the existing documents table; a plain scalar (no FK) like the other audit-style
+  // references in this schema, validated at write time.
+  receipt_document_id   String?        @db.Uuid
+  notes                 String?
+  created_at            DateTime       @default(now())
+  updated_at            DateTime       @updatedAt
+
+  member                Member         @relation(fields: [member_id], references: [id], onDelete: Cascade)
+  campaign              ContributionCampaign? @relation(fields: [campaign_id], references: [id], onDelete: SetNull)
+  category              FinanceCategory?      @relation(fields: [category_id], references: [id], onDelete: SetNull)
+
+  @@index([fellowship_id])
+  @@index([member_id, date])
+  @@index([campaign_id])
+  @@map("contributions")
+  // Foreign key without an index (found in the Phase 22 database review): a join or a parent delete scanned the whole table.
+  @@index([category_id])
+}
+
+model Expense {
+  id                    String         @id @default(uuid()) @db.Uuid
+  title                 String
+  description           String?
+  amount                Decimal        @db.Decimal(12, 2)
+  date                  DateTime
+  department_id         String?        @db.Uuid
+  fellowship_id         String?        @db.Uuid
+  recorded_by           String         @db.Uuid
+  purpose               String?
+  category_id           String?        @db.Uuid
+  receipt_document_id   String?        @db.Uuid
+  approval_status       ApprovalStatus @default(DRAFT)
+  approval_workflow_id  String?        @db.Uuid
+  created_at            DateTime       @default(now())
+  updated_at            DateTime       @updatedAt
+
+  category              FinanceCategory? @relation(fields: [category_id], references: [id], onDelete: SetNull)
+
+  @@index([fellowship_id])
+  @@index([department_id, date])
+  @@map("expenses")
+  // Foreign key without an index (found in the Phase 22 database review): a join or a parent delete scanned the whole table.
+  @@index([category_id])
+}
+
+model Budget {
+  id                    String         @id @default(uuid()) @db.Uuid
+  title                 String
+  description           String?
+  amount                Decimal        @db.Decimal(12, 2)
+  department_id         String?        @db.Uuid
+  fellowship_id         String?        @db.Uuid
+  fiscal_year           String
+  created_by            String         @db.Uuid
+  approval_status       ApprovalStatus @default(DRAFT)
+  approval_workflow_id  String?        @db.Uuid
+  created_at            DateTime       @default(now())
+  updated_at            DateTime       @updatedAt
+
+  @@index([fellowship_id])
+  @@map("budgets")
+}
+
+model MoneyRequest {
+  id                    String         @id @default(uuid()) @db.Uuid
+  requester_id          String         @db.Uuid
+  department_id         String?        @db.Uuid
+  fellowship_id         String?        @db.Uuid
+  title                 String
+  description           String?
+  amount                Decimal        @db.Decimal(12, 2)
+  purpose               String
+  approval_status       ApprovalStatus @default(DRAFT)
+  approval_workflow_id  String?        @db.Uuid
+  created_at            DateTime       @default(now())
+  updated_at            DateTime       @updatedAt
+
+  release               MoneyRequestRelease?
+
+  @@index([fellowship_id])
+  @@index([department_id])
+  @@map("money_requests")
+}
+
+// ---------- Advanced finance (Phase 15) ----------
+//
+// Extends - never duplicates - the existing Contribution / Expense / Budget / MoneyRequest tables.
+// Amounts are Decimal(12,2). Fellowship-scoped like every other entity.
+
+model FinanceCategory {
+  id             String                @id @default(uuid()) @db.Uuid
+  fellowship_id  String?               @db.Uuid
+  kind           FinanceCategoryKind
+  name           String
+  is_active      Boolean               @default(true)
+  created_by     String                @db.Uuid
+  created_at     DateTime              @default(now())
+  updated_at     DateTime              @updatedAt
+
+  contributions  Contribution[]
+  expenses       Expense[]
+  income         IncomeRecord[]
+
+  @@unique([fellowship_id, kind, name])
+  @@map("finance_categories")
+}
+
+model ContributionCampaign {
+  id             String         @id @default(uuid()) @db.Uuid
+  fellowship_id  String?        @db.Uuid
+  name           String
+  description    String?
+  target_amount  Decimal?       @db.Decimal(12, 2)
+  start_date     DateTime
+  end_date       DateTime?
+  status         CampaignStatus @default(active)
+  department_id  String?        @db.Uuid
+  created_by     String         @db.Uuid
+  created_at     DateTime       @default(now())
+  updated_at     DateTime       @updatedAt
+
+  contributions  Contribution[]
+  income         IncomeRecord[]
+  pledges        ContributionPledge[]
+
+  @@unique([fellowship_id, name])
+  @@map("contribution_campaigns")
+}
+
+// Income that is not a member contribution (grants, fundraising proceeds, donations, ...).
+model IncomeRecord {
+  id                   String                @id @default(uuid()) @db.Uuid
+  fellowship_id        String?               @db.Uuid
+  title                String
+  description          String?
+  amount               Decimal               @db.Decimal(12, 2)
+  date                 DateTime
+  source               String?
+  category_id          String?               @db.Uuid
+  campaign_id          String?               @db.Uuid
+  department_id        String?               @db.Uuid
+  receipt_document_id  String?               @db.Uuid
+  recorded_by          String                @db.Uuid
+  created_at           DateTime              @default(now())
+  updated_at           DateTime              @updatedAt
+
+  category             FinanceCategory?      @relation(fields: [category_id], references: [id], onDelete: SetNull)
+  campaign             ContributionCampaign? @relation(fields: [campaign_id], references: [id], onDelete: SetNull)
+
+  @@index([fellowship_id, date])
+  @@map("income_records")
+  // Foreign key without an index (found in the Phase 22 database review): a join or a parent delete scanned the whole table.
+  @@index([campaign_id])
+  @@index([category_id])
+}
+
+// A closed period rejects new/edited financial records dated inside it.
+model FinancialPeriod {
+  id             String    @id @default(uuid()) @db.Uuid
+  fellowship_id  String?   @db.Uuid
+  name           String
+  start_date     DateTime
+  end_date       DateTime
+  is_closed      Boolean   @default(false)
+  closed_by      String?   @db.Uuid
+  closed_at      DateTime?
+  created_by     String    @db.Uuid
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+
+  @@index([fellowship_id, start_date])
+  @@map("financial_periods")
+}
+
+// A member's commitment to give. It never creates contributions by itself (nothing records money
+// without a human); it is compared against actual contributions for fulfillment reporting.
+model ContributionPledge {
+  id             String                @id @default(uuid()) @db.Uuid
+  fellowship_id  String?               @db.Uuid
+  member_id      String                @db.Uuid
+  campaign_id    String?               @db.Uuid
+  amount         Decimal               @db.Decimal(12, 2)
+  frequency      PledgeFrequency
+  start_date     DateTime
+  end_date       DateTime?
+  is_active      Boolean               @default(true)
+  notes          String?
+  created_by     String                @db.Uuid
+  created_at     DateTime              @default(now())
+  updated_at     DateTime              @updatedAt
+
+  member         Member                @relation(fields: [member_id], references: [id], onDelete: Cascade)
+  campaign       ContributionCampaign? @relation(fields: [campaign_id], references: [id], onDelete: SetNull)
+
+  @@index([fellowship_id])
+  @@index([member_id])
+  @@map("contribution_pledges")
+  // Foreign key without an index (found in the Phase 22 database review): a join or a parent delete scanned the whole table.
+  @@index([campaign_id])
+}
+
+// The disbursement of an approved money request. money_request_id is UNIQUE: the database itself
+// guarantees a request can be released at most once, even under concurrent attempts.
+model MoneyRequestRelease {
+  id                   String       @id @default(uuid()) @db.Uuid
+  fellowship_id        String?      @db.Uuid
+  money_request_id     String       @unique @db.Uuid
+  amount               Decimal      @db.Decimal(12, 2)
+  method               String
+  reference            String?
+  notes                String?
+  receipt_document_id  String?      @db.Uuid
+  released_by          String       @db.Uuid
+  released_at          DateTime     @default(now())
+
+  money_request        MoneyRequest @relation(fields: [money_request_id], references: [id], onDelete: Restrict)
+
+  @@index([fellowship_id, released_at])
+  @@map("money_request_releases")
+}
+
+// ---------- Resources & assets (Phase 16) ----------
+//
+// Custodians / borrowers are existing Members, ownership is an existing Department, attachments are
+// existing documents (by id), acquisition may reference an existing Expense (by id). Nothing here
+// duplicates people, departments, documents or accounting.
+
+model AssetCategory {
+  id             String   @id @default(uuid()) @db.Uuid
+  fellowship_id  String?  @db.Uuid
+  name           String
+  description    String?
+  is_active      Boolean  @default(true)
+  created_by     String   @db.Uuid
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  assets         Asset[]
+
+  @@unique([fellowship_id, name])
+  @@map("asset_categories")
+}
+
+model AssetLocation {
+  id             String   @id @default(uuid()) @db.Uuid
+  fellowship_id  String?  @db.Uuid
+  name           String
+  description    String?
+  is_active      Boolean  @default(true)
+  created_by     String   @db.Uuid
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  assets         Asset[]
+
+  @@unique([fellowship_id, name])
+  @@map("asset_locations")
+}
+
+model Asset {
+  id                    String         @id @default(uuid()) @db.Uuid
+  fellowship_id         String?        @db.Uuid
+  asset_tag             String
+  name                  String
+  description           String?
+  category_id           String?        @db.Uuid
+  location_id           String?        @db.Uuid
+  serial_number         String?
+  acquisition_date      DateTime?
+  acquisition_cost      Decimal?       @db.Decimal(12, 2)
+  // Optional pointer to the existing Expense that paid for it (validated, same fellowship). No accounting is duplicated.
+  acquisition_expense_id String?       @db.Uuid
+  condition             AssetCondition @default(good)
+  status                AssetStatus    @default(available)
+  // Consumable stock (paper, cleaning supplies): counted, never checked out.
+  is_consumable         Boolean        @default(false)
+  quantity              Int            @default(1)
+  reorder_level         Int?
+  owning_department_id  String?        @db.Uuid
+  custodian_member_id   String?        @db.Uuid
+  notes                 String?
+  retired_at            DateTime?
+  retired_reason        String?
+  created_by            String         @db.Uuid
+  created_at            DateTime       @default(now())
+  updated_at            DateTime       @updatedAt
+
+  category              AssetCategory?  @relation(fields: [category_id], references: [id], onDelete: SetNull)
+  location              AssetLocation?  @relation(fields: [location_id], references: [id], onDelete: SetNull)
+  owning_department     Department?     @relation(fields: [owning_department_id], references: [id], onDelete: SetNull)
+  custodian             Member?         @relation(fields: [custodian_member_id], references: [id], onDelete: SetNull)
+  loans                 AssetLoan[]
+  maintenance           AssetMaintenance[]
+  history               AssetHistory[]
+  documents             AssetDocument[]
+
+  @@unique([fellowship_id, asset_tag])
+  @@index([fellowship_id, status])
+  @@index([owning_department_id])
+  @@index([custodian_member_id])
+  @@index([category_id])
+  @@index([location_id])
+  @@map("assets")
+}
+
+// A temporary loan of an asset to a member. At most one OPEN loan per asset is guaranteed by flipping
+// asset.status available -> checked_out with a conditional write (the flip is the mutex).
+model AssetLoan {
+  id               String          @id @default(uuid()) @db.Uuid
+  fellowship_id    String?         @db.Uuid
+  asset_id         String          @db.Uuid
+  member_id        String          @db.Uuid
+  checked_out_at   DateTime        @default(now())
+  due_date         DateTime?
+  checked_in_at    DateTime?
+  condition_out    AssetCondition
+  condition_in     AssetCondition?
+  checked_out_by   String          @db.Uuid
+  checked_in_by    String?         @db.Uuid
+  notes            String?
+
+  asset            Asset           @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+  member           Member          @relation(fields: [member_id], references: [id], onDelete: Restrict)
+
+  @@index([asset_id, checked_in_at])
+  @@index([member_id, checked_in_at])
+  @@index([fellowship_id, due_date])
+  @@map("asset_loans")
+}
+
+model AssetMaintenance {
+  id                String            @id @default(uuid()) @db.Uuid
+  fellowship_id     String?           @db.Uuid
+  asset_id          String            @db.Uuid
+  type              MaintenanceType
+  status            MaintenanceStatus @default(scheduled)
+  scheduled_for     DateTime
+  started_at        DateTime?
+  completed_at      DateTime?
+  description       String
+  performed_by      String?
+  cost              Decimal?          @db.Decimal(12, 2)
+  condition_after   AssetCondition?
+  notes             String?
+  created_by        String            @db.Uuid
+  created_at        DateTime          @default(now())
+  updated_at        DateTime          @updatedAt
+
+  asset             Asset             @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@index([asset_id, status])
+  @@index([fellowship_id, status, scheduled_for])
+  @@map("asset_maintenance")
+}
+
+// Append-only timeline. There is deliberately no update/delete API for it. References are plain
+// scalars (no FK) so history survives removal of the records it mentions.
+model AssetHistory {
+  id                  String         @id @default(uuid()) @db.Uuid
+  fellowship_id       String?        @db.Uuid
+  asset_id            String         @db.Uuid
+  event_type          AssetEventType
+  actor_id            String?        @db.Uuid
+  member_id           String?        @db.Uuid
+  from_department_id  String?        @db.Uuid
+  to_department_id    String?        @db.Uuid
+  from_location_id    String?        @db.Uuid
+  to_location_id      String?        @db.Uuid
+  from_value          String?
+  to_value            String?
+  note                String?
+  occurred_at         DateTime       @default(now())
+
+  asset               Asset          @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@index([asset_id, occurred_at])
+  @@index([fellowship_id, occurred_at])
+  @@map("asset_history")
+}
+
+model AssetDocument {
+  id            String   @id @default(uuid()) @db.Uuid
+  fellowship_id String?  @db.Uuid
+  asset_id      String   @db.Uuid
+  document_id   String   @db.Uuid
+  label         String?
+  attached_by   String   @db.Uuid
+  created_at    DateTime @default(now())
+
+  asset         Asset    @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@unique([asset_id, document_id])
+  @@map("asset_documents")
+}
+
+// ---------- Volunteer & service management (Phase 17) ----------
+// Volunteering reuses Member (who), Department (scope), Activity (optional event link) and the notification
+// engine. It only adds what did not exist: configurable roles, opportunities, dated shifts and assignments.
+
+enum ServiceOpportunityStatus {
+  draft
+  open
+  closed
+  cancelled
+}
+
+enum ServiceShiftStatus {
+  scheduled
+  cancelled
+}
+
+enum ServiceAssignmentStatus {
+  applied
+  confirmed
+  rejected
+  withdrawn
+  cancelled
+  attended
+  no_show
+}
+
+model ServiceRole {
+  id               String    @id @default(uuid()) @db.Uuid
+  fellowship_id    String?   @db.Uuid
+  name             String
+  description      String?
+  required_skills  String[]  @default([])
+  is_active        Boolean   @default(true)
+  created_by       String    @db.Uuid
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+
+  shifts           ServiceShift[]
+
+  @@unique([fellowship_id, name])
+  @@map("service_roles")
+}
+
+model ServiceOpportunity {
+  id                     String                    @id @default(uuid()) @db.Uuid
+  fellowship_id          String?                   @db.Uuid
+  department_id          String?                   @db.Uuid
+  title                  String
+  description            String?
+  location               String?
+  coordinator_member_id  String?                   @db.Uuid
+  status                 ServiceOpportunityStatus  @default(draft)
+  created_by             String                    @db.Uuid
+  created_at             DateTime                  @default(now())
+  updated_at             DateTime                  @updatedAt
+
+  department             Department?               @relation(fields: [department_id], references: [id], onDelete: SetNull)
+  coordinator            Member?                   @relation(fields: [coordinator_member_id], references: [id], onDelete: SetNull)
+  shifts                 ServiceShift[]
+
+  @@index([fellowship_id, status])
+  @@index([department_id])
+  @@index([coordinator_member_id])
+  @@map("service_opportunities")
+}
+
+model ServiceShift {
+  id              String             @id @default(uuid()) @db.Uuid
+  fellowship_id   String?            @db.Uuid
+  opportunity_id  String             @db.Uuid
+  role_id         String?            @db.Uuid
+  starts_at       DateTime
+  ends_at         DateTime
+  location        String?
+  capacity        Int                @default(1)
+  activity_id     String?            @db.Uuid
+  status          ServiceShiftStatus @default(scheduled)
+  notes           String?
+  created_by      String             @db.Uuid
+  created_at      DateTime           @default(now())
+  updated_at      DateTime           @updatedAt
+
+  opportunity     ServiceOpportunity @relation(fields: [opportunity_id], references: [id], onDelete: Cascade)
+  role            ServiceRole?       @relation(fields: [role_id], references: [id], onDelete: SetNull)
+  activity        Activity?          @relation(fields: [activity_id], references: [id], onDelete: SetNull)
+  assignments     ServiceAssignment[]
+
+  @@index([opportunity_id, starts_at])
+  @@index([fellowship_id, starts_at])
+  @@map("service_shifts")
+  // Foreign key without an index (found in the Phase 22 database review): a join or a parent delete scanned the whole table.
+  @@index([activity_id])
+  @@index([role_id])
+}
+
+// One row per (shift, member). A withdrawn row may be re-activated; every other terminal state is final,
+// so the row doubles as the member's service history.
+model ServiceAssignment {
+  id             String                   @id @default(uuid()) @db.Uuid
+  fellowship_id  String?                  @db.Uuid
+  shift_id       String                   @db.Uuid
+  member_id      String                   @db.Uuid
+  status         ServiceAssignmentStatus
+  note           String?
+  decided_by     String?                  @db.Uuid
+  decided_at     DateTime?
+  created_by     String                   @db.Uuid
+  created_at     DateTime                 @default(now())
+  updated_at     DateTime                 @updatedAt
+
+  shift          ServiceShift             @relation(fields: [shift_id], references: [id], onDelete: Cascade)
+  member         Member                   @relation(fields: [member_id], references: [id], onDelete: Restrict)
+
+  @@unique([shift_id, member_id])
+  @@index([member_id, status])
+  @@index([fellowship_id, status])
+  @@map("service_assignments")
+}
+
+// ---------- SaaS billing (Phase 20) ----------
+// FEMS's own subscription billing for a fellowship (the tenant). It is a completely separate domain from the
+// fellowship's Finance module: nothing here reads or writes contributions, income, expenses, budgets or
+// money requests, and nothing in Finance reads these tables. No card or bank details are ever stored.
+
+enum SaasBillingInterval {
+  month
+  year
+}
+
+// trialing -> active -> past_due -> expired, and cancelled. Access (authentication/RBAC) is never decided
+// here; the status only decides which optional modules and limits the plan entitles the fellowship to.
+enum SaasSubscriptionStatus {
+  trialing
+  active
+  past_due
+  cancelled
+  expired
+}
+
+enum SaasInvoiceStatus {
+  open
+  paid
+  void
+}
+
+enum SaasWebhookStatus {
+  received
+  processed
+  failed
+}
+
+model SaasPlan {
+  id                String              @id @default(uuid()) @db.Uuid
+  code              String              @unique
+  name              String
+  description       String?
+  price_amount      Decimal             @default(0) @db.Decimal(12, 2)
+  currency          String              @default("USD")
+  billing_interval  SaasBillingInterval @default(month)
+  trial_days        Int                 @default(0)
+  // Optional modules included in the plan (see shared/modules/modules.ts) and numeric limits
+  // (see shared/billing/plan-config.ts). An absent limit means unlimited.
+  modules           String[]            @default([])
+  limits            Json                @default("{}")
+  is_active         Boolean             @default(true)
+  created_by        String              @db.Uuid
+  created_at        DateTime            @default(now())
+  updated_at        DateTime            @updatedAt
+
+  subscriptions     SaasSubscription[]
+
+  @@map("saas_plans")
+}
+
+// One current subscription per fellowship. A fellowship WITHOUT a row is "unmanaged" (no plan enforcement),
+// which keeps every tenant that pre-dates billing working exactly as before.
+model SaasSubscription {
+  id                        String                  @id @default(uuid()) @db.Uuid
+  fellowship_id             String                  @unique @db.Uuid
+  plan_id                   String                  @db.Uuid
+  status                    SaasSubscriptionStatus
+  trial_ends_at             DateTime?
+  current_period_start      DateTime?
+  current_period_end        DateTime?
+  cancel_at_period_end      Boolean                 @default(false)
+  cancelled_at              DateTime?
+  past_due_since            DateTime?
+  // Reserved for a payment provider adapter (none is configured): opaque references only.
+  provider                  String?
+  provider_customer_ref     String?
+  provider_subscription_ref String?
+  created_by                String                  @db.Uuid
+  created_at                DateTime                @default(now())
+  updated_at                DateTime                @updatedAt
+
+  fellowship                Fellowship              @relation(fields: [fellowship_id], references: [id], onDelete: Cascade)
+  plan                      SaasPlan                @relation(fields: [plan_id], references: [id], onDelete: Restrict)
+  invoices                  SaasInvoice[]
+
+  @@index([status])
+  @@map("saas_subscriptions")
+  // Foreign key without an index (found in the Phase 22 database review): a join or a parent delete scanned the whole table.
+  @@index([plan_id])
+}
+
+model SaasInvoice {
+  id                String            @id @default(uuid()) @db.Uuid
+  number_seq        Int               @unique @default(autoincrement())
+  fellowship_id     String            @db.Uuid
+  subscription_id   String            @db.Uuid
+  // The plan's name and price are copied at issue time so later plan edits never change an invoice.
+  plan_name         String
+  description       String?
+  amount            Decimal           @db.Decimal(12, 2)
+  currency          String
+  period_start      DateTime
+  period_end        DateTime
+  status            SaasInvoiceStatus @default(open)
+  issued_at         DateTime          @default(now())
+  due_at            DateTime
+  paid_at           DateTime?
+  payment_method    String?
+  payment_reference String?
+  voided_at         DateTime?
+  void_reason       String?
+  created_by        String            @db.Uuid
+
+  fellowship        Fellowship        @relation(fields: [fellowship_id], references: [id], onDelete: Cascade)
+  subscription      SaasSubscription  @relation(fields: [subscription_id], references: [id], onDelete: Cascade)
+
+  @@index([fellowship_id, status])
+  @@index([status, due_at])
+  @@map("saas_invoices")
+  // Foreign key without an index (found in the Phase 22 database review): a join or a parent delete scanned the whole table.
+  @@index([subscription_id])
+}
+
+// Append-only subscription history.
+model SaasSubscriptionEvent {
+  id                String                  @id @default(uuid()) @db.Uuid
+  fellowship_id     String                  @db.Uuid
+  event_type        String
+  from_status       SaasSubscriptionStatus?
+  to_status         SaasSubscriptionStatus?
+  from_plan_id      String?                 @db.Uuid
+  to_plan_id        String?                 @db.Uuid
+  actor_id          String?                 @db.Uuid
+  note              String?
+  provider_event_id String?
+  occurred_at       DateTime                @default(now())
+
+  @@index([fellowship_id, occurred_at])
+  @@map("saas_subscription_events")
+}
+
+// Inbound provider notifications. (provider, event_id) is unique, which is what makes processing idempotent.
+model SaasWebhookEvent {
+  id            String            @id @default(uuid()) @db.Uuid
+  provider      String
+  event_id      String
+  event_type    String
+  payload_hash  String
+  status        SaasWebhookStatus @default(received)
+  error         String?
+  fellowship_id String?           @db.Uuid
+  received_at   DateTime          @default(now())
+  processed_at  DateTime?
+
+  @@unique([provider, event_id])
+  @@map("saas_webhook_events")
+}
+
+// ---------- Offline attendance sync (Phase 21) ----------
+// Idempotency ledger for attendance captured offline. The client gives every recorded check-in a UUID
+// ("operation id"); (user_id, op_id) is UNIQUE, so replaying the same sync can never record it twice.
+// It carries no names or other personal data.
+model AttendanceSyncOp {
+  id           String   @id @default(uuid()) @db.Uuid
+  user_id      String   @db.Uuid
+  op_id        String   @db.Uuid
+  activity_id  String   @db.Uuid
+  member_id    String   @db.Uuid
+  result       String
+  created_at   DateTime @default(now())
+
+  @@unique([user_id, op_id])
+  @@index([activity_id])
+  @@map("attendance_sync_ops")
+}
+
+// ---------- Approval engine ----------
+
+model Approval {
+  id             String         @id @default(uuid()) @db.Uuid
+  workflow_type  String
+  entity_id      String         @db.Uuid
+  entity_type    String
+  fellowship_id  String?        @db.Uuid
+  metadata       Json?
+  current_stage  Int            @default(0)
+  status         ApprovalStatus @default(DRAFT)
+  created_by     String         @db.Uuid
+  created_at     DateTime       @default(now())
+  updated_at     DateTime       @updatedAt
+
+  steps          ApprovalStep[]
+
+  @@index([entity_id, workflow_type])
+  @@index([fellowship_id])
+  @@map("approvals")
+}
+
+model ApprovalStep {
+  id                 String             @id @default(uuid()) @db.Uuid
+  approval_id        String             @db.Uuid
+  stage_order        Int
+  approver_role      String
+  approver_user_id   String?            @db.Uuid
+  status             ApprovalStepStatus @default(pending)
+  comment            String?
+  acted_at           DateTime?
+  acted_by           String?            @db.Uuid
+
+  approval           Approval           @relation(fields: [approval_id], references: [id], onDelete: Cascade)
+
+  @@map("approval_steps")
+  // Foreign key without an index (found in the Phase 22 database review): a join or a parent delete scanned the whole table.
+  @@index([approval_id])
+}
+
+// ---------- IT Content ----------
+
+model DocumentEntity {
+  id                    String         @id @default(uuid()) @db.Uuid
+  title                 String
+  filename              String
+  stored_filename       String
+  file_size             Int
+  mime_type             String
+  department_id         String?        @db.Uuid
+  fellowship_id         String?        @db.Uuid
+  uploaded_by            String        @db.Uuid
+  uploaded_at            DateTime      @default(now())
+  approval_status       ApprovalStatus @default(DRAFT)
+  approval_workflow_id  String?        @db.Uuid
+  is_website_content    Boolean        @default(false)
+  created_at            DateTime       @default(now())
+  updated_at            DateTime       @updatedAt
+
+  @@index([fellowship_id])
+  @@map("documents")
+}
+
+model Comment {
+  id           String   @id @default(uuid()) @db.Uuid
+  author_id    String   @db.Uuid
+  content      String
+  entity_type  String
+  entity_id    String   @db.Uuid
+  fellowship_id String?  @db.Uuid
+  is_internal  Boolean  @default(false)
+  created_at   DateTime @default(now())
+
+  @@index([fellowship_id])
+  @@map("comments")
+}
+
+model LeadershipHistory {
+  id             String    @id @default(uuid()) @db.Uuid
+  user_id        String    @db.Uuid
+  role_name      String
+  department_id  String?   @db.Uuid
+  fellowship_id  String?   @db.Uuid
+  start_date     DateTime  @default(now())
+  end_date       DateTime?
+  assigned_by    String?   @db.Uuid
+
+  @@index([fellowship_id])
+  @@map("leadership_history")
+}
+
+// ---------- Youth & Children ----------
+//
+// Deliberately does NOT reuse Member for youth/child participants: Member requires
+// expected_graduation_year/expected_graduation_month (campus-fellowship semantics that don't
+// apply to children) and has no age/guardian concept. YouthProfile.member_id stays nullable+
+// unique so an older "youth" who is also a registered adult-style Member can still be linked.
+// Programs/meetings/attendance-recording UI intentionally reuse Activity/Attendance as-is
+// (no new "program" entity) - see ARCHITECTURE.md's Youth & Children section.
+
+model AgeGroup {
+  id             String   @id @default(uuid()) @db.Uuid
+  fellowship_id  String?  @db.Uuid
+  name           String
+  min_age        Int
+  max_age        Int
+  description    String?
+  is_active      Boolean  @default(true)
+  display_order  Int      @default(0)
+  created_by     String   @db.Uuid
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  youthProfiles  YouthProfile[]
+
+  @@index([fellowship_id])
+  @@map("age_groups")
+}
+
+model YouthProfile {
+  id             String           @id @default(uuid()) @db.Uuid
+  fellowship_id  String?          @db.Uuid
+  member_id      String?          @unique @db.Uuid
+  full_name      String
+  date_of_birth  DateTime
+  gender         String?
+  age_group_id   String?          @db.Uuid
+  department_id  String?          @db.Uuid
+  status         MembershipStatus @default(active)
+  // Safeguarding-restricted free text; stripped by the service layer for callers without
+  // youth.safeguarding_view. See YouthGuardian for guardian relationships.
+  notes          String?
+  created_by     String           @db.Uuid
+  created_at     DateTime         @default(now())
+  updated_at     DateTime         @updatedAt
+
+  member         Member?          @relation(fields: [member_id], references: [id], onDelete: SetNull)
+  ageGroup       AgeGroup?        @relation(fields: [age_group_id], references: [id], onDelete: SetNull)
+  department     Department?      @relation(fields: [department_id], references: [id], onDelete: SetNull)
+  guardians      YouthGuardian[]
+  attendances    Attendance[]
+
+  @@index([fellowship_id])
+  @@index([department_id])
+  @@index([age_group_id])
+  @@map("youth_profiles")
+}
+
+model YouthGuardian {
+  id                  String   @id @default(uuid()) @db.Uuid
+  fellowship_id       String?  @db.Uuid
+  youth_id            String   @db.Uuid
+  // Guardians must be an existing fellowship Member (spec: don't create a parallel person table).
+  guardian_member_id  String   @db.Uuid
+  relationship_type   String
+  is_primary          Boolean  @default(false)
+  consent_status      String   @default("granted")
+  created_by          String   @db.Uuid
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  youth               YouthProfile @relation(fields: [youth_id], references: [id], onDelete: Cascade)
+  guardianMember      Member       @relation(fields: [guardian_member_id], references: [id], onDelete: Cascade)
+
+  @@unique([youth_id, guardian_member_id])
+  @@index([fellowship_id])
+  @@index([guardian_member_id])
+  @@map("youth_guardians")
+}
+
+// ---------- Member engagement ----------
+//
+// Sensitive/enrichment data lives in MemberProfile (1:1), NOT as new columns on Member, because
+// the existing GET /members endpoints return raw Member rows to department/gender leaders - any
+// sensitive column added to Member would leak through them immediately.
+
+model MemberProfile {
+  id                              String   @id @default(uuid()) @db.Uuid
+  member_id                       String   @unique @db.Uuid
+  fellowship_id                   String?  @db.Uuid
+  occupation                      String?
+  membership_date                 DateTime?
+  skills                          String[] @default([])
+  interests                       String[] @default([])
+  service_interests               String[] @default([])
+  preferred_channels              String[] @default([])
+  emergency_contact_name          String?
+  emergency_contact_phone         String?
+  emergency_contact_relationship  String?
+  updated_by                      String?  @db.Uuid
+  created_at                      DateTime @default(now())
+  updated_at                      DateTime @updatedAt
+
+  member                          Member   @relation(fields: [member_id], references: [id], onDelete: Cascade)
+
+  @@index([fellowship_id])
+  @@map("member_profiles")
+}
+
+// Auditable membership timeline. department_id / related_department_id are deliberately plain
+// UUID scalars (no FK): history must survive removal of the records it refers to.
+model MembershipHistory {
+  id                     String              @id @default(uuid()) @db.Uuid
+  member_id              String              @db.Uuid
+  fellowship_id          String?             @db.Uuid
+  event_type             MembershipEventType
+  from_status            MembershipStatus?
+  to_status              MembershipStatus?
+  department_id          String?             @db.Uuid
+  related_department_id  String?             @db.Uuid
+  reason                 String?
+  recorded_by            String?             @db.Uuid
+  occurred_at            DateTime            @default(now())
+
+  member                 Member              @relation(fields: [member_id], references: [id], onDelete: Cascade)
+
+  @@index([member_id, occurred_at])
+  @@index([fellowship_id, occurred_at])
+  @@map("membership_history")
+}
+
+model MemberGroup {
+  id             String   @id @default(uuid()) @db.Uuid
+  fellowship_id  String?  @db.Uuid
+  name           String
+  description    String?
+  is_active      Boolean  @default(true)
+  created_by     String   @db.Uuid
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  members        MemberGroupMember[]
+
+  @@unique([fellowship_id, name])
+  @@map("member_groups")
+}
+
+model MemberGroupMember {
+  id             String      @id @default(uuid()) @db.Uuid
+  group_id       String      @db.Uuid
+  member_id      String      @db.Uuid
+  fellowship_id  String?     @db.Uuid
+  joined_at      DateTime    @default(now())
+  added_by       String?     @db.Uuid
+
+  group          MemberGroup @relation(fields: [group_id], references: [id], onDelete: Cascade)
+  member         Member      @relation(fields: [member_id], references: [id], onDelete: Cascade)
+
+  @@unique([group_id, member_id])
+  @@index([member_id])
+  @@index([fellowship_id])
+  @@map("member_group_members")
+}
+
+// ---------- Backups ----------
+
+model Backup {
+  id                 String                @id @default(uuid()) @db.Uuid
+  created_by         String                @db.Uuid
+  created_at         DateTime              @default(now())
+  file_path          String
+  file_size          Int
+  storage_location   BackupStorageLocation
+  status             BackupStatus          @default(success)
+  is_incremental     Boolean               @default(false)
+  is_safety_backup   Boolean               @default(false)
+  restored_from      String?               @db.Uuid
+
+  @@map("backups")
+}
+
+// ---------- Notifications ----------
+
+model Notification {
+  id                  String   @id @default(uuid()) @db.Uuid
+  recipient_user_id   String   @db.Uuid
+  event_type          String
+  title                String
+  message              String
+  entity_type          String?
+  entity_id            String?  @db.Uuid
+  is_read              Boolean  @default(false)
+  actor_user_id        String?  @db.Uuid
+  fellowship_id        String?  @db.Uuid
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  actor                User?    @relation("NotificationActor", fields: [actor_user_id], references: [id], onDelete: SetNull)
+
+  @@index([recipient_user_id, is_read, created_at])
+  @@index([fellowship_id])
+  @@map("notifications")
+  // Foreign key without an index (found in the Phase 22 database review): a join or a parent delete scanned the whole table.
+  @@index([actor_user_id])
+}
+
+// ---------- Audit & System ----------
+
+model AuditLog {
+  id                          String   @id @default(uuid()) @db.Uuid
+  user_id                     String?  @db.Uuid
+  action                      String
+  entity_type                 String?
+  entity_id                   String?  @db.Uuid
+  timestamp                   DateTime @default(now())
+  old_value                   Json?
+  new_value                   Json?
+  ip_address                  String?
+  device_info                 String?
+  approval_info               Json?
+  comment                     String?
+  impersonation_session_id    String?  @db.Uuid
+  // The tenant the entry belongs to (the actor's fellowship, or the fellowship a platform action was taken on).
+  // Null for platform-level entries. Tenant audit views filter on it.
+  fellowship_id               String?  @db.Uuid
+
+  @@index([timestamp])
+  @@index([user_id])
+  @@index([fellowship_id, timestamp])
+  @@map("audit_logs")
+}
+
+model ImpersonationSession {
+  id              String              @id @default(uuid()) @db.Uuid
+  admin_user_id   String              @db.Uuid
+  target_user_id  String              @db.Uuid
+  approval_token  String
+  status          ImpersonationStatus @default(requested)
+  requested_at    DateTime            @default(now())
+  approved_at     DateTime?
+  started_at      DateTime?
+  expires_at      DateTime?
+  ended_at        DateTime?
+  created_at      DateTime            @default(now())
+  updated_at      DateTime            @updatedAt
+
+  // Why the platform needed to act as this person, and who they acted as. Both are kept on the record so the
+  // fellowship can be told afterwards even if the account is later removed. The client's own identity is never
+  // stored here beyond the target id, and `approval_token` is unused while approval is not required - it is
+  // kept for the one-time-code step, which needs no schema change.
+  reason          String?
+  target_email    String?
+  fellowship_id   String?             @db.Uuid
+  revoked_at      DateTime?
+  ended_by        String?             @db.Uuid
+  end_reason      String?
+
+  @@index([admin_user_id, status])
+  @@index([target_user_id, status])
+  @@index([fellowship_id, status])
+  @@index([expires_at])
+  @@map("impersonation_sessions")
+}
+
+model DeletedRecord {
+  id                   String   @id @default(uuid()) @db.Uuid
+  original_collection  String
+  original_record_id   String   @db.Uuid
+  original_data        Json
+  deleted_by           String   @db.Uuid
+  deleted_at           DateTime @default(now())
+  restore_token        String   @unique
+  // The fellowship the deleted record belonged to. Missing before Phase 22, which let any secretary list, discard
+  // or "restore" every fellowship's deleted records.
+  fellowship_id        String?  @db.Uuid
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  @@index([deleted_at])
+  @@index([fellowship_id, deleted_at])
+  @@map("deleted_records")
+}
+
+// ---------- Public sites ----------
+
+// The fellowship's own identity on its public site: the name shown in the header, the story on "About Us", and the
+// ways a visitor can reach it. Separate from `fellowships` on purpose - the operational record is the platform's
+// business, this is marketing copy the IT administrator owns, and editing one must never disturb the other.
+model PublicProfile {
+  fellowship_id String @db.Uuid
+  tagline       String?
+  story         String?  // "About Us" body
+  mission       String?
+  vision        String?
+  // Contact details a visitor can use. Deliberately nullable: a fellowship that has not published an address yet
+  // simply shows no address, and the page falls back to the platform's own "get started" route.
+  email         String?
+  phone         String?
+  address       String?
+  service_times String?
+  facebook_url  String?
+  youtube_url   String?
+  whatsapp_url  String?
+  updated_by    String?  @db.Uuid
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  fellowship Fellowship @relation(fields: [fellowship_id], references: [id], onDelete: Cascade)
+
+  @@id([fellowship_id])
+  @@map("public_profiles")
+}
+
+// The editable introduction of one landing page - the heading and paragraph above the list. The list itself is
+// read from the operational tables (departments, programmes, events, news), so publishing a department on the
+// landing page needs no second copy of it here.
+enum PublicPageKey {
+  home
+  about
+  leadership
+  departments
+  ministries
+  events
+  publications
+  news
+  gallery
+  sermons
+  testimonies
+  projects
+  get_involved
+  prayer
+  give
+  contact
+}
+
+model PublicPage {
+  fellowship_id String        @db.Uuid
+  key          PublicPageKey
+  title        String
+  subtitle     String?
+  body         String?
+  // A page may be hidden from the navigation without its content being deleted (e.g. a fellowship that does not
+  // run a gallery yet). The route still resolves, so an old link does not 404.
+  is_visible   Boolean       @default(true)
+  updated_by   String?       @db.Uuid
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @updatedAt
+
+  fellowship Fellowship @relation(fields: [fellowship_id], references: [id], onDelete: Cascade)
+
+  @@id([fellowship_id, key])
+  @@map("public_pages")
+}
+
+// Editorial items the operational tables have no home for: a sermon, a testimony, a project. One table with a
+// discriminator rather than three, because they are edited, ordered and unpublished identically.
+enum PublicPostKind {
+  sermon
+  testimony
+  project
+}
+
+model PublicPost {
+  id            String         @id @default(uuid()) @db.Uuid
+  fellowship_id String         @db.Uuid
+  kind          PublicPostKind
+  title         String
+  body          String?
+  reference     String?        // scripture or scripture reference, for a sermon
+  attribution   String?        // who said it, for a testimony
+  media_url     String?
+  // When the sermon was preached or the project happened. Null means "not a dated item", which sorts last.
+  happens_at    DateTime?
+  // Publication is explicit and off by default: an item is written first and only becomes visible once somebody
+  // with permission publishes it, so a draft can never leak onto the public site.
+  is_published  Boolean        @default(false)
+  sort_order    Int            @default(0)
+  created_by    String         @db.Uuid
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+
+  fellowship Fellowship @relation(fields: [fellowship_id], references: [id], onDelete: Cascade)
+
+  @@index([fellowship_id, kind, is_published])
+  @@map("public_posts")
+}
+
+// Anything a visitor sends through the public site: a prayer request, a contact message, or an intent to give.
+// Stored so the fellowship can actually read and answer it. There is no payment gateway, so `donation_pledge`
+// records an intention and an amount only - it never claims money was received.
+enum PublicEnquiryKind {
+  prayer_request
+  contact_message
+  donation_pledge
+}
+
+model PublicEnquiry {
+  id            String           @id @default(uuid()) @db.Uuid
+  fellowship_id String           @db.Uuid
+  kind          PublicEnquiryKind
+  name          String
+  email         String?
+  phone         String?
+  message       String
+  amount        Decimal?         @db.Decimal(12, 2)
+  currency      String?          @default("USD")
+  // There is deliberately NO "is_private" flag. An earlier version had one that the client set, which meant any
+  // visitor could mark a prayer request publishable; nothing ever read it publicly, so it was a promise the code
+  // did not keep. A prayer request is private because there is no public route that can reach one - the content
+  // manager's inbox is the only reader, and it is behind the tenant check.
+  is_handled    Boolean          @default(false)
+  handled_by    String?          @db.Uuid
+  handled_at    DateTime?
+  submitted_ip  String?
+  created_at    DateTime         @default(now())
+
+  fellowship Fellowship @relation(fields: [fellowship_id], references: [id], onDelete: Cascade)
+
+  @@index([fellowship_id, kind, created_at])
+  @@index([fellowship_id, is_handled])
+  @@map("public_enquiries")
+}
