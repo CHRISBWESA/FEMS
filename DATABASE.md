@@ -1,5 +1,7 @@
 # Fellowship Management System - Database Design
 
+> **Current-state note (Phase 23):** `backend/prisma/schema.prisma` and `backend/prisma/migrations/` are authoritative. The tables below are the original relational design and omit later Phase 14-23 entities, tenant columns, workflow fields, and constraints. Do not use this document to create or alter a database; follow [DATABASE_MIGRATION_GUIDE.md](DATABASE_MIGRATION_GUIDE.md).
+
 ## 1. Database Schema
 
 ### 1.1 Core Tables

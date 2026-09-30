@@ -1,5 +1,7 @@
 # Fellowship Management System - Key Architecture Decisions
 
+> **Current-state note (Phase 23):** several early decisions below are superseded by the implemented system. Authentication is stateless bearer JWTs in browser storage, not HttpOnly-cookie sessions; impersonation is retired in favor of scoped support access; recycle-bin purge, scheduled backups, and automatic graduation are not schedulers in this repository; uploaded file bytes are not persisted. See [FINAL_ARCHITECTURE_STATUS.md](FINAL_ARCHITECTURE_STATUS.md) and [SECURITY.md](SECURITY.md).
+
 ## 1. Tech Stack Choice
 
 **Decision**: Backend = NestJS (Node.js TypeScript), Frontend = React + Vite PWA, DB = PostgreSQL, ORM = Prisma
@@ -89,3 +91,13 @@
 
 **Decision**: Treasurer requests edit/delete; requires Secretary + Chairperson approval (not just one)
 **Rationale**: Requirement: "Treasurer can edit/delete contribution records only with required approval from Secretary + Chairperson." Uses established approval mechanism.
+
+## 19. Database Engine Correction (Mongoose → Prisma/PostgreSQL)
+
+**Decision**: Migrated the backend's persistence layer from MongoDB/Mongoose back to PostgreSQL/Prisma, matching Decision #1.
+**Rationale**: The backend that was actually implemented (`backend/src`) used `@nestjs/mongoose` against MongoDB, diverging from Decision #1 without ever being recorded here — an undocumented drift. The user asked to run the app against a local Supabase (Postgres) stack via Docker, which required Postgres regardless, so this migration both restores the originally documented architecture and unblocks that request.
+**Implementation notes**:
+- Schema lives in `backend/prisma/schema.prisma`, modeled on `DATABASE.md`'s relational design, with two deliberate simplifications versus that doc: `User.roles`/`User.permissions` stay as Postgres `text[]` columns rather than `user_roles`/`role_permissions` junction tables (avoids rewriting every RBAC guard as a side effect); "audit stamp" foreign keys (`created_by`, `recorded_by`, `approver_user_id`, etc.) are plain scalar UUID columns without an enforced FK constraint, matching Mongoose's `ref:` (a population hint, never enforced) rather than introducing new FK-violation failure modes.
+- The three embedded Mongoose subdocument arrays (`Member.departments`, `Department.leaders`, `Approval.steps`) were normalized into real child tables (`department_members`, `department_leaders`, `approval_steps`).
+- Local dev database is a self-hosted Supabase stack run via the Supabase CLI (`supabase start`, Docker-backed), not the production self-hosting docker-compose — see README.md Quick Start.
+- Scope was deliberately bounded to the storage layer only: the existing custom JWT/passport authentication and local-filesystem file uploads were left unchanged. Supabase's Auth/Storage/Realtime containers run alongside Postgres but the app does not call them.

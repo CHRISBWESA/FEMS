@@ -1,5 +1,7 @@
 # Fellowship Management System - API Specification
 
+> **Current-state note (Phase 23):** routes below are historical intent where they differ from registered controllers. Authentication is `Authorization: Bearer` (not cookies), `/auth/register` and impersonation routes are not public features, `/backups` create/restore and `/it-content/documents/:id/request-delete` return `409`, `/recycle-bin/:id/restore` returns `409` and listings omit `originalData`, `/system/settings` and `POST /it-content/gallery` do not exist, and health probes are `/api/v1/health/live` and `/api/v1/health/ready`. Verify a route in the current NestJS controllers before relying on this document.
+
 ## Base URL
 `/api/v1`
 
@@ -382,10 +384,7 @@ Request: { "decision": "approved|rejected", "comment" }
 ```
 
 ### POST `/it-content/documents/:id/request-delete`
-Request deletion (IT department members).
-```json
-Request: { "reason": "string" }
-```
+Returns `409 Conflict` with `code: OPERATION_UNAVAILABLE`; it does not create an approval that cannot delete the document.
 
 ### GET `/it-content/announcements`
 List announcements (Secretary, Assistant Secretary, approved viewers).
@@ -411,11 +410,7 @@ List gallery images (IT department, approved viewers).
 Response: [{ "id", "title", "filename", ... }]
 ```
 
-### POST `/it-content/gallery`
-Upload gallery image (IT department).
-```json
-Request: multipart/form-data { "title", "file" }
-```
+Gallery images are uploaded through `POST /it-content/documents` with `isWebsiteContent=true` and an image content type. There is no separate gallery upload route.
 
 ## 10. Notifications
 
@@ -446,7 +441,7 @@ Response: { "count": number }
 ## 11. Audit
 
 ### GET `/audit`
-List audit logs (Admin, Secretary, Chairperson).
+List audit logs (Admin, Secretary, Chairperson, Assistant Chairperson).
 Query: `userId`, `action`, `entityType`, `from`, `to`, `page`, `limit`.
 ```json
 Response: [{ "id", "userId", "action", "entityType", "entityId", "timestamp", "oldValue", "newValue", "ipAddress", "comment" }]
@@ -455,57 +450,34 @@ Response: [{ "id", "userId", "action", "entityType", "entityId", "timestamp", "o
 ## 12. Recycle Bin
 
 ### GET `/recycle-bin`
-List deleted records (Admin, Secretary, Assistant Secretary).
+List same-fellowship deleted-record metadata (Secretary, Assistant Secretary). Original record data and restore tokens are never returned; platform administrators do not have this route.
 ```json
-Response: [{ "id", "originalTable", "originalRecordId", "deletedBy", "deletedAt", "originalData" }]
+Response: [{ "id", "original_collection", "original_record_id", "deleted_by", "deleted_at", "fellowship_id" }]
 ```
 
 ### POST `/recycle-bin/:id/restore`
-Restore deleted record (Admin, Secretary, Assistant Secretary).
-```json
-Response: { "message": "Record restored" }
-```
+Always returns `409 Conflict` (`OPERATION_UNAVAILABLE`). The recycle-bin copy is retained; no restore is claimed.
 
 ### DELETE `/recycle-bin/:id`
-Permanently delete (Admin, Secretary).
-```json
-Response: { "message": "Permanently deleted" }
-```
+Permanently delete a same-fellowship record (Secretary only; audited).
 
 ## 13. Backups
 
 ### GET `/backups`
-List backups (Admin, Secretary, Assistant Secretary).
-```json
-Response: [{ "id", "createdAt", "fileSize", "storageLocation", "status" }]
-```
+Legacy backup metadata only (platform administrator). Internal file paths are omitted.
+
+### GET `/backups/stats`
+Reports `applicationBackup: false`, `scheduledBackup: false`, `verifiedRestore: false` and points to the external procedure.
 
 ### POST `/backups`
-Create manual backup (Admin, Secretary).
-```json
-Response: { "backupId": "uuid", "message": "Backup started" }
-```
+Always returns `409 Conflict` (`OPERATION_UNAVAILABLE`); FEMS does not run `pg_dump`.
 
 ### POST `/backups/:id/restore`
-Restore from backup (Admin, Secretary, Assistant Secretary).
-```json
-Request: { "confirmSafetyBackup": boolean }
-Response: { "message": "Restore started", "safetyBackupId": "uuid" }
-```
+Always returns `409 Conflict` (`OPERATION_UNAVAILABLE`); restore a verified dump into a new database using `BACKUP_RESTORE_GUIDE.md`.
 
 ## 14. System
 
-### GET `/system/settings`
-Get system settings (Admin only).
-```json
-Response: { "backupIntervalHours": 12, "recycleBinRetentionDays": 30, ... }
-```
-
-### PUT `/system/settings`
-Update system settings (Admin only).
-```json
-Request: { "backupIntervalHours"?: number, "recycleBinRetentionDays"?: number, ... }
-```
+No `/system` controller or settings registry is implemented in the current backend. Platform module/tenant settings are under `/platform/tenants/:id`; environment settings are documented in `ENVIRONMENT_CONFIGURATION.md`.
 
 ## Error Responses
 

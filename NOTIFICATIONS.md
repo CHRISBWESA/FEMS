@@ -1,5 +1,7 @@
 # Fellowship Management System - Notifications & Events
 
+> **Historical design reference.** In-app notifications are implemented, but e-mail/SMS/push delivery and the described IT document-deletion notification flow are not. Unfinished deletion flows now return `409`; see [FINAL_ARCHITECTURE_STATUS.md](FINAL_ARCHITECTURE_STATUS.md).
+
 ## 1. Notification Engine
 
 In-app notification system. All notifications are stored in the `notifications` table and displayed in UI.

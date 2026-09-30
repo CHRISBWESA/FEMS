@@ -3,12 +3,22 @@ node_modules/
 
 # Environment
 .env
-.env.local
+.env.*
+!.env.example
 
 # Build output
 dist/
 build/
 .next/
+
+# File storage and database backups (UPLOAD_DIR / BACKUP_DIR default here).
+# Runtime artefacts and full DB dumps must never be committed.
+storage/
+uploads/
+tmp-test-uploads-*/
+backups/
+*.dump
+*.sql.gz
 
 # Logs
 *.log

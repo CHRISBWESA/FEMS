@@ -1,5 +1,7 @@
 # AI Development Rules for Fellowship Management System
 
+> **Current-state note (Phase 23):** repository source and the Phase 22/23 reports are authoritative. The rules below that require HttpOnly-cookie JWTs, class-validator DTOs on every route, Redis throttling, scheduled backups, impersonation, or automatic graduation describe the original design and are not claims about the running system. Preserve the actual tenant/RBAC/approval controls and never weaken them to satisfy an older statement.
+
 This document defines constraints and rules for AI-assisted development of this project. Follow these strictly.
 
 ## Core Rules

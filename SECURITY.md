@@ -1,4 +1,44 @@
-# Fellowship Management System - Security Design
+# Fellowship Management System - Security
+
+> **Read this first.** The sections below the line ("Original design") were written before the system was built and describe
+> the *intent*. Where they differ from what runs today, this status section is authoritative. The audit of what is actually
+> implemented, with severities and evidence, is [PHASE_22_SECURITY_REPORT.md](PHASE_22_SECURITY_REPORT.md).
+
+## Implementation status (what actually runs)
+
+| Design statement | Reality |
+|---|---|
+| JWT in HttpOnly, Secure, SameSite cookies | **Not implemented.** The API authenticates by `Authorization: Bearer` header only (an `accessToken` cookie is deliberately ignored). The web app keeps the access and refresh tokens in `localStorage`, which any script running in the page can read - an **accepted risk** (report O-01) mitigated by a 15-minute access token, revocation on password change, and a recommended Content-Security-Policy on the static host. Because no cookie carries authentication, CSRF does not apply |
+| Refresh tokens stored server-side, session table, IP/device binding, concurrent-session limits | **Not implemented.** Sessions are stateless JWTs plus `users.token_version`: changing or resetting a password, or an administrator resetting it, bumps the version and ends every earlier session at once. Deactivating a user, or suspending a fellowship, is checked on every request. The web app refreshes access tokens silently with the 7-day refresh token; a refresh token is refused as a bearer token. There is no refresh-token rotation and no list of sessions |
+| Rate limit: 5 failed logins / 15 min / IP+account; 100 requests/min | **Different.** Per account: 8 failures inside 15 minutes lock the account for 15 minutes (a locked account answers exactly like a wrong password). Per client address: sign-in, refresh and password routes 10/minute, the public attendance link and payment webhook 30/minute, everything else 600/minute (tunable, see [ENVIRONMENT_CONFIGURATION.md](ENVIRONMENT_CONFIGURATION.md)); counters are in process memory |
+| Impersonation with owner approval | **Retired** (routes answer 410). Replaced by scoped, time-boxed, tenant-approved *support access* for platform-support staff; the platform administrator has no access to tenant data |
+| Passwords: bcrypt 12 rounds, reset by random token | bcrypt cost 12 (implemented). Policy: at least 10 characters, not a common password, not built from the account's own name or e-mail. A reset generates a random one-time temporary password that must be changed at the next sign-in (enforced by the server on every route and by the web app) |
+| Validation with class-validator DTOs | **Not used.** Controllers take plain interfaces; services validate by hand with shared helpers (`validateText`, `validateAmount`, `validateDate`, `validateRequiredUuid`, ...). Every route was fuzzed with wrong types, nulls, oversized values, NUL bytes and prototype-pollution keys (no 5xx, no leaks - `security-fuzz.int-spec`). NUL bytes are refused globally with 400 |
+| "No raw SQL with user input" | Raw SQL exists (reports, lock-out counters, row locks) and is always parameterised through Prisma's tagged templates; no SQL string is built from input |
+| Store files outside the web root, restrict per permission | Uploaded file **bytes are not stored at all** (type by content signature, size limit, sanitised names; metadata only). There is no download route to authorise |
+| IDOR: ids non-enumerable, ownership checked | Tenant and department ownership are enforced in services and guards; the repository contains four independent sweeps (`security.int-spec`, `security-fuzz.int-spec`, `security-tenant-refs.int-spec`, `platform.int-spec`). They are **skipped without `TEST_DATABASE_URL`**, so runtime certification remains pending. |
+| Input writes and references | Activity, announcement, document, report and user-role writes use explicit field maps; referenced departments/documents must belong to the authenticated tenant. Direct activity detail uses the same audience rule as lists. |
+| Role escalation | Tenant users cannot change their own account or grant/manage protected Secretary/Treasurer/Chairperson roles. Platform administrators can provision tenant leadership through the platform tenant workflow. |
+| Public attendance | Anonymous check-ins are name-only, time/tenant/audience/cancellation restricted, rate limited and deduplicated with a partial unique key. |
+| Secure headers, CSP | `helmet` on the API (HSTS, nosniff, frame options, CSP `default-src 'self'`, ...). The **static frontend host must add its own** CSP and cache headers ([PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md)) |
+| Audit logging without sensitive content | Append-only `audit_logs`, scoped per fellowship; a redaction step masks any key named like a password, token, secret, key, hash or signature before a row is written; emergency-contact reads/edits log field names only. Application error logs are sanitized and production request logs contain only a request ID, route template, method, status and duration. |
+| Backup/recycle honesty | The application never claims to run `pg_dump` or restore; unsupported backup operations return `409` (`OPERATION_UNAVAILABLE`) so they never look like a server fault in alerting. Recycle-bin listings omit original data and restore tokens, and tenant staff cannot act on another tenant's records. |
+
+## Boundaries that are enforced (and tested)
+
+1. **Authentication** -> **tenant status** -> **platform/tenant boundary** (platform accounts cannot reach any tenant route unless it is explicitly marked) -> **role** -> **module availability** (per fellowship and plan) -> **department scope** -> **resource** (fellowship, department, gender, ownership checks in the services).
+2. **Approval chain**: a money request needs Secretary, then Chairperson, then Treasurer, each by a different person, decided atomically; the requester can never approve their own request.
+3. **Finance and billing are separate**: SaaS billing never reads or writes fellowship finance tables (tested, including a source scan); no card data is stored anywhere.
+4. **Offline attendance** is re-authorised on the server for every operation; nothing cached by the service worker contains API data.
+
+## Reporting a vulnerability
+
+Tell the system owner privately; do not include personal data in the report. Rotate secrets first if credentials may be exposed
+([INCIDENT_RESPONSE.md](INCIDENT_RESPONSE.md)).
+
+---
+
+# Original design (intent, partly superseded - see the status table above)
 
 ## 1. Authentication
 

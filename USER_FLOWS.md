@@ -1,5 +1,7 @@
 # Fellowship Management System - User Flows
 
+> **Historical design reference.** Some flows below are not implemented: cookie sessions, impersonation, automatic graduation, in-app backup/restore, and IT document deletion. Current behavior is in [FINAL_ARCHITECTURE_STATUS.md](FINAL_ARCHITECTURE_STATUS.md) and the Phase 22/23 reports. IT document deletion and recycle-bin restore explicitly return `409`.
+
 ## 1. Authentication Flows
 
 ### 1.1 Login

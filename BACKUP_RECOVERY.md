@@ -1,5 +1,7 @@
 # Fellowship Management System - Backup & Recovery
 
+> **SUPERSEDED / NOT AN IMPLEMENTATION GUIDE.** This is the original design. FEMS does not run a cron backup, store uploads on local/cloud storage, create safety backups, or restore databases through `/backups`; those operations now refuse or report an external responsibility. Use [BACKUP_RESTORE_GUIDE.md](BACKUP_RESTORE_GUIDE.md) and [PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md).
+
 ## 1. Backup Policy
 
 ### Schedule

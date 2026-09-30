@@ -1,5 +1,7 @@
 # Fellowship Management System - Audit Trail
 
+> **Historical design reference.** Audit logging and redaction are implemented, but the described IT document-deletion audit events are not written because document deletion now returns `409`. The current security/audit boundary is in [PHASE_22_SECURITY_REPORT.md](PHASE_22_SECURITY_REPORT.md).
+
 ## 1. Audit Requirements
 
 The system records ALL important actions. Each audit entry contains:

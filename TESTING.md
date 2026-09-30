@@ -1,4 +1,88 @@
-# Fellowship Management System - Testing Strategy
+# Fellowship Management System - Testing
+
+> **Read this first.** The original aspirational plan is retained below the current section. The current repository has no browser/E2E specs even though Cypress is installed as a dev dependency; do not treat `npm run test:e2e` as evidence.
+
+## What exists
+
+| Layer | Tool | Where | Needs a database |
+|---|---|---|---|
+| Backend unit tests | Jest + ts-jest | `backend/src/**/*.spec.ts` | no |
+| Backend integration/security tests | Jest + Supertest against the full application (real guards, JWTs, Prisma) | `backend/test/integration/*.int-spec.ts` | **yes - a disposable migrated PostgreSQL database** |
+| Frontend unit tests | Jest (esbuild transform, fake-indexeddb, axios adapter) | `frontend/src/**/*.test.ts` | no |
+| Type checks | `tsc --noEmit` | backend and frontend | no |
+| Lint | ESLint, check-only by default | backend and frontend | no |
+| Post-deployment smoke | `backend/scripts/smoke.js` | a running API | no database by the script itself; it authenticates |
+| Load check | `backend/scripts/load-check.js` | staging | a running API |
+
+The checked-in test code covers unit behaviour and database-backed integration/security behaviour. The database-backed suite is **skipped without `TEST_DATABASE_URL`**; it is not a pass.
+
+## Running them
+
+```text
+# backend
+cd backend
+npm run typecheck
+npm run lint
+npm test
+
+# integration release gate - a disposable database whose name contains test or scratch
+TEST_DATABASE_URL=<that database> npm run test:integration:required
+
+# frontend
+cd ../frontend
+npm run typecheck
+npm run lint
+npm test
+npm run build
+```
+
+`npm run lint:fix` is mutating and is not a verification command. `npm run test:integration` is the permissive form that skips without a test URL; `test:integration:required` is the release gate and refuses to run without one.
+
+## Test database safety
+
+`test/integration/env-setup.ts` requires the decoded `TEST_DATABASE_URL` database name to contain `test` or `scratch` and replaces `DATABASE_URL` before Nest/Prisma loads. `harness.ts` uses `describe.skip` when it is absent. Tests create uniquely named data and do not delete, truncate or reset the database.
+
+A schema drift check needs a second, empty scratch database as the shadow database:
+
+```text
+npx prisma migrate diff --from-migrations ./prisma/migrations --to-schema-datamodel ./prisma/schema.prisma \
+  --shadow-database-url <second scratch database> --script
+```
+
+Never use the local `fems` database for this command or for integration tests unless its ownership and migration history have been independently confirmed.
+
+
+## The integration suites
+
+| Suite | What it proves |
+|---|---|
+| `auth-permissions` | sign-in, permissions after login, role gates |
+| `members-engagement`, `youth` | members, profile privacy, history, groups, reports, youth privacy and scoping |
+| `finance-approvals`, `finance-advanced` | the approval chain (one approval never finishes a request, no self-approval, atomic decisions), finance records, pledges, statements |
+| `resources`, `volunteers`, `analytics` | assets and loans, shifts and capacity/conflicts under concurrency, analytics scoping and figures |
+| `platform`, `billing` | tenant lifecycle, the platform/tenant boundary over **every registered route**, support access, plans and entitlements, the signed webhook, finance/billing separation |
+| `attendance-sync` | offline attendance: idempotency, re-authorisation, concurrency |
+| `security` | cross-tenant sweep of every id-taking route, department/gender scope, sessions, lock-out, password policy, uploads, public check-in, error handling |
+| `security-fuzz` | **every route** with hostile shapes (nulls, wrong types, oversized values, NUL bytes, prototype pollution, query-string arrays, half-valid bodies with real ids) as six different roles, forged/expired/unsigned tokens, unauthenticated calls: no 5xx, no leak, no hang |
+| `security-tenant-refs` | an attacker fellowship sends the victim's ids in every body field and query parameter of every route: nothing of the victim may change, and nothing of the attacker may point at the victim |
+| `security-throttle` | rate limits (needs its own process settings) |
+| `security-timezone` | lock-out and time logic under databases set to New York, Nairobi and Auckland time |
+| `paging` | bounded lists |
+
+Narrow the personas of the fuzz suite while investigating: `FUZZ_ONLY=secretary,admin npx jest ... security-fuzz`.
+
+## How to keep the net tight
+
+- A new route is covered by the sweeps automatically (they enumerate the registered routes); a new *request field* is covered
+  by the fuzz suite automatically (field names are harvested from the source); a new **kind of entity** needs a line in
+  `test/integration/seed-all.ts` so the sweeps have a real id to attack with.
+- A route that is public on purpose must be added to the `PUBLIC` lists of `platform.int-spec` (and, if it takes a body,
+  be reviewed for abuse) - that is the point at which the review happens.
+- Never weaken a test to make it pass. If a sweep fails, the route is wrong.
+
+---
+
+# Original test plan (partly aspirational - see the status above)
 
 ## 1. Test Framework
 
