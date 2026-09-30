@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
-import { EnvelopeIcon, LockClosedIcon, BuildingLibraryIcon } from '@heroicons/react/24/outline';
+import { EnvelopeIcon, LockClosedIcon, EyeIcon, EyeSlashIcon, BuildingLibraryIcon } from '@heroicons/react/24/outline';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -90,7 +91,6 @@ export default function Login() {
                 {error}
               </div>
             )}
-
             <div>
               <label htmlFor="email" className="label">Email address</label>
               <div className="relative">
@@ -116,14 +116,25 @@ export default function Login() {
                 <input
                   id="password"
                   name="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   required
                   placeholder="••••••••"
-                  className="input pl-10"
+                  className="input pl-10 pr-11"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
+                {/* Lets a person check what they typed. The value is only in the form field - nothing about it
+                    is ever sent anywhere until they submit. */}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                >
+                  {showPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                </button>
               </div>
             </div>
 
@@ -143,14 +154,14 @@ export default function Login() {
             </button>
           </form>
 
-          <div className="mt-8 rounded-lg bg-primary-light px-4 py-3">
-            <p className="text-xs text-slate-600">
-              <span className="font-semibold text-slate-900">Demo account</span>
-              <br />
-              admin@fellowship.com / Admin@2024
-              <br />
-              <span className="text-slate-500">Create additional accounts (e.g. Secretary) via Users after signing in.</span>
-            </p>
+          <div className="mt-6 rounded-lg bg-slate-50 p-4 text-center ring-1 ring-inset ring-border">
+            <p className="text-sm text-slate-600">No access for your fellowship yet?</p>
+            <Link
+              to="/register"
+              className="mt-1 inline-block text-sm font-medium text-primary hover:text-primary-dark"
+            >
+              Request platform access
+            </Link>
           </div>
         </div>
       </div>

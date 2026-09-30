@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import {
-  UsersIcon, MagnifyingGlassIcon, ChevronLeftIcon, ChevronRightIcon,
+  UsersIcon, MagnifyingGlassIcon, ChevronLeftIcon, ChevronRightIcon, FunnelIcon,
   PlusIcon, XMarkIcon, UserPlusIcon, CloudArrowUpIcon, DocumentArrowDownIcon,
 } from '@heroicons/react/24/outline';
 
@@ -28,9 +28,23 @@ const CSV_TEMPLATE_ROWS = [
   'Grace Achieng,female,0700333444,grace@example.com,BBA,Year 1,2028,12',
 ];
 
+const emptyFilters = {
+  skills: '', interests: '', serviceInterests: '', joinedFrom: '', joinedTo: '',
+  groupId: '', attendance: '' as '' | 'attended' | 'not_attended', days: '90',
+};
+
 export default function Members() {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const canManage = user?.roles.includes('secretary') || user?.roles.includes('admin');
+  // Advanced filters are only offered for the parts the server will actually allow this user to use.
+  const canFilterProfile = hasPermission('member.profile_view');
+  const canFilterGroup = hasPermission('member.groups_view');
+  const canFilterEngagement = hasPermission('member.engagement_view');
+  const hasAdvanced = canFilterProfile || canFilterGroup || canFilterEngagement;
+  const [showFilters, setShowFilters] = useState(false);
+  const [draft, setDraft] = useState(emptyFilters);
+  const [applied, setApplied] = useState(emptyFilters);
+  const [groups, setGroups] = useState<any[]>([]);
   const [members, setMembers] = useState([]);
   const [programmes, setProgrammes] = useState<any[]>([]);
   const [selectedProgramme, setSelectedProgramme] = useState('');
@@ -52,7 +66,23 @@ export default function Members() {
   useEffect(() => {
     fetchMembers();
     fetchProgrammes();
-  }, [search, statusFilter, page]);
+  }, [search, statusFilter, page, applied]);
+
+  useEffect(() => {
+    if (!canFilterGroup) return;
+    axios.get('/member-groups', { withCredentials: true }).then((res) => setGroups(res.data)).catch(() => setGroups([]));
+  }, [canFilterGroup]);
+
+  const applyFilters = () => {
+    setApplied(draft);
+    setPage(1);
+  };
+  const clearFilters = () => {
+    setDraft(emptyFilters);
+    setApplied(emptyFilters);
+    setPage(1);
+  };
+  const activeFilterCount = Object.entries(applied).filter(([k, v]) => v && !(k === 'days')).length;
 
   const fetchProgrammes = async () => {
     try {
@@ -69,6 +99,14 @@ export default function Members() {
       const params = new URLSearchParams();
       if (search) params.set('search', search);
       if (statusFilter) params.set('status', statusFilter);
+      if (applied.skills.trim()) params.set('skills', applied.skills.trim());
+      if (applied.interests.trim()) params.set('interests', applied.interests.trim());
+      if (applied.serviceInterests.trim()) params.set('serviceInterests', applied.serviceInterests.trim());
+      if (applied.joinedFrom) params.set('joinedFrom', applied.joinedFrom);
+      if (applied.joinedTo) params.set('joinedTo', applied.joinedTo);
+      if (applied.groupId) params.set('groupId', applied.groupId);
+      if (applied.attendance === 'attended') params.set('attendedWithinDays', applied.days);
+      if (applied.attendance === 'not_attended') params.set('notAttendedWithinDays', applied.days);
       params.set('page', page.toString());
       params.set('limit', '20');
 
@@ -197,7 +235,72 @@ export default function Members() {
           <option value="inactive">Inactive</option>
           <option value="graduated">Graduated</option>
         </select>
+        {hasAdvanced && (
+          <button onClick={() => setShowFilters((s) => !s)} className="btn btn-secondary">
+            <FunnelIcon className="h-4 w-4" />
+            Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+          </button>
+        )}
       </div>
+
+      {hasAdvanced && showFilters && (
+        <div className="card mb-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {canFilterProfile && (
+              <>
+                <div>
+                  <label className="label">Skills (any of, comma separated)</label>
+                  <input className="input" value={draft.skills} onChange={(e) => setDraft({ ...draft, skills: e.target.value })} />
+                </div>
+                <div>
+                  <label className="label">Interests</label>
+                  <input className="input" value={draft.interests} onChange={(e) => setDraft({ ...draft, interests: e.target.value })} />
+                </div>
+                <div>
+                  <label className="label">Service interests</label>
+                  <input className="input" value={draft.serviceInterests} onChange={(e) => setDraft({ ...draft, serviceInterests: e.target.value })} />
+                </div>
+                <div>
+                  <label className="label">Member since (from)</label>
+                  <input type="date" className="input" value={draft.joinedFrom} onChange={(e) => setDraft({ ...draft, joinedFrom: e.target.value })} />
+                </div>
+                <div>
+                  <label className="label">Member since (to)</label>
+                  <input type="date" className="input" value={draft.joinedTo} onChange={(e) => setDraft({ ...draft, joinedTo: e.target.value })} />
+                </div>
+              </>
+            )}
+            {canFilterGroup && (
+              <div>
+                <label className="label">Group</label>
+                <select className="select" value={draft.groupId} onChange={(e) => setDraft({ ...draft, groupId: e.target.value })}>
+                  <option value="">Any group</option>
+                  {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                </select>
+              </div>
+            )}
+            {canFilterEngagement && (
+              <div>
+                <label className="label">Attendance (member-linked records)</label>
+                <div className="flex gap-2">
+                  <select className="select" value={draft.attendance} onChange={(e) => setDraft({ ...draft, attendance: e.target.value as any })}>
+                    <option value="">Any</option>
+                    <option value="attended">Attended within</option>
+                    <option value="not_attended">Has not attended within</option>
+                  </select>
+                  <select className="select w-28" value={draft.days} onChange={(e) => setDraft({ ...draft, days: e.target.value })}>
+                    {['30', '90', '180', '365'].map((d) => <option key={d} value={d}>{d} days</option>)}
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="mt-4 flex gap-2">
+            <button onClick={applyFilters} className="btn btn-primary btn-sm">Apply filters</button>
+            <button onClick={clearFilters} className="btn btn-secondary btn-sm">Clear</button>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
@@ -220,11 +323,12 @@ export default function Members() {
                 <th>Member Code</th>
                 <th>Status</th>
                 <th>Department</th>
+                {canFilterProfile && <th>Skills</th>}
               </tr>
             </thead>
             <tbody>
               {members.map((m: any) => (
-                <tr key={m._id} className="cursor-pointer" onClick={() => navigate(`/members/${m._id}`)}>
+                <tr key={m.id} className="cursor-pointer" onClick={() => navigate(`/members/${m.id}`)}>
                   <td className="font-medium text-slate-900">{m.full_name}</td>
                   <td className="font-mono text-xs">{m.member_code}</td>
                   <td>
@@ -235,6 +339,11 @@ export default function Members() {
                   <td className="text-slate-500">
                     {m.departments?.filter((d: any) => !d.removed).map((d: any) => d.department_id || '').join(', ') || '—'}
                   </td>
+                  {canFilterProfile && (
+                    <td className="text-slate-500">
+                      {m.profile?.skills?.length ? m.profile.skills.slice(0, 3).join(', ') : '—'}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -349,7 +458,7 @@ export default function Members() {
                 >
                   <option value="">Select programme or write manually</option>
                   {programmes.map((p) => (
-                    <option key={p._id} value={p.name}>{p.name}</option>
+                    <option key={p.id} value={p.name}>{p.name}</option>
                   ))}
                   <option value="__other__">Other (write manually)…</option>
                 </select>

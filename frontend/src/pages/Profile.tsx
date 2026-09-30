@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { storeSessionTokens } from '../lib/session';
 import { useAuth } from '../App';
 import { KeyIcon, XMarkIcon, IdentificationIcon } from '@heroicons/react/24/outline';
 
@@ -25,7 +26,8 @@ export default function Profile() {
     setError('');
     setSaving(true);
     try {
-      await axios.post('/auth/change-password', { oldPassword, newPassword }, { withCredentials: true });
+      const res = await axios.post('/auth/change-password', { oldPassword, newPassword }, { withCredentials: true });
+      storeSessionTokens(res.data);
       setShowChangePassword(false);
       setOldPassword('');
       setNewPassword('');

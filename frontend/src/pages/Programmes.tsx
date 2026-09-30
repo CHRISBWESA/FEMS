@@ -2,7 +2,14 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
   PlusIcon, XMarkIcon, BookOpenIcon, PencilSquareIcon, TrashIcon,
+  CloudArrowUpIcon, DocumentArrowDownIcon,
 } from '@heroicons/react/24/outline';
+
+const CSV_HEADERS = ['name', 'description'];
+const CSV_TEMPLATE_ROWS = [
+  'BSc. Computer Science,"Computing, software and systems"',
+  'BBA,Business administration',
+];
 
 export default function Programmes() {
   const [programmes, setProgrammes] = useState<any[]>([]);
@@ -12,6 +19,10 @@ export default function Programmes() {
   const [editing, setEditing] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: '', description: '' });
+  const [showUpload, setShowUpload] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState<any>(null);
 
   useEffect(() => {
     fetchProgrammes();
@@ -49,7 +60,7 @@ export default function Programmes() {
     setSaving(true);
     try {
       if (editing) {
-        await axios.put(`/programmes/${editing._id}`, form, { withCredentials: true });
+        await axios.put(`/programmes/${editing.id}`, form, { withCredentials: true });
       } else {
         await axios.post('/programmes', form, { withCredentials: true });
       }
@@ -65,10 +76,43 @@ export default function Programmes() {
   const remove = async (p: any) => {
     if (!window.confirm(`Delete programme "${p.name}"?`)) return;
     try {
-      await axios.delete(`/programmes/${p._id}`, { withCredentials: true });
+      await axios.delete(`/programmes/${p.id}`, { withCredentials: true });
       fetchProgrammes();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to delete programme');
+    }
+  };
+
+  const downloadTemplate = () => {
+    const csv = [CSV_HEADERS.join(','), ...CSV_TEMPLATE_ROWS].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'programmes-template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const submitUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uploadFile) {
+      setError('Please choose a CSV file');
+      return;
+    }
+    setError('');
+    setUploadResult(null);
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', uploadFile);
+      const res = await axios.post('/programmes/bulk-upload', fd, { withCredentials: true });
+      setUploadResult(res.data);
+      fetchProgrammes();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to upload CSV');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -79,10 +123,16 @@ export default function Programmes() {
           <h1 className="page-title">Programmes</h1>
           <p className="page-desc">Manage the list of university courses for member registration.</p>
         </div>
-        <button onClick={openCreate} className="btn btn-primary">
-          <PlusIcon className="h-4 w-4" />
-          Add Programme
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => { setError(''); setShowUpload(true); setUploadResult(null); setUploadFile(null); }} className="btn btn-secondary">
+            <CloudArrowUpIcon className="h-4 w-4" />
+            Bulk Upload
+          </button>
+          <button onClick={openCreate} className="btn btn-primary">
+            <PlusIcon className="h-4 w-4" />
+            Add Programme
+          </button>
+        </div>
       </div>
 
       {error && !showModal && (
@@ -115,7 +165,7 @@ export default function Programmes() {
             </thead>
             <tbody>
               {programmes.map((p) => (
-                <tr key={p._id}>
+                <tr key={p.id}>
                   <td className="font-medium text-slate-900">{p.name}</td>
                   <td className="text-slate-500">{p.description || '—'}</td>
                   <td className="text-right">
@@ -185,6 +235,80 @@ export default function Programmes() {
               </button>
               <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary flex-1">
                 Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+      {showUpload && (
+        <div className="modal-backdrop" onClick={() => setShowUpload(false)}>
+          <form
+            onSubmit={submitUpload}
+            onClick={(e) => e.stopPropagation()}
+            className="modal max-w-lg"
+          >
+            <div className="mb-5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="stat-icon bg-primary-light text-primary">
+                  <CloudArrowUpIcon className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-slate-900">Bulk Upload Programmes</h3>
+                  <p className="text-xs text-slate-500">Import courses from a CSV file.</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => setShowUpload(false)} className="btn btn-icon">
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mb-4 rounded-lg bg-primary-light px-4 py-3 text-sm text-slate-600">
+              Columns: <span className="font-mono text-xs">{CSV_HEADERS.join(', ')}</span>
+              <br />
+              <span className="text-xs text-slate-500">Only <span className="font-mono">name</span> is required. Duplicates are skipped and reported.</span>
+            </div>
+
+            <button type="button" onClick={downloadTemplate} className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary-dark">
+              <DocumentArrowDownIcon className="h-4 w-4" />
+              Download template CSV
+            </button>
+
+            {error && showUpload && (
+              <div className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">
+                {error}
+              </div>
+            )}
+
+            <label className="label">CSV file</label>
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              required
+              className="input"
+              onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+            />
+
+            {uploadResult && (
+              <div className="mt-4 rounded-lg border border-border bg-white p-4">
+                <p className="text-sm font-semibold text-slate-900">
+                  Import complete: {uploadResult.created} created, {uploadResult.failed} skipped/failed
+                </p>
+                {uploadResult.failures?.length > 0 && (
+                  <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto text-xs text-rose-700">
+                    {uploadResult.failures.map((f: any, idx: number) => (
+                      <li key={idx}>Row {f.row}: {f.reason}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            <div className="mt-5 flex gap-2">
+              <button type="submit" disabled={uploading} className="btn btn-primary flex-1">
+                {uploading ? <span className="spinner border-white" /> : 'Upload & Import'}
+              </button>
+              <button type="button" onClick={() => setShowUpload(false)} className="btn btn-secondary flex-1">
+                {uploadResult ? 'Close' : 'Cancel'}
               </button>
             </div>
           </form>

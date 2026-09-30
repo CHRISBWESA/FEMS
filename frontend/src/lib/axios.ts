@@ -1,29 +1,24 @@
 import axios from 'axios';
+import { onSessionEnded } from '../offline/session';
+import { installAuthInterceptors } from './auth-interceptors';
 
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
 axios.defaults.withCredentials = true;
 
-axios.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-axios.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
-      }
+installAuthInterceptors(axios, {
+  getAccessToken: () => localStorage.getItem('accessToken'),
+  getRefreshToken: () => localStorage.getItem('refreshToken'),
+  storeAccessToken: (token) => localStorage.setItem('accessToken', token),
+  refreshClient: axios.create({ baseURL: axios.defaults.baseURL, withCredentials: true }),
+  endSession: () => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    onSessionEnded().catch(() => undefined); // downloaded member lists must not outlive the session
+    if (window.location.pathname !== '/login') {
+      window.location.href = '/login';
     }
-    return Promise.reject(error);
   },
-);
+});
 
 export function decodeJwtPayload(token: string): Record<string, any> | null {
   try {

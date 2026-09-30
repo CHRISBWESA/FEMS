@@ -2,9 +2,12 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon, CalendarIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { useAuth } from '../App';
+import AttendanceCheckIn from '../components/attendance/AttendanceCheckIn';
 
 export default function ActivityDetail() {
   const { id } = useParams();
+  const { hasPermission } = useAuth();
   const [activity, setActivity] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [attendanceData, setAttendanceData] = useState({ name: '' });
@@ -116,6 +119,8 @@ export default function ActivityDetail() {
             </div>
           </div>
         )}
+
+        {hasPermission('activity.attendance') && id && <AttendanceCheckIn activityId={id} />}
       </div>
     </div>
   );

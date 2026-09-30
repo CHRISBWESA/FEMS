@@ -37,7 +37,7 @@ export default function Notifications() {
     try {
       await axios.patch(`/notifications/${id}/read`, {}, { withCredentials: true });
       setNotifications(notifications.map((n: any) =>
-        n._id === id ? { ...n, is_read: true } : n
+        n.id === id ? { ...n, is_read: true } : n
       ));
       setUnreadCount(c => Math.max(0, c - 1));
     } catch (err: any) {
@@ -86,7 +86,7 @@ export default function Notifications() {
         <div className="space-y-3">
           {notifications.map((n: any) => (
             <div
-              key={n._id}
+              key={n.id}
               className={`card flex items-start justify-between gap-4 transition-colors ${
                 n.is_read ? 'opacity-70' : 'ring-1 ring-primary/30'
               }`}
@@ -112,7 +112,7 @@ export default function Notifications() {
               </div>
               {!n.is_read && (
                 <button
-                  onClick={() => markRead(n._id)}
+                  onClick={() => markRead(n.id)}
                   className="btn btn-ghost btn-sm shrink-0"
                 >
                   <CheckCircleIcon className="h-4 w-4" />

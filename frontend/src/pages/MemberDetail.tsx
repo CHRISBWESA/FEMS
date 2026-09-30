@@ -5,11 +5,26 @@ import { useAuth } from '../App';
 import {
   ArrowLeftIcon, PencilSquareIcon, XMarkIcon,
 } from '@heroicons/react/24/outline';
+import MemberProfileTab from '../components/member/MemberProfileTab';
+import MemberHistoryTab from '../components/member/MemberHistoryTab';
+import MemberEngagementTab from '../components/member/MemberEngagementTab';
+
+import GivingStatement from '../components/finance/GivingStatement';
+
+type Tab = 'overview' | 'profile' | 'history' | 'engagement' | 'giving';
 
 export default function MemberDetail() {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const isSecretary = user?.roles.includes('secretary');
+  const [tab, setTab] = useState<Tab>('overview');
+  const tabs: { key: Tab; label: string; show: boolean }[] = [
+    { key: 'overview', label: 'Overview', show: true },
+    { key: 'profile', label: 'Profile', show: hasPermission('member.profile_view') },
+    { key: 'history', label: 'History', show: hasPermission('member.history_view') },
+    { key: 'engagement', label: 'Engagement', show: hasPermission('member.engagement_view') },
+    { key: 'giving', label: 'Giving', show: hasPermission('finance.member_statement_view') },
+  ];
   const [member, setMember] = useState<any>(null);
   const [programmes, setProgrammes] = useState<any[]>([]);
   const [selectedProgramme, setSelectedProgramme] = useState('');
@@ -70,9 +85,10 @@ export default function MemberDetail() {
   };
 
   const changeStatus = async (status: string) => {
-    if (!window.confirm(`Change status to ${status}?`)) return;
+    const reason = window.prompt(`Change status to ${status}? You can add a reason (recorded in the membership history):`);
+    if (reason === null) return;
     try {
-      await axios.put(`/members/${id}/status`, { status }, { withCredentials: true });
+      await axios.put(`/members/${id}/status`, { status, reason: reason.trim() || undefined }, { withCredentials: true });
       const res = await axios.get(`/members/${id}`, { withCredentials: true });
       setMember(res.data);
     } catch (err: any) {
@@ -81,9 +97,10 @@ export default function MemberDetail() {
   };
 
   const markGraduated = async () => {
-    if (!window.confirm('Mark this member as graduated?')) return;
+    const reason = window.prompt('Mark this member as graduated? You can add a reason (recorded in the membership history):');
+    if (reason === null) return;
     try {
-      await axios.put(`/members/${id}/status`, { status: 'graduated' }, { withCredentials: true });
+      await axios.put(`/members/${id}/status`, { status: 'graduated', reason: reason.trim() || undefined }, { withCredentials: true });
       const res = await axios.get(`/members/${id}`, { withCredentials: true });
       setMember(res.data);
     } catch (err: any) {
@@ -183,21 +200,43 @@ export default function MemberDetail() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-8 pt-5 md:grid-cols-2">
-          {infoSections.map((section) => (
-            <div key={section.title}>
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">{section.title}</h2>
-              <dl className="space-y-3">
-                {section.rows.map((row) => (
-                  <div key={row.label} className="flex justify-between gap-4">
-                    <dt className="shrink-0 text-sm text-slate-500">{row.label}</dt>
-                    <dd className="text-right text-sm font-medium text-slate-900">{row.value}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-          ))}
-        </div>
+        {tabs.filter((t) => t.show).length > 1 && (
+          <div className="flex gap-1 overflow-x-auto border-b border-border pt-4">
+            {tabs.filter((t) => t.show).map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`whitespace-nowrap rounded-t-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  tab === t.key ? 'bg-primary-light text-primary' : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {tab === 'overview' && (
+          <div className="grid grid-cols-1 gap-8 pt-5 md:grid-cols-2">
+            {infoSections.map((section) => (
+              <div key={section.title}>
+                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">{section.title}</h2>
+                <dl className="space-y-3">
+                  {section.rows.map((row) => (
+                    <div key={row.label} className="flex justify-between gap-4">
+                      <dt className="shrink-0 text-sm text-slate-500">{row.label}</dt>
+                      <dd className="text-right text-sm font-medium text-slate-900">{row.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            ))}
+          </div>
+        )}
+        {tab === 'profile' && <div className="pt-5"><MemberProfileTab memberId={member.id} /></div>}
+        {tab === 'history' && <div className="pt-5"><MemberHistoryTab memberId={member.id} /></div>}
+        {tab === 'engagement' && <div className="pt-5"><MemberEngagementTab memberId={member.id} /></div>}
+        {tab === 'giving' && <div className="pt-5"><GivingStatement url={`/finance/members/${member.id}/statement`} /></div>}
       </div>
 
       {showEdit && (
@@ -280,7 +319,7 @@ export default function MemberDetail() {
                 >
                   <option value="">Select programme or write manually</option>
                   {programmes.map((p) => (
-                    <option key={p._id} value={p.name}>{p.name}</option>
+                    <option key={p.id} value={p.name}>{p.name}</option>
                   ))}
                   <option value="__other__">Other (write manually)…</option>
                 </select>

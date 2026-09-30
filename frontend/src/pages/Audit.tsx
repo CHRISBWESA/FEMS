@@ -53,22 +53,35 @@ export default function Audit() {
                 <th>User</th>
                 <th>Action</th>
                 <th>Entity</th>
+                <th>IP</th>
                 <th>Comment</th>
               </tr>
             </thead>
             <tbody>
               {logs.map((log: any) => (
-                <tr key={log._id}>
+                <tr key={log.id}>
                   <td className="whitespace-nowrap text-xs text-slate-500">
                     {log.timestamp ? new Date(log.timestamp).toLocaleString() : '—'}
                   </td>
-                  <td className="font-mono text-xs text-slate-500">{log.user_id || 'System'}</td>
+                  <td className="text-xs">
+                    {log.actor ? (
+                      <>
+                        <span className="block font-medium text-slate-900">{log.actor.name || log.actor.email}</span>
+                        {log.actor.roles?.length > 0 && (
+                          <span className="text-slate-400">{log.actor.roles.join(', ').replace(/_/g, ' ')}</span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-slate-400">System</span>
+                    )}
+                  </td>
                   <td>
                     <span className="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-700">
                       {log.action}
                     </span>
                   </td>
                   <td className="text-slate-500">{log.entity_type}</td>
+                  <td className="font-mono text-xs text-slate-500">{log.ip_address || '—'}</td>
                   <td className="max-w-xs truncate text-slate-500">{log.comment || '—'}</td>
                 </tr>
               ))}

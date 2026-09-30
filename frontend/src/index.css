@@ -8,6 +8,18 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    /* Stop iOS from resizing text after rotation, and avoid the tap-highlight flash on touch screens. */
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Form controls under 16px make iOS Safari zoom the whole page on focus. */
+  @media (max-width: 767px) {
+    input, select, textarea { font-size: 16px; }
+  }
+  /* Comfortable touch targets on touch devices (dense table actions keep .btn-sm). */
+  @media (pointer: coarse) {
+    .btn:not(.btn-sm), .input, .select { min-height: 44px; }
+    .tab { min-height: 44px; }
   }
 }
 

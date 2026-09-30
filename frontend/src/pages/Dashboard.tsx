@@ -53,7 +53,8 @@ export default function Dashboard() {
     { name: 'Finance', icon: CurrencyDollarIcon, href: '/finance', show: (hasRole('treasurer') || hasRole('secretary') || hasRole('chairperson')) && !hasRole('admin') },
     { name: 'Notifications', icon: BellIcon, href: '/notifications', show: true },
     { name: 'Audit', icon: DocumentTextIcon, href: '/audit', show: hasRole('admin') || hasRole('secretary') || hasRole('chairperson') },
-    { name: 'Backups', icon: ServerIcon, href: '/backups', show: hasRole('admin') || hasRole('secretary') || hasRole('assistant_secretary') },
+    { name: 'Backups', icon: ServerIcon, href: '/backups', show: hasRole('admin') },
+    { name: 'Platform', icon: BuildingOfficeIcon, href: '/platform', show: hasRole('admin') || hasRole('platform_support') },
   ].filter((l) => l.show);
 
   return (
@@ -126,18 +127,28 @@ export default function Dashboard() {
           <div className="mt-8">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-base font-semibold text-slate-900">Recent activity</h2>
-              {(stats?.recentActions?.length > 0 || true) && (
-                <Link to="/audit" className="text-sm font-medium text-primary hover:text-primary-dark">
-                  View audit trail
-                </Link>
-              )}
+              <Link to="/audit" className="text-sm font-medium text-primary hover:text-primary-dark">
+                View audit trail
+              </Link>
             </div>
             <div className="card">
-              <p className="py-4 text-sm text-slate-500">
-                {stats?.recentActions?.length
-                  ? 'Recent system actions are available in the audit trail.'
-                  : 'No recent activity recorded yet.'}
-              </p>
+              {stats?.recentActions?.length ? (
+                <ul className="divide-y divide-border">
+                  {stats.recentActions.map((a: any) => (
+                    <li key={a.id} className="flex items-start justify-between gap-4 py-2.5 text-sm">
+                      <div className="min-w-0">
+                        <span className="font-mono text-xs text-slate-700">{a.action}</span>
+                        {a.detail && <span className="ml-2 text-slate-500">{a.detail}</span>}
+                      </div>
+                      <span className="shrink-0 whitespace-nowrap text-xs text-slate-400">
+                        {new Date(a.at).toLocaleString()}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="py-4 text-sm text-slate-500">No recent activity recorded yet.</p>
+              )}
             </div>
           </div>
         </>
