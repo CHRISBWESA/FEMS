@@ -109,6 +109,12 @@ function isAppHost(): boolean {
   if (host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]') return true;
   // A bare IPv4 address is a development machine, not a public apex.
   if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return true;
+  // An explicit override wins: hosting that does not put the app on an `app.` subdomain needs to say so.
+  const forced = String(import.meta.env.VITE_APP_HOST || '').trim().toLowerCase();
+  if (forced) return host === forced;
+  // A hosting deployment host serves the application itself. Only a custom domain carries the marketing apex, and
+  // `*.vercel.app` is not a custom domain, so it must not be mistaken for one.
+  if (host.endsWith('.vercel.app')) return true;
   // A multi-label host is a real apex only if it has at least a domain and a TLD, e.g. example.com.
   const labels = host.split('.');
   const isApex = labels.length >= 2 && /^[a-z]{2,}$/.test(labels[labels.length - 1]);
