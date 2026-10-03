@@ -15,6 +15,7 @@ import { useOfflineSync } from '../offline/hooks';
 import { onSignOut } from '../offline/session';
 import { pendingCount } from '../offline/outbox';
 import ImpersonationBanner, { SupportSessionBanner } from './platform/ImpersonationBanner';
+import { Avatar } from './ui';
 
 interface NavItem {
   name: string;
@@ -145,15 +146,14 @@ export default function Layout() {
     navigate('/login');
   };
 
-  const initials = `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`.toUpperCase() || 'U';
+  // The word for the signed-in person, used by the current-page heading so it never disagrees with the sidebar.
+  const currentItem = NAV_SECTIONS.flatMap((s) => s.items).find((i) => i.path === location.pathname);
 
-  const renderNav = () => (
-    <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
+  const navList = () => (
+    <nav className="flex-1 space-y-7 overflow-y-auto px-3 py-5">
       {visibleSections.map((section) => (
         <div key={section.title}>
-          <p className="mb-1.5 px-3 text-xxs font-semibold uppercase tracking-wider text-slate-400">
-            {section.title}
-          </p>
+          <p className="mb-2 px-3 text-xxs font-semibold uppercase tracking-wider text-ink-subtle">{section.title}</p>
           <div className="space-y-0.5">
             {section.items.map((item) => (
               <NavLink
@@ -161,18 +161,18 @@ export default function Layout() {
                 to={item.path}
                 end={item.path === '/members'}
                 className={({ isActive }) =>
-                  `group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  `group flex items-center gap-3 rounded-control px-3 py-2 text-sm font-medium transition-colors duration-150 ${
                     isActive
-                      ? 'bg-primary text-white shadow-sm'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      ? 'bg-primary text-white shadow-card'
+                      : 'text-ink-muted hover:bg-surface-sunken hover:text-ink'
                   }`
                 }
               >
                 <item.icon className="h-5 w-5 shrink-0" />
-                <span className="flex-1">{item.name}</span>
+                <span className="flex-1 truncate">{item.name}</span>
                 {item.path === '/notifications' && unreadCount > 0 && (
-                  <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 py-0.5 text-xxs font-semibold text-white">
-                    {unreadCount}
+                  <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-danger px-1.5 py-0.5 text-xxs font-semibold text-white">
+                    {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
                 )}
               </NavLink>
@@ -184,35 +184,29 @@ export default function Layout() {
   );
 
   return (
-    <div className="flex h-dvh bg-background">
+    <div className="flex h-dvh bg-canvas">
       {/* Desktop sidebar */}
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-white lg:flex">
-        <Link to="/dashboard" className="flex items-center gap-2.5 border-b border-border px-5 py-4">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-lg font-bold text-white">
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-hairline bg-surface lg:flex">
+        <Link to="/dashboard" className="flex items-center gap-2.5 border-b border-hairline px-5 py-4">
+          <div className="flex h-9 w-9 items-center justify-center rounded-control bg-primary text-base font-bold text-white">
             F
           </div>
-          <div>
-            <p className="text-sm font-semibold text-slate-900">Fellowship Manager</p>
-            <p className="text-xxs text-slate-400">Church Administration</p>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold tracking-tight text-ink">Fellowship Manager</p>
+            <p className="truncate text-xxs text-ink-subtle">Church Administration</p>
           </div>
         </Link>
-        {renderNav()}
-        <div className="border-t border-border p-3">
-          <div className="flex items-center gap-3 rounded-lg px-2 py-1.5">
-            <div className="avatar">{initials}</div>
+        {navList()}
+        <div className="border-t border-hairline p-3">
+          <div className="flex items-center gap-3 rounded-control px-2 py-1.5">
+            <Avatar name={`${user?.firstName || ''} ${user?.lastName || ''}`} />
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-slate-900">
+              <p className="truncate text-sm font-medium text-ink">
                 {user?.firstName} {user?.lastName}
               </p>
-              <p className="truncate text-xxs capitalize text-slate-400">
-                {user?.roles?.join(', ') || 'Member'}
-              </p>
+              <p className="truncate text-xxs capitalize text-ink-subtle">{user?.roles?.join(', ') || 'Member'}</p>
             </div>
-            <button
-              onClick={handleLogout}
-              title="Logout"
-              className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-            >
+            <button onClick={handleLogout} title="Log out" aria-label="Log out" className="btn btn-ghost btn-sm px-2">
               <ArrowRightOnRectangleIcon className="h-5 w-5" />
             </button>
           </div>
@@ -222,27 +216,24 @@ export default function Layout() {
       {/* Mobile drawer */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="fixed inset-0 bg-slate-900/50" onClick={() => setSidebarOpen(false)} />
-          <div className="relative flex h-full w-64 flex-col bg-white shadow-elevated">
-            <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <div className="fixed inset-0 bg-ink/50 backdrop-blur-[2px]" onClick={() => setSidebarOpen(false)} />
+          <div className="relative flex h-full w-72 max-w-[85vw] flex-col bg-surface shadow-overlay">
+            <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-base font-bold text-white">
+                <div className="flex h-8 w-8 items-center justify-center rounded-control bg-primary text-sm font-bold text-white">
                   F
                 </div>
-                <p className="text-sm font-semibold text-slate-900">Fellowship Manager</p>
+                <p className="text-sm font-semibold text-ink">Fellowship Manager</p>
               </div>
-              <button onClick={() => setSidebarOpen(false)} className="p-1.5 text-slate-500 hover:text-slate-900">
+              <button onClick={() => setSidebarOpen(false)} aria-label="Close menu" className="btn btn-ghost btn-sm px-2">
                 <XMarkIcon className="h-5 w-5" />
               </button>
             </div>
-            {renderNav()}
-            <div className="border-t border-border p-4">
-              <button
-                onClick={handleLogout}
-                className="flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
-              >
+            {navList()}
+            <div className="border-t border-hairline p-4">
+              <button onClick={handleLogout} className="btn btn-secondary btn-block">
                 <ArrowRightOnRectangleIcon className="h-5 w-5" />
-                Logout
+                Log out
               </button>
             </div>
           </div>
@@ -252,48 +243,41 @@ export default function Layout() {
       {/* Main column */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Header */}
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-white px-4 sm:px-6">
-          <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-hairline bg-surface/90 px-4 backdrop-blur sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
               aria-label="Open menu"
-              className="rounded-md p-2.5 text-slate-500 hover:bg-slate-100 lg:hidden"
+              className="btn btn-ghost btn-sm px-2 lg:hidden"
             >
               <Bars3Icon className="h-5 w-5" />
             </button>
-            <div className="hidden sm:block">
-              <p className="text-sm font-semibold text-slate-900">
-                {NAV_SECTIONS.flatMap((s) => s.items).find((i) => i.path === location.pathname)?.name ||
-                  (location.pathname.split('/')[1] || 'Dashboard')}
-              </p>
-              <p className="text-xxs text-slate-400">Fellowship Management System</p>
+            <div className="min-w-0">
+              <h1 className="truncate text-sm font-semibold text-ink">{currentItem?.name || 'Fellowship Manager'}</h1>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5">
             <button
               onClick={() => navigate('/notifications')}
-              aria-label="Notifications"
-              className="relative rounded-lg p-2.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
+              aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+              className="btn btn-ghost btn-sm relative px-2"
             >
               <BellIcon className="h-5 w-5" />
               {unreadCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-xxs font-semibold text-white">
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-xxs font-semibold text-white">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
             </button>
-            <button
-              onClick={() => navigate('/profile')}
-              className="flex items-center gap-2 rounded-lg p-1.5 transition-colors hover:bg-slate-100"
-            >
-              <div className="avatar h-8 w-8 text-xs">{initials}</div>
-              <div className="hidden text-left md:block">
-                <p className="text-sm font-medium leading-tight text-slate-900">
+            <button onClick={() => navigate('/profile')} className="flex items-center gap-2 rounded-control p-1.5 transition-colors hover:bg-surface-sunken">
+              <Avatar name={`${user?.firstName || ''} ${user?.lastName || ''}`} size="sm" />
+              <span className="hidden min-w-0 text-left md:block">
+                <span className="block truncate text-sm font-medium leading-tight text-ink">
                   {user?.firstName} {user?.lastName}
-                </p>
-                <p className="text-xxs leading-tight text-slate-400">{user?.email}</p>
-              </div>
+                </span>
+                <span className="block truncate text-xxs leading-tight text-ink-subtle">{user?.email}</span>
+              </span>
             </button>
           </div>
         </header>
@@ -305,17 +289,29 @@ export default function Layout() {
 
       {/* Offline / sync status */}
         {(!offline.online || offline.pending > 0) && (
-          <div role="status" className={`flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm sm:px-6 ${offline.online ? 'bg-amber-50 text-amber-900' : 'bg-slate-800 text-slate-100'}`}>
+          <div
+            role="status"
+            className={`flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm sm:px-6 ${
+              offline.online ? 'bg-warning-light text-warning' : 'bg-ink text-white'
+            }`}
+          >
             <span>
               {!offline.online ? 'You are offline. ' : ''}
               {offline.pending > 0
                 ? `${offline.pending} attendance check-in${offline.pending === 1 ? ' is' : 's are'} saved on this device and will be sent when you are online.`
                 : 'Pages that need the server will not load until you reconnect.'}
               {offline.status === 'auth' && ' Your session ended: sign in again to send them.'}
-              {offline.status === 'forbidden' && ' You no longer have permission to record attendance; open the activity to review them.'}
+              {offline.status === 'forbidden' &&
+                ' You no longer have permission to record attendance; open the activity to review them.'}
             </span>
             {offline.online && offline.pending > 0 && offline.status !== 'auth' && (
-              <button className="rounded-md bg-white px-3 py-1.5 text-xs font-medium text-slate-800 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50" onClick={() => offline.sync()} disabled={offline.syncing}>{offline.syncing ? 'Sending…' : 'Send now'}</button>
+              <button
+                className="btn btn-sm border border-hairline bg-surface text-ink shadow-card hover:bg-canvas"
+                onClick={() => offline.sync()}
+                disabled={offline.syncing}
+              >
+                {offline.syncing ? 'Sending…' : 'Send now'}
+              </button>
             )}
           </div>
         )}

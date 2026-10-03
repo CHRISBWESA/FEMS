@@ -32,20 +32,20 @@ export default function PublicShell({
   useEffect(() => setOpen(false), [brandTo, nav.length]);
 
   const link = ({ isActive }: { isActive: boolean }) =>
-    `text-sm font-medium transition-colors ${isActive ? 'text-primary' : 'text-slate-600 hover:text-slate-900'}`;
+    `text-sm font-medium transition-colors ${isActive ? 'text-primary' : 'text-ink-muted hover:text-ink'}`;
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <header className="sticky top-0 z-30 border-b border-border bg-white/90 backdrop-blur">
+    <div className="flex min-h-screen flex-col bg-canvas text-foreground">
+      <header className="sticky top-0 z-30 border-b border-hairline bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4 sm:px-6 lg:px-8">
           <Link to={brandTo} className="flex shrink-0 items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-base font-bold text-white">
               {brand.charAt(0).toUpperCase()}
             </span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-semibold leading-tight text-slate-900">{brand}</span>
+              <span className="block truncate text-sm font-semibold leading-tight text-ink">{brand}</span>
               {accentLabel && (
-                <span className="block truncate text-xs leading-tight text-slate-500">{accentLabel}</span>
+                <span className="block truncate text-xs leading-tight text-ink-muted">{accentLabel}</span>
               )}
             </span>
           </Link>
@@ -57,7 +57,7 @@ export default function PublicShell({
               </NavLink>
             ))}
             <span className="h-5 w-px bg-border" />
-            <Link to="/login" className="text-sm font-medium text-slate-600 hover:text-slate-900">
+            <Link to="/login" className="text-sm font-medium text-ink-muted hover:text-ink">
               Sign In
             </Link>
             <Link to="/register" className="btn btn-primary btn-sm">
@@ -77,14 +77,14 @@ export default function PublicShell({
         </div>
 
         {open && (
-          <nav className="border-t border-border bg-white lg:hidden">
+          <nav className="border-t border-hairline bg-white lg:hidden">
             <div className="mx-auto max-w-7xl space-y-1 px-4 py-3 sm:px-6">
               {nav.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
                   end={item.to === brandTo || item.to.endsWith('/site')}
-                  className="block rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  className="block rounded-lg px-3 py-2.5 text-sm font-medium text-ink hover:bg-canvas"
                 >
                   {item.label}
                 </NavLink>
@@ -100,26 +100,26 @@ export default function PublicShell({
 
       <main className="flex-1">{children}</main>
 
-      <footer className="mt-20 border-t border-border bg-white">
+      <footer className="mt-20 border-t border-hairline bg-white">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <p className="text-sm font-semibold text-slate-900">{brand}</p>
-              <p className="mt-2 text-sm text-slate-500">
+              <p className="text-sm font-semibold text-ink">{brand}</p>
+              <p className="mt-2 text-sm text-ink-muted">
                 Administration for fellowships, with each one kept to its own data.
               </p>
             </div>
             <FooterColumn title="Product" links={nav.slice(1, 4)} />
             <FooterColumn title="More" links={nav.slice(4)} />
             <div>
-              <p className="text-sm font-semibold text-slate-900">Access</p>
+              <p className="text-sm font-semibold text-ink">Access</p>
               <ul className="mt-3 space-y-2 text-sm">
-                <li><Link to="/login" className="text-slate-600 hover:text-primary">Sign In</Link></li>
-                <li><Link to="/register" className="text-slate-600 hover:text-primary">Get Started</Link></li>
+                <li><Link to="/login" className="text-ink-muted hover:text-primary">Sign In</Link></li>
+                <li><Link to="/register" className="text-ink-muted hover:text-primary">Get Started</Link></li>
               </ul>
             </div>
           </div>
-          <p className="mt-10 border-t border-border pt-6 text-xs text-slate-400">
+          <p className="mt-10 border-t border-hairline pt-6 text-xs text-ink-subtle">
             © {new Date().getFullYear()} {brand}. All rights reserved.
           </p>
         </div>
@@ -132,11 +132,11 @@ function FooterColumn({ title, links }: { title: string; links: SiteNavItem[] })
   if (links.length === 0) return null;
   return (
     <div>
-      <p className="text-sm font-semibold text-slate-900">{title}</p>
+      <p className="text-sm font-semibold text-ink">{title}</p>
       <ul className="mt-3 space-y-2 text-sm">
         {links.map((l) => (
           <li key={l.to}>
-            <Link to={l.to} className="text-slate-600 hover:text-primary">{l.label}</Link>
+            <Link to={l.to} className="text-ink-muted hover:text-primary">{l.label}</Link>
           </li>
         ))}
       </ul>

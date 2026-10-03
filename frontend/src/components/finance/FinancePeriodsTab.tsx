@@ -36,7 +36,7 @@ export default function FinancePeriodsTab() {
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm text-slate-500">Close a period once its books are reconciled.</p>
+        <p className="text-sm text-ink-muted">Close a period once its books are reconciled.</p>
         {canManage && <button onClick={() => { setError(''); setShow(true); }} className="btn btn-primary"><PlusIcon className="h-4 w-4" /> New Period</button>}
       </div>
       <ErrorBox text={show ? '' : error} />
@@ -47,7 +47,7 @@ export default function FinancePeriodsTab() {
             <tbody>
               {rows.map((p) => (
                 <tr key={p.id}>
-                  <td className="font-medium text-slate-900">{p.name}</td>
+                  <td className="font-medium text-ink">{p.name}</td>
                   <td>{new Date(p.start_date).toLocaleDateString()}</td>
                   <td>{new Date(p.end_date).toLocaleDateString()}</td>
                   <td><span className={`status-badge ${p.is_closed ? 'status-inactive' : 'status-active'}`}>{p.is_closed ? 'Closed' : 'Open'}</span></td>

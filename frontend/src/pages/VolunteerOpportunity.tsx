@@ -60,7 +60,7 @@ export default function VolunteerOpportunity() {
   };
   const post = (path: string, body: object = {}) => axios.post(`/volunteers/${path}`, body, { withCredentials: true });
 
-  if (error) return <div className="mx-auto max-w-4xl"><button onClick={() => navigate('/volunteering')} className="mb-4 text-sm text-slate-500">← Back</button><Empty text={error} /></div>;
+  if (error) return <div className="mx-auto max-w-4xl"><button onClick={() => navigate('/volunteering')} className="mb-4 text-sm text-ink-muted">← Back</button><Empty text={error} /></div>;
   if (!opp) return <Spinner />;
 
   const canManage: boolean = opp.canManage;
@@ -79,23 +79,23 @@ export default function VolunteerOpportunity() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <button onClick={() => navigate('/volunteering')} className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-900"><ArrowLeftIcon className="h-4 w-4" /> Back to Volunteering</button>
+      <button onClick={() => navigate('/volunteering')} className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-ink-muted hover:text-ink"><ArrowLeftIcon className="h-4 w-4" /> Back to Volunteering</button>
 
       <div className="card mb-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{opp.title}</h1>
-            <p className="mt-1 text-sm text-slate-500">
+            <h1 className="text-2xl font-semibold tracking-tight text-ink">{opp.title}</h1>
+            <p className="mt-1 text-sm text-ink-muted">
               {opp.department ? `${opp.department.name} department` : 'Fellowship-wide'}
-              {opp.coordinator && <> · Coordinator: <span className="text-slate-700">{opp.coordinator.full_name}</span></>}
+              {opp.coordinator && <> · Coordinator: <span className="text-ink">{opp.coordinator.full_name}</span></>}
               {opp.location && <> · {opp.location}</>}
             </p>
           </div>
           <span className={`status-badge ${badge(opp.status)} capitalize`}>{opp.status}</span>
         </div>
-        {opp.description && <p className="mt-4 whitespace-pre-wrap text-sm text-slate-700">{opp.description}</p>}
+        {opp.description && <p className="mt-4 whitespace-pre-wrap text-sm text-ink">{opp.description}</p>}
         {canManage && !dead && (
-          <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
+          <div className="mt-4 flex flex-wrap gap-2 border-t border-hairline pt-4">
             <button className="btn btn-secondary btn-sm" onClick={() => setDialog({ type: 'edit' })}>Edit</button>
             {NEXT[opp.status].map(([to, label]) => (
               <button key={to} disabled={busy === to} className={`btn btn-sm ${to === 'cancelled' ? 'btn-danger' : 'btn-secondary'}`}
@@ -106,7 +106,7 @@ export default function VolunteerOpportunity() {
       </div>
 
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-900">Shifts</h2>
+        <h2 className="text-lg font-semibold text-ink">Shifts</h2>
         {staff && !dead && <button className="btn btn-primary btn-sm" onClick={() => setDialog({ type: 'shift' })}><PlusIcon className="h-4 w-4" /> Add shift</button>}
       </div>
 
@@ -120,16 +120,16 @@ export default function VolunteerOpportunity() {
               <div key={s.id} className="card">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="font-medium text-slate-900">{fmt(s.starts_at)} – {new Date(s.ends_at).toLocaleTimeString([], { timeStyle: 'short' })}
+                    <p className="font-medium text-ink">{fmt(s.starts_at)} – {new Date(s.ends_at).toLocaleTimeString([], { timeStyle: 'short' })}
                       {s.status === 'cancelled' && <span className="ml-2 status-badge status-rejected">Cancelled</span>}</p>
-                    <p className="text-sm text-slate-500">
-                      {s.role?.name || 'General'} · {s.location || opp.location || 'Location to be confirmed'} · <span className="text-slate-700">{s.filled}/{s.capacity} filled</span>
+                    <p className="text-sm text-ink-muted">
+                      {s.role?.name || 'General'} · {s.location || opp.location || 'Location to be confirmed'} · <span className="text-ink">{s.filled}/{s.capacity} filled</span>
                       {staff && s.pendingApplications > 0 && <span className="ml-2 text-amber-700">{s.pendingApplications} waiting</span>}
                     </p>
-                    {s.notes && <p className="mt-1 text-sm text-slate-600">{s.notes}</p>}
+                    {s.notes && <p className="mt-1 text-sm text-ink-muted">{s.notes}</p>}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    {mine && mine.status !== 'withdrawn' && <span className="text-sm capitalize text-slate-600">You: {mine.status.replace('_', ' ')}</span>}
+                    {mine && mine.status !== 'withdrawn' && <span className="text-sm capitalize text-ink-muted">You: {mine.status.replace('_', ' ')}</span>}
                     {canApply && <button className="btn btn-primary btn-sm" onClick={() => setDialog({ type: 'apply', shift: s })}>Sign up</button>}
                     {mine && ['applied', 'confirmed'].includes(mine.status) && !started && (
                       <button className="btn btn-secondary btn-sm" disabled={busy === mine.id} onClick={() => window.confirm('Withdraw from this shift?') && act(mine.id, () => post(`assignments/${mine.id}/withdraw`))}>Withdraw</button>
@@ -141,28 +141,28 @@ export default function VolunteerOpportunity() {
                 </div>
 
                 {staff && open === s.id && (
-                  <div className="mt-4 border-t border-border pt-4">
+                  <div className="mt-4 border-t border-hairline pt-4">
                     <div className="mb-2 flex flex-wrap gap-2">
                       {(manager || deptLeader) && s.status === 'scheduled' && !started && <button className="btn btn-secondary btn-sm" onClick={() => setDialog({ type: 'assign', shift: s })}>Assign a member</button>}
                       {canSuggest && s.role_id && <button className="btn btn-secondary btn-sm" onClick={() => axios.get(`/volunteers/shifts/${s.id}/suggestions`, { withCredentials: true }).then((r) => setSuggest({ shiftId: s.id, ...r.data })).catch((e) => alert(errMsg(e, 'Could not load suggestions')))}>Suggest volunteers</button>}
                     </div>
                     {suggest?.shiftId === s.id && (
-                      <div className="mb-3 rounded-lg bg-slate-50 p-3 text-sm">
-                        {suggest.candidates.length === 0 ? <p className="text-slate-500">No matching members{suggest.skills.length ? ` for: ${suggest.skills.join(', ')}` : ' (this role has no required skills)'}.</p> : (
+                      <div className="mb-3 rounded-lg bg-canvas p-3 text-sm">
+                        {suggest.candidates.length === 0 ? <p className="text-ink-muted">No matching members{suggest.skills.length ? ` for: ${suggest.skills.join(', ')}` : ' (this role has no required skills)'}.</p> : (
                           <ul className="space-y-1">{suggest.candidates.map((c: any) => (
-                            <li key={c.memberId} className="flex items-center justify-between gap-2"><span>{c.fullName} <span className="text-xs text-slate-400">({c.matched.join(', ')})</span></span>
+                            <li key={c.memberId} className="flex items-center justify-between gap-2"><span>{c.fullName} <span className="text-xs text-ink-subtle">({c.matched.join(', ')})</span></span>
                               <button className="btn btn-secondary btn-sm" disabled={busy === c.memberId} onClick={() => act(c.memberId, async () => { await post(`shifts/${s.id}/assign`, { memberId: c.memberId }); setSuggest(null); })}>Assign</button></li>
                           ))}</ul>
                         )}
                       </div>
                     )}
-                    {!roster ? <Spinner /> : roster.length === 0 ? <p className="text-sm text-slate-500">Nobody has signed up yet.</p> : (
+                    {!roster ? <Spinner /> : roster.length === 0 ? <p className="text-sm text-ink-muted">Nobody has signed up yet.</p> : (
                       <div className="overflow-x-auto"><table className="table">
                         <thead><tr><th>Volunteer</th><th>Status</th><th /></tr></thead>
                         <tbody>
                           {roster.map((a) => (
                             <tr key={a.id}>
-                              <td className="font-medium text-slate-900">{a.member.full_name}{a.note && <p className="text-xs font-normal text-slate-500">“{a.note}”</p>}</td>
+                              <td className="font-medium text-ink">{a.member.full_name}{a.note && <p className="text-xs font-normal text-ink-muted">“{a.note}”</p>}</td>
                               <td className="capitalize">{a.status.replace('_', ' ')}</td>
                               <td className="space-x-2 text-right">
                                 {a.status === 'applied' && <>

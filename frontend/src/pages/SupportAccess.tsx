@@ -27,10 +27,10 @@ export default function SupportAccess() {
             <div key={g.id} className="card">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="font-medium text-slate-900">{g.requestedByName} <span className="text-sm font-normal text-slate-500">· {new Date(g.createdAt).toLocaleString()}</span></p>
-                  <p className="mt-1 text-sm text-slate-700">“{g.reason}”</p>
-                  <ul className="mt-2 list-disc pl-5 text-sm text-slate-600">{g.scopes.map((s: string) => <li key={s}>{SCOPE[s] || s}</li>)}</ul>
-                  <p className="mt-1 text-xs text-slate-400">{g.durationMinutes} minutes once approved{g.status === 'approved' && g.expiresAt ? ` · until ${new Date(g.expiresAt).toLocaleTimeString()}` : ''}</p>
+                  <p className="font-medium text-ink">{g.requestedByName} <span className="text-sm font-normal text-ink-muted">· {new Date(g.createdAt).toLocaleString()}</span></p>
+                  <p className="mt-1 text-sm text-ink">“{g.reason}”</p>
+                  <ul className="mt-2 list-disc pl-5 text-sm text-ink-muted">{g.scopes.map((s: string) => <li key={s}>{SCOPE[s] || s}</li>)}</ul>
+                  <p className="mt-1 text-xs text-ink-subtle">{g.durationMinutes} minutes once approved{g.status === 'approved' && g.expiresAt ? ` · until ${new Date(g.expiresAt).toLocaleTimeString()}` : ''}</p>
                 </div>
                 <div className="flex flex-col items-end gap-2">
                   <span className={`status-badge ${badge(g.status)} capitalize`}>{g.status}</span>

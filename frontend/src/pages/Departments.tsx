@@ -108,7 +108,7 @@ export default function Departments() {
         </div>
       ) : visibleDepartments.length === 0 ? (
         <div className="empty-state">
-          <div className="stat-icon bg-slate-100 text-slate-400">
+          <div className="stat-icon bg-surface-sunken text-ink-subtle">
             <BuildingOfficeIcon className="h-6 w-6" />
           </div>
           <p className="empty-title">No departments found</p>
@@ -120,17 +120,17 @@ export default function Departments() {
             <div key={dept.id} className="card card-hover group relative text-left">
               <button onClick={() => navigate(`/departments/${dept.id}`)} className="block w-full text-left">
                 <div className="flex items-start justify-between">
-                  <div className={`stat-icon ${dept.is_active === false ? 'bg-slate-100 text-slate-400' : 'bg-emerald-50 text-emerald-600'}`}>
+                  <div className={`stat-icon ${dept.is_active === false ? 'bg-surface-sunken text-ink-subtle' : 'bg-emerald-50 text-success'}`}>
                     <BuildingOfficeIcon className="h-6 w-6" />
                   </div>
                   <ArrowRightIcon className="h-4 w-4 text-slate-300 transition-colors group-hover:text-primary" />
                 </div>
-                <h3 className={`mt-4 text-base font-semibold ${dept.is_active === false ? 'text-slate-400' : 'text-slate-900'}`}>{dept.name}</h3>
-                <p className="mt-1 line-clamp-2 text-sm text-slate-500">
+                <h3 className={`mt-4 text-base font-semibold ${dept.is_active === false ? 'text-ink-subtle' : 'text-ink'}`}>{dept.name}</h3>
+                <p className="mt-1 line-clamp-2 text-sm text-ink-muted">
                   {dept.description || 'No description'}
                 </p>
-                <div className="mt-4 flex items-center gap-2 text-sm text-slate-500">
-                  <UserGroupIcon className="h-4 w-4 text-slate-400" />
+                <div className="mt-4 flex items-center gap-2 text-sm text-ink-muted">
+                  <UserGroupIcon className="h-4 w-4 text-ink-subtle" />
                   {dept.leaders?.length ?? 0} leader(s)
                   <span className={`status-badge ml-auto ${dept.is_active === false ? 'status-inactive' : 'status-active'}`}>
                     {dept.is_active === false ? 'Inactive' : 'Active'}
@@ -152,7 +152,7 @@ export default function Departments() {
                     title={dept.is_active === false ? 'Activate department' : 'Deactivate department'}
                   >
                     {dept.is_active === false
-                      ? <PlayCircleIcon className="h-4 w-4 text-emerald-600" />
+                      ? <PlayCircleIcon className="h-4 w-4 text-success" />
                       : <PauseCircleIcon className="h-4 w-4 text-amber-600" />}
                   </button>
                 </div>
@@ -178,10 +178,10 @@ export default function Departments() {
                   <BuildingOfficeIcon className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-slate-900">
+                  <h3 className="text-base font-semibold text-ink">
                     {editing ? 'Edit Department' : 'Add Department'}
                   </h3>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-ink-muted">
                     {editing ? 'Update department details.' : 'Create a new department.'}
                   </p>
                 </div>

@@ -138,12 +138,12 @@ function RegistrationsTab() {
           <button className="btn btn-secondary" type="submit">Search</button>
         </form>
         {data && (
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-ink-muted">
             {data.counts.pending} pending Â· {data.counts.approved} approved Â· {data.counts.rejected} rejected
           </p>
         )}
       </div>
-      <p className="mb-4 text-sm text-slate-600">
+      <p className="mb-4 text-sm text-ink-muted">
         Requests submitted from the public signup form. Approving one creates the fellowship, makes the requester its
         Secretary, and provisions an active account for every default role; the temporary passwords are shown once.
         Nothing a requester writes can grant access on its own.
@@ -161,24 +161,24 @@ function RegistrationsTab() {
             <tbody>
               {data.data.map((row: any) => (
                 <tr key={row.id} className="align-top">
-                  <td className="font-medium text-slate-900">
+                  <td className="font-medium text-ink">
                     {row.fellowshipName}
-                    {row.location && <span className="ml-2 text-xs text-slate-400">{row.location}</span>}
-                    {row.description && <p className="mt-1 max-w-xs text-xs text-slate-500">{row.description}</p>}
-                    {row.reason && <p className="mt-1 max-w-xs text-xs italic text-slate-500">"{row.reason}"</p>}
+                    {row.location && <span className="ml-2 text-xs text-ink-subtle">{row.location}</span>}
+                    {row.description && <p className="mt-1 max-w-xs text-xs text-ink-muted">{row.description}</p>}
+                    {row.reason && <p className="mt-1 max-w-xs text-xs italic text-ink-muted">"{row.reason}"</p>}
                   </td>
                   <td className="text-xs">
-                    <span className="block text-slate-700">{row.email}</span>
-                    {row.phone && <span className="text-slate-400">{row.phone}</span>}
-                    {row.submittedIp && <span className="block text-slate-400">from {row.submittedIp}</span>}
+                    <span className="block text-ink">{row.email}</span>
+                    {row.phone && <span className="text-ink-subtle">{row.phone}</span>}
+                    {row.submittedIp && <span className="block text-ink-subtle">from {row.submittedIp}</span>}
                   </td>
-                  <td className="text-xs text-slate-700">{row.contactName}</td>
-                  <td className="text-xs text-slate-500">{row.requestedPlanCode || 'â€”'}</td>
+                  <td className="text-xs text-ink">{row.contactName}</td>
+                  <td className="text-xs text-ink-muted">{row.requestedPlanCode || 'â€”'}</td>
                   <td>
                     <span className={`status-badge ${row.status === 'approved' ? 'status-active' : row.status === 'rejected' ? 'status-rejected' : 'status-submitted'} capitalize`}>{row.status}</span>
-                    {row.decisionNote && <p className="mt-1 max-w-[12rem] text-xs text-slate-500">{row.decisionNote}</p>}
+                    {row.decisionNote && <p className="mt-1 max-w-[12rem] text-xs text-ink-muted">{row.decisionNote}</p>}
                   </td>
-                  <td className="whitespace-nowrap text-xs text-slate-500">{new Date(row.createdAt).toLocaleDateString()}</td>
+                  <td className="whitespace-nowrap text-xs text-ink-muted">{new Date(row.createdAt).toLocaleDateString()}</td>
                   <td className="text-right">
                     {row.status === 'pending' && (
                       <span className="space-x-2">
@@ -254,7 +254,7 @@ function DashboardTab() {
   useEffect(() => { axios.get('/platform/dashboard', { withCredentials: true }).then((r) => setD(r.data)).catch((e) => setError(errMsg(e, 'Could not load the dashboard'))); }, []);
   if (error) return <Empty text={error} />;
   if (!d) return <Spinner />;
-  const stat = (l: string, v: any, h?: string) => <div key={l} className="card"><p className="text-sm text-slate-500">{l}</p><p className="text-2xl font-semibold text-slate-900">{v}</p>{h && <p className="mt-1 text-xs text-slate-400">{h}</p>}</div>;
+  const stat = (l: string, v: any, h?: string) => <div key={l} className="card"><p className="text-sm text-ink-muted">{l}</p><p className="text-2xl font-semibold text-ink">{v}</p>{h && <p className="mt-1 text-xs text-ink-subtle">{h}</p>}</div>;
   const s = d.subscriptions;
   const b = d.billing;
   return (
@@ -269,7 +269,7 @@ function DashboardTab() {
       </div>
 
       <div>
-        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-slate-400">Subscriptions</h3>
+        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Subscriptions</h3>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {stat('Subscribed fellowships', `${s.total} / ${d.tenants.total}`, `${s.tenantsWithoutSubscription} on no plan`)}
           {stat('On a free trial', s.trialing, 'trial not yet ended')}
@@ -279,9 +279,9 @@ function DashboardTab() {
         <div className="card mt-4">
           <ul className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-5">
             {s.byStatus.map((x: any) => (
-              <li key={x.status} className="flex justify-between border-b border-border py-1.5">
-                <span className="capitalize text-slate-600">{x.status.replace('_', ' ')}</span>
-                <span className="font-semibold text-slate-900">{x.count}</span>
+              <li key={x.status} className="flex justify-between border-b border-hairline py-1.5">
+                <span className="capitalize text-ink-muted">{x.status.replace('_', ' ')}</span>
+                <span className="font-semibold text-ink">{x.count}</span>
               </li>
             ))}
           </ul>
@@ -290,12 +290,12 @@ function DashboardTab() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="card">
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">Billing</h3>
-          <p className="mb-2 text-sm text-slate-600">
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Billing</h3>
+          <p className="mb-2 text-sm text-ink-muted">
             {b.invoices.total} invoice{b.invoices.total === 1 ? '' : 's'} Â· {b.invoices.open} open Â· {b.invoices.paid} paid Â· {b.invoices.void} void
           </p>
           {b.revenue.length === 0 ? (
-            <p className="text-sm text-slate-400">Nothing invoiced yet.</p>
+            <p className="text-sm text-ink-subtle">Nothing invoiced yet.</p>
           ) : (
             <table className="table">
               <thead><tr><th>Currency</th><th className="text-right">Invoiced</th><th className="text-right">Collected</th><th className="text-right">Outstanding</th></tr></thead>
@@ -311,12 +311,12 @@ function DashboardTab() {
               </tbody>
             </table>
           )}
-          <p className="mt-2 text-xs text-slate-400">Amounts are never added across currencies. Payments are recorded by an administrator; no payment provider is connected.</p>
+          <p className="mt-2 text-xs text-ink-subtle">Amounts are never added across currencies. Payments are recorded by an administrator; no payment provider is connected.</p>
         </div>
 
         <div className="card">
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">Plans in use</h3>
-          {d.plans.length === 0 ? <p className="text-sm text-slate-400">No active plans defined.</p> : (
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Plans in use</h3>
+          {d.plans.length === 0 ? <p className="text-sm text-ink-subtle">No active plans defined.</p> : (
             <table className="table">
               <thead><tr><th>Plan</th><th className="text-right">Price</th><th className="text-right">Fellowships</th></tr></thead>
               <tbody>
@@ -330,7 +330,7 @@ function DashboardTab() {
               </tbody>
             </table>
           )}
-          <p className="mt-3 border-t border-border pt-3 text-sm text-slate-600">
+          <p className="mt-3 border-t border-hairline pt-3 text-sm text-ink-muted">
             Inbound payment notifications: {b.webhooks.processed} processed Â· {b.webhooks.received} waiting Â· {b.webhooks.failed} failed
           </p>
         </div>
@@ -338,13 +338,13 @@ function DashboardTab() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="card">
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">Modules switched off</h3>
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Modules switched off</h3>
           <ul className="space-y-1 text-sm">{d.modules.map((m: any) => <li key={m.key} className="flex justify-between"><span>{m.label}</span><span className="font-medium">{m.tenantsWithModuleOff} fellowship{m.tenantsWithModuleOff === 1 ? '' : 's'}</span></li>)}</ul>
         </div>
         <div className="card">
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">Newest fellowships</h3>
-          {d.recentTenants.length === 0 ? <p className="text-sm text-slate-400">No fellowships yet.</p> : (
-            <ul className="space-y-1 text-sm">{d.recentTenants.map((t: any) => <li key={t.id} className="flex justify-between"><span>{t.name}</span><span className="text-slate-500">{new Date(t.createdAt).toLocaleDateString()}</span></li>)}</ul>
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Newest fellowships</h3>
+          {d.recentTenants.length === 0 ? <p className="text-sm text-ink-subtle">No fellowships yet.</p> : (
+            <ul className="space-y-1 text-sm">{d.recentTenants.map((t: any) => <li key={t.id} className="flex justify-between"><span>{t.name}</span><span className="text-ink-muted">{new Date(t.createdAt).toLocaleDateString()}</span></li>)}</ul>
           )}
         </div>
       </div>
@@ -395,7 +395,7 @@ function TenantsTab() {
         </form>
         {hasPermission('platform.onboard') && <button className="btn btn-primary" onClick={() => setOnboarding(true)}><PlusIcon className="h-4 w-4" /> Onboard fellowship</button>}
       </div>
-      <p className="mb-4 text-sm text-slate-500">
+      <p className="mb-4 text-sm text-ink-muted">
         A fellowship with no accounts cannot be signed in to. It is flagged rather than hidden, so a subscribed
         congregation is never quietly forgotten.
       </p>
@@ -404,9 +404,9 @@ function TenantsTab() {
           <table className="table">
             <thead><tr><th>Fellowship</th><th>Status</th><th>Accounts</th><th>Members</th><th>Modules off</th><th>Created</th></tr></thead>
             <tbody>{rows.map((t) => (
-              <tr key={t.id} className={`cursor-pointer hover:bg-slate-50 ${t.users === 0 ? 'bg-rose-50/40' : ''}`} onClick={() => navigate(`/platform/tenants/${t.id}`)}>
-                <td className="font-medium text-slate-900">
-                  {t.name}{t.location && <span className="ml-2 text-xs text-slate-400">{t.location}</span>}
+              <tr key={t.id} className={`cursor-pointer hover:bg-canvas ${t.users === 0 ? 'bg-rose-50/40' : ''}`} onClick={() => navigate(`/platform/tenants/${t.id}`)}>
+                <td className="font-medium text-ink">
+                  {t.name}{t.location && <span className="ml-2 text-xs text-ink-subtle">{t.location}</span>}
                   {t.users === 0 && (
                     <p className="mt-1 text-xs font-medium text-rose-700">No administrator — nobody can sign in</p>
                   )}
@@ -484,14 +484,14 @@ function SupportTab() {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between gap-3">
-        <p className="text-sm text-slate-600">Support access is requested from the fellowship's Secretary, limited to read-only diagnostics, time-boxed, and every use is recorded in the fellowship's audit trail.</p>
+        <p className="text-sm text-ink-muted">Support access is requested from the fellowship's Secretary, limited to read-only diagnostics, time-boxed, and every use is recorded in the fellowship's audit trail.</p>
         <button className="btn btn-primary" onClick={() => setRequesting(true)}><PlusIcon className="h-4 w-4" /> Request access</button>
       </div>
       {!rows ? <Spinner /> : rows.length === 0 ? <Empty text="No support requests yet" /> : (
         <div className="table-wrap overflow-x-auto"><table className="table"><thead><tr><th>Fellowship</th><th>Scope</th><th>Status</th><th>Expires</th><th /></tr></thead>
           <tbody>{rows.map((g) => (
             <tr key={g.id}>
-              <td className="font-medium text-slate-900">{nameOf(g.fellowshipId)}</td>
+              <td className="font-medium text-ink">{nameOf(g.fellowshipId)}</td>
               <td>{g.scopes.join(', ').replace(/_/g, ' ')}</td>
               <td><span className={`status-badge ${badge(g.status)} capitalize`}>{g.status}</span></td>
               <td>{g.expiresAt && g.status === 'approved' ? new Date(g.expiresAt).toLocaleTimeString() : 'â€”'}</td>
@@ -521,7 +521,7 @@ function SupportTab() {
           onClose={() => setRequesting(false)}
         />
       )}
-      {view && <Modal title={view.title} onClose={() => setView(null)} max="max-w-3xl"><pre className="max-h-96 overflow-auto rounded-lg bg-slate-50 p-3 text-xs">{JSON.stringify(view.data, null, 2)}</pre></Modal>}
+      {view && <Modal title={view.title} onClose={() => setView(null)} max="max-w-3xl"><pre className="max-h-96 overflow-auto rounded-lg bg-canvas p-3 text-xs">{JSON.stringify(view.data, null, 2)}</pre></Modal>}
     </div>
   );
 }
@@ -550,17 +550,17 @@ function AuditTab() {
                 <td className="whitespace-nowrap">{new Date(r.timestamp).toLocaleString()}</td>
                 <td className="text-xs">
                   {r.actor
-                    ? <><span className="block font-medium text-slate-900">{r.actor.name || r.actor.email}</span>{r.actor.roles?.length > 0 && <span className="text-slate-400">{r.actor.roles.join(', ').replace(/_/g, ' ')}</span>}</>
-                    : <span className="text-slate-400">system</span>}
+                    ? <><span className="block font-medium text-ink">{r.actor.name || r.actor.email}</span>{r.actor.roles?.length > 0 && <span className="text-ink-subtle">{r.actor.roles.join(', ').replace(/_/g, ' ')}</span>}</>
+                    : <span className="text-ink-subtle">system</span>}
                 </td>
                 <td className="font-mono text-xs">{r.action}</td>
-                <td className="text-xs text-slate-500">{r.entityType || 'â€”'} {r.entityId?.slice(0, 8)}</td>
-                <td className="text-xs text-slate-500">{r.tenant ? r.tenant.name : <span className="text-slate-400">platform</span>}</td>
-                <td className="font-mono text-xs text-slate-500">{r.ipAddress || 'â€”'}</td>
-                <td className="text-slate-600">{r.comment || ''}</td>
+                <td className="text-xs text-ink-muted">{r.entityType || 'â€”'} {r.entityId?.slice(0, 8)}</td>
+                <td className="text-xs text-ink-muted">{r.tenant ? r.tenant.name : <span className="text-ink-subtle">platform</span>}</td>
+                <td className="font-mono text-xs text-ink-muted">{r.ipAddress || 'â€”'}</td>
+                <td className="text-ink-muted">{r.comment || ''}</td>
               </tr>
             ))}</tbody></table></div>
-          <div className="mt-3 flex items-center justify-between text-sm text-slate-500"><span>{data.total} entries</span><span className="space-x-2"><button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button><button className="btn btn-secondary btn-sm" disabled={page * 25 >= data.total} onClick={() => setPage(page + 1)}>Next</button></span></div>
+          <div className="mt-3 flex items-center justify-between text-sm text-ink-muted"><span>{data.total} entries</span><span className="space-x-2"><button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button><button className="btn btn-secondary btn-sm" disabled={page * 25 >= data.total} onClick={() => setPage(page + 1)}>Next</button></span></div>
         </>
       )}
     </div>
@@ -585,7 +585,7 @@ function InvoicesTab() {
           <option value="">All statuses</option>
           {['open', 'paid', 'void'].map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
-        <p className="flex-1 text-sm text-slate-500">Every invoice raised on the platform. Open one to record a payment or void it.</p>
+        <p className="flex-1 text-sm text-ink-muted">Every invoice raised on the platform. Open one to record a payment or void it.</p>
       </div>
       {error ? <Empty text={error} /> : !data ? <Spinner /> : data.data.length === 0 ? <Empty text="No invoices" /> : (
         <>
@@ -594,18 +594,18 @@ function InvoicesTab() {
             <tbody>{data.data.map((i: any) => (
               <tr key={i.id}>
                 <td className="font-mono text-xs">{i.number}</td>
-                <td className="font-medium text-slate-900">{i.fellowship || 'Unknown fellowship'}</td>
-                <td className="text-xs text-slate-500">{i.planName}</td>
+                <td className="font-medium text-ink">{i.fellowship || 'Unknown fellowship'}</td>
+                <td className="text-xs text-ink-muted">{i.planName}</td>
                 <td>{i.amount} {i.currency}</td>
-                <td className="whitespace-nowrap text-xs text-slate-500">{new Date(i.periodStart).toLocaleDateString()} â€“ {new Date(i.periodEnd).toLocaleDateString()}</td>
+                <td className="whitespace-nowrap text-xs text-ink-muted">{new Date(i.periodStart).toLocaleDateString()} â€“ {new Date(i.periodEnd).toLocaleDateString()}</td>
                 <td className="whitespace-nowrap text-xs">{new Date(i.dueAt).toLocaleDateString()}</td>
                 <td><span className={`status-badge ${i.status === 'paid' ? 'status-active' : i.status === 'open' ? 'status-submitted' : 'status-rejected'} capitalize`}>{i.status}</span></td>
-                <td className="text-xs text-slate-500">
-                  {i.receipt ? <>{i.receipt.method || 'paid'}{i.receipt.reference ? ` Â· ${i.receipt.reference}` : ''}<br /><span className="text-slate-400">{new Date(i.receipt.paidAt).toLocaleDateString()}</span></> : i.voidedAt ? <span className="text-slate-400">voided {new Date(i.voidedAt).toLocaleDateString()}</span> : 'â€”'}
+                <td className="text-xs text-ink-muted">
+                  {i.receipt ? <>{i.receipt.method || 'paid'}{i.receipt.reference ? ` Â· ${i.receipt.reference}` : ''}<br /><span className="text-ink-subtle">{new Date(i.receipt.paidAt).toLocaleDateString()}</span></> : i.voidedAt ? <span className="text-ink-subtle">voided {new Date(i.voidedAt).toLocaleDateString()}</span> : 'â€”'}
                 </td>
               </tr>
             ))}</tbody></table></div>
-          <div className="mt-3 flex items-center justify-between text-sm text-slate-500"><span>{data.total} invoices</span><span className="space-x-2"><button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button><button className="btn btn-secondary btn-sm" disabled={page * 25 >= data.total} onClick={() => setPage(page + 1)}>Next</button></span></div>
+          <div className="mt-3 flex items-center justify-between text-sm text-ink-muted"><span>{data.total} invoices</span><span className="space-x-2"><button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button><button className="btn btn-secondary btn-sm" disabled={page * 25 >= data.total} onClick={() => setPage(page + 1)}>Next</button></span></div>
         </>
       )}
     </div>
@@ -618,7 +618,7 @@ function WebhooksTab() {
   useEffect(() => { axios.get('/platform/billing/webhook-events', { withCredentials: true }).then((r) => setRows(r.data)).catch((e) => { setRows([]); setError(errMsg(e, 'Could not load webhook events')); }); }, []);
   return (
     <div>
-      <p className="mb-4 text-sm text-slate-600">
+      <p className="mb-4 text-sm text-ink-muted">
         Inbound payment notifications. FEMS has no payment provider connected, so this stays empty until
         <span className="font-mono"> BILLING_WEBHOOK_SECRET</span> is configured and an external system starts posting signed events.
       </p>
@@ -629,8 +629,8 @@ function WebhooksTab() {
             <tr key={e.id}>
               <td className="whitespace-nowrap text-xs">{new Date(e.receivedAt).toLocaleString()}</td>
               <td className="text-xs">{e.provider}</td>
-              <td className="text-xs font-medium text-slate-900">{e.type}</td>
-              <td className="font-mono text-xs text-slate-500">{e.eventId}</td>
+              <td className="text-xs font-medium text-ink">{e.type}</td>
+              <td className="font-mono text-xs text-ink-muted">{e.eventId}</td>
               <td><span className={`status-badge ${e.status === 'processed' ? 'status-active' : e.status === 'failed' ? 'status-rejected' : 'status-submitted'} capitalize`}>{e.status}</span></td>
               <td className="text-xs text-rose-700">{e.error || ''}</td>
             </tr>
@@ -647,19 +647,19 @@ function HealthTab() {
   if (error) return <Empty text={error} />;
   if (!d) return <Spinner />;
   const ok = (v: boolean) => v ? 'status-active' : 'status-rejected';
-  const row = (k: string, v: any) => <tr key={k}><td className="text-slate-600">{k}</td><td className="text-right font-medium text-slate-900">{v}</td></tr>;
+  const row = (k: string, v: any) => <tr key={k}><td className="text-ink-muted">{k}</td><td className="text-right font-medium text-ink">{v}</td></tr>;
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <div className="card"><p className="text-sm text-slate-500">API</p><p className="text-2xl font-semibold text-slate-900">{d.application.version}</p><p className="mt-1 text-xs text-slate-400">{d.application.environment} Â· node {d.application.node}</p></div>
-        <div className="card"><p className="text-sm text-slate-500">Database</p><p className={`text-2xl font-semibold ${d.database.reachable ? 'text-emerald-700' : 'text-rose-700'}`}>{d.database.reachable ? 'Reachable' : 'Down'}</p><p className="mt-1 text-xs text-slate-400">{d.database.latencyMs} ms</p></div>
-        <div className="card"><p className="text-sm text-slate-500">Uptime</p><p className="text-2xl font-semibold text-slate-900">{Math.floor(d.application.uptimeSeconds / 60)} min</p><p className="mt-1 text-xs text-slate-400">since {new Date(d.application.startedAt).toLocaleTimeString()}</p></div>
-        <div className="card"><p className="text-sm text-slate-500">Migrations applied</p><p className={`text-2xl font-semibold ${d.migrations.failed ? 'text-rose-700' : 'text-slate-900'}`}>{d.migrations.applied}</p><p className="mt-1 text-xs text-slate-400">{d.migrations.failed ? `${d.migrations.failed} failed` : d.migrations.lastApplied ?? 'none'}</p></div>
+        <div className="card"><p className="text-sm text-ink-muted">API</p><p className="text-2xl font-semibold text-ink">{d.application.version}</p><p className="mt-1 text-xs text-ink-subtle">{d.application.environment} Â· node {d.application.node}</p></div>
+        <div className="card"><p className="text-sm text-ink-muted">Database</p><p className={`text-2xl font-semibold ${d.database.reachable ? 'text-emerald-700' : 'text-rose-700'}`}>{d.database.reachable ? 'Reachable' : 'Down'}</p><p className="mt-1 text-xs text-ink-subtle">{d.database.latencyMs} ms</p></div>
+        <div className="card"><p className="text-sm text-ink-muted">Uptime</p><p className="text-2xl font-semibold text-ink">{Math.floor(d.application.uptimeSeconds / 60)} min</p><p className="mt-1 text-xs text-ink-subtle">since {new Date(d.application.startedAt).toLocaleTimeString()}</p></div>
+        <div className="card"><p className="text-sm text-ink-muted">Migrations applied</p><p className={`text-2xl font-semibold ${d.migrations.failed ? 'text-rose-700' : 'text-ink'}`}>{d.migrations.applied}</p><p className="mt-1 text-xs text-ink-subtle">{d.migrations.failed ? `${d.migrations.failed} failed` : d.migrations.lastApplied ?? 'none'}</p></div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="card">
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">Runtime</h3>
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Runtime</h3>
           <table className="table"><tbody>
             {row('Heap in use', `${d.process.memoryHeapUsedMb} MB`)}
             {row('Heap allocated', `${d.process.memoryHeapTotalMb} MB`)}
@@ -671,26 +671,26 @@ function HealthTab() {
           </tbody></table>
         </div>
         <div className="card">
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">Integrations</h3>
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Integrations</h3>
           <table className="table">
             <thead><tr><th>Capability</th><th className="text-right">State</th></tr></thead>
             <tbody>
-              <tr><td className="text-slate-600">Payment notifications</td><td className="text-right"><span className={`status-badge ${ok(d.integrations.paymentProviderConfigured)}`}>{d.integrations.paymentProviderConfigured ? 'Configured' : 'Not configured'}</span></td></tr>
-              <tr><td className="text-slate-600">Shared rate-limit store</td><td className="text-right"><span className={`status-badge ${d.integrations.redisConfigured ? 'status-submitted' : 'status-inactive'}`}>{d.integrations.redisConfigured ? 'Configured (in-process)' : 'In-process only'}</span></td></tr>
-              <tr><td className="text-slate-600">Failed webhook events</td><td className="text-right font-medium">{d.integrations.failedWebhookEvents}</td></tr>
-              <tr><td className="text-slate-600">Oldest unprocessed event</td><td className="text-right font-medium">{d.integrations.oldestUnprocessedWebhookAt ? new Date(d.integrations.oldestUnprocessedWebhookAt).toLocaleString() : 'â€”'}</td></tr>
-              <tr><td className="text-slate-600">In-app backup execution</td><td className="text-right"><span className="status-badge status-inactive">Not available</span></td></tr>
-              <tr><td className="text-slate-600">Backup metadata rows</td><td className="text-right font-medium">{d.integrations.backupMetadataRows}</td></tr>
+              <tr><td className="text-ink-muted">Payment notifications</td><td className="text-right"><span className={`status-badge ${ok(d.integrations.paymentProviderConfigured)}`}>{d.integrations.paymentProviderConfigured ? 'Configured' : 'Not configured'}</span></td></tr>
+              <tr><td className="text-ink-muted">Shared rate-limit store</td><td className="text-right"><span className={`status-badge ${d.integrations.redisConfigured ? 'status-submitted' : 'status-inactive'}`}>{d.integrations.redisConfigured ? 'Configured (in-process)' : 'In-process only'}</span></td></tr>
+              <tr><td className="text-ink-muted">Failed webhook events</td><td className="text-right font-medium">{d.integrations.failedWebhookEvents}</td></tr>
+              <tr><td className="text-ink-muted">Oldest unprocessed event</td><td className="text-right font-medium">{d.integrations.oldestUnprocessedWebhookAt ? new Date(d.integrations.oldestUnprocessedWebhookAt).toLocaleString() : 'â€”'}</td></tr>
+              <tr><td className="text-ink-muted">In-app backup execution</td><td className="text-right"><span className="status-badge status-inactive">Not available</span></td></tr>
+              <tr><td className="text-ink-muted">Backup metadata rows</td><td className="text-right font-medium">{d.integrations.backupMetadataRows}</td></tr>
             </tbody></table>
         </div>
       </div>
 
       <div className="card">
-        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-slate-400">Operational notes</h3>
-        <ul className="list-disc space-y-1 pl-5 text-sm text-slate-600">
+        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Operational notes</h3>
+        <ul className="list-disc space-y-1 pl-5 text-sm text-ink-muted">
           {d.notes.map((n: string) => <li key={n}>{n}</li>)}
         </ul>
-        <p className="mt-3 border-t border-border pt-3 text-xs text-slate-400">Measured at {new Date(d.generatedAt).toLocaleString()}.</p>
+        <p className="mt-3 border-t border-hairline pt-3 text-xs text-ink-subtle">Measured at {new Date(d.generatedAt).toLocaleString()}.</p>
       </div>
     </div>
   );
@@ -709,14 +709,14 @@ function PlansTab() {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between gap-3">
-        <p className="text-sm text-slate-600">Plans decide which optional modules a fellowship gets and how much it can add. They are configuration, not code. Fellowships without a subscription are not limited.</p>
+        <p className="text-sm text-ink-muted">Plans decide which optional modules a fellowship gets and how much it can add. They are configuration, not code. Fellowships without a subscription are not limited.</p>
         {manage && <button className="btn btn-primary" onClick={() => setDialog({})}><PlusIcon className="h-4 w-4" /> New plan</button>}
       </div>
       {!rows ? <Spinner /> : rows.length === 0 ? <Empty text="No plans yet" /> : (
         <div className="table-wrap overflow-x-auto"><table className="table"><thead><tr><th>Plan</th><th>Price</th><th>Trial</th><th>Modules</th><th>Limits</th><th>Fellowships</th><th /></tr></thead>
           <tbody>{rows.map((r) => (
             <tr key={r.id} className={r.isActive ? '' : 'opacity-60'}>
-              <td className="font-medium text-slate-900">{r.name}<span className="ml-2 font-mono text-xs text-slate-400">{r.code}</span>{!r.isActive && <span className="ml-2 status-badge status-inactive">Retired</span>}</td>
+              <td className="font-medium text-ink">{r.name}<span className="ml-2 font-mono text-xs text-ink-subtle">{r.code}</span>{!r.isActive && <span className="ml-2 status-badge status-inactive">Retired</span>}</td>
               <td>{r.price} {r.currency} / {r.billingInterval}</td><td>{r.trialDays ? `${r.trialDays} days` : 'â€”'}</td>
               <td className="text-xs">{r.modules.length ? r.modules.join(', ') : 'core only'}</td>
               <td className="text-xs">{Object.keys(r.limits).length ? Object.entries(r.limits).map(([k, v]) => `${k.replace('max_', '')}: ${v}`).join(', ') : 'none'}</td>
@@ -775,15 +775,15 @@ function SubscriptionsTab() {
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <select className="select w-44" value={status} onChange={(e) => setStatus(e.target.value)}><option value="">All statuses</option>{['trialing', 'active', 'past_due', 'cancelled', 'expired'].map((s) => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}</select>
-        <p className="flex-1 text-sm text-slate-500">Open a fellowship to assign a plan, issue invoices and record payments. There is no payment provider connected: payments are recorded by an administrator.</p>
+        <p className="flex-1 text-sm text-ink-muted">Open a fellowship to assign a plan, issue invoices and record payments. There is no payment provider connected: payments are recorded by an administrator.</p>
         {hasPermission('platform.billing_manage') && <button className="btn btn-secondary" onClick={runMaintenance}>Run overdue / trial check</button>}
       </div>
-      {note && <p className="mb-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{note}</p>}
+      {note && <p className="mb-3 rounded-lg bg-canvas p-3 text-sm text-ink">{note}</p>}
       {!rows ? <Spinner /> : rows.length === 0 ? <Empty text="No subscriptions" /> : (
         <div className="table-wrap overflow-x-auto"><table className="table"><thead><tr><th>Fellowship</th><th>Plan</th><th>Status</th><th>Trial / paid until</th></tr></thead>
           <tbody>{rows.map((r) => (
-            <tr key={r.fellowshipId} className="cursor-pointer hover:bg-slate-50" onClick={() => navigate(`/platform/tenants/${r.fellowshipId}`)}>
-              <td className="font-medium text-slate-900">{r.fellowship}</td><td>{r.plan.name}</td>
+            <tr key={r.fellowshipId} className="cursor-pointer hover:bg-canvas" onClick={() => navigate(`/platform/tenants/${r.fellowshipId}`)}>
+              <td className="font-medium text-ink">{r.fellowship}</td><td>{r.plan.name}</td>
               <td><span className={`status-badge ${r.status === 'active' ? 'status-active' : r.status === 'trialing' ? 'status-submitted' : r.status === 'past_due' ? 'status-draft' : 'status-rejected'} capitalize`}>{r.status.replace('_', ' ')}</span>{r.cancelAtPeriodEnd && <span className="ml-2 text-xs text-amber-700">cancels at period end</span>}</td>
               <td>{new Date(r.trialEndsAt || r.currentPeriodEnd || 0).getTime() ? new Date(r.trialEndsAt || r.currentPeriodEnd).toLocaleDateString() : 'â€”'}</td>
             </tr>

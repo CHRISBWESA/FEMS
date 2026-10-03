@@ -43,7 +43,7 @@ export default function FinanceCampaignsTab() {
     <div className="space-y-8">
       <section>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Contribution campaigns</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-subtle">Contribution campaigns</h2>
           {canCampaign && <button onClick={() => { setError(''); setShowCampaign(true); }} className="btn btn-primary"><PlusIcon className="h-4 w-4" /> New Campaign</button>}
         </div>
         <ErrorBox text={showCampaign || showCategory ? '' : error} />
@@ -53,17 +53,17 @@ export default function FinanceCampaignsTab() {
               <div key={c.id} className="card">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="text-base font-semibold text-slate-900">{c.name}</h3>
-                    <p className="text-xs text-slate-500">{new Date(c.start_date).toLocaleDateString()}{c.end_date ? ` – ${new Date(c.end_date).toLocaleDateString()}` : ''}</p>
+                    <h3 className="text-base font-semibold text-ink">{c.name}</h3>
+                    <p className="text-xs text-ink-muted">{new Date(c.start_date).toLocaleDateString()}{c.end_date ? ` – ${new Date(c.end_date).toLocaleDateString()}` : ''}</p>
                   </div>
                   <span className={`status-badge ${c.status === 'active' ? 'status-active' : 'status-inactive'}`}>{c.status}</span>
                 </div>
-                <p className="mt-3 text-2xl font-semibold text-slate-900">{money(c.progress.raised)}
-                  {c.target_amount && <span className="ml-2 text-sm font-normal text-slate-500">of {money(c.target_amount)}</span>}</p>
+                <p className="mt-3 text-2xl font-semibold text-ink">{money(c.progress.raised)}
+                  {c.target_amount && <span className="ml-2 text-sm font-normal text-ink-muted">of {money(c.target_amount)}</span>}</p>
                 {c.progress.percentOfTarget !== null && (
-                  <div className="mt-2 flex items-center gap-2"><Bar value={c.progress.percentOfTarget} max={100} className="bg-emerald-500" /><span className="text-xs text-slate-500">{c.progress.percentOfTarget}%</span></div>
+                  <div className="mt-2 flex items-center gap-2"><Bar value={c.progress.percentOfTarget} max={100} className="bg-emerald-500" /><span className="text-xs text-ink-muted">{c.progress.percentOfTarget}%</span></div>
                 )}
-                <p className="mt-2 text-xs text-slate-500">{c.progress.contributorCount} contributor(s) · {c.progress.contributionCount} contribution(s)</p>
+                <p className="mt-2 text-xs text-ink-muted">{c.progress.contributorCount} contributor(s) · {c.progress.contributionCount} contribution(s)</p>
                 {canCampaign && (
                   <button onClick={() => toggleCampaign(c)} className="btn btn-secondary btn-sm mt-3">{c.status === 'active' ? 'Close campaign' : 'Reopen campaign'}</button>
                 )}
@@ -75,7 +75,7 @@ export default function FinanceCampaignsTab() {
 
       <section>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Categories</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-subtle">Categories</h2>
           {canCategory && <button onClick={() => { setError(''); setShowCategory(true); }} className="btn btn-secondary"><PlusIcon className="h-4 w-4" /> New Category</button>}
         </div>
         {categories.length === 0 ? <Empty text="No categories yet" /> : (
@@ -85,7 +85,7 @@ export default function FinanceCampaignsTab() {
               <tbody>
                 {categories.map((c) => (
                   <tr key={c.id}>
-                    <td className="font-medium text-slate-900">{c.name}</td>
+                    <td className="font-medium text-ink">{c.name}</td>
                     <td className="capitalize">{c.kind}</td>
                     <td><span className={`status-badge ${c.is_active ? 'status-active' : 'status-inactive'}`}>{c.is_active ? 'Active' : 'Inactive'}</span></td>
                     {canCategory && <td><button onClick={() => toggleCategory(c)} className="btn btn-secondary btn-sm">{c.is_active ? 'Deactivate' : 'Activate'}</button></td>}

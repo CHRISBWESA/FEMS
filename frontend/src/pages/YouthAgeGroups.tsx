@@ -110,7 +110,7 @@ export default function YouthAgeGroups() {
         </div>
       ) : ageGroups.length === 0 ? (
         <div className="empty-state">
-          <div className="stat-icon bg-slate-100 text-slate-400">
+          <div className="stat-icon bg-surface-sunken text-ink-subtle">
             <RectangleStackIcon className="h-6 w-6" />
           </div>
           <p className="empty-title">No age groups configured</p>
@@ -125,9 +125,9 @@ export default function YouthAgeGroups() {
             <tbody>
               {ageGroups.map((g: any) => (
                 <tr key={g.id}>
-                  <td className="font-medium text-slate-900">{g.name}</td>
+                  <td className="font-medium text-ink">{g.name}</td>
                   <td>{g.min_age}–{g.max_age} yrs</td>
-                  <td className="text-slate-500">{g.description || '—'}</td>
+                  <td className="text-ink-muted">{g.description || '—'}</td>
                   <td>
                     <span className={`status-badge ${g.is_active ? 'status-active' : 'status-inactive'}`}>
                       {g.is_active ? 'Active' : 'Inactive'}
@@ -156,10 +156,10 @@ export default function YouthAgeGroups() {
                   <RectangleStackIcon className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-slate-900">
+                  <h3 className="text-base font-semibold text-ink">
                     {editing ? 'Edit Age Group' : 'Add Age Group'}
                   </h3>
-                  <p className="text-xs text-slate-500">Ranges must not overlap an existing active age group.</p>
+                  <p className="text-xs text-ink-muted">Ranges must not overlap an existing active age group.</p>
                 </div>
               </div>
               <button type="button" onClick={() => { setShowCreate(false); setEditing(null); }} className="btn btn-icon">

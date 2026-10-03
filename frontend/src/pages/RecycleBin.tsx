@@ -42,7 +42,7 @@ export default function RecycleBin() {
 
       {items.length === 0 ? (
         <div className="empty-state">
-          <div className="stat-icon bg-slate-100 text-slate-400"><ArchiveBoxXMarkIcon className="h-6 w-6" /></div>
+          <div className="stat-icon bg-surface-sunken text-ink-subtle"><ArchiveBoxXMarkIcon className="h-6 w-6" /></div>
           <p className="empty-title">Recycle bin is empty</p>
           <p className="empty-desc">Deleted records will appear here.</p>
         </div>
@@ -53,11 +53,11 @@ export default function RecycleBin() {
               <div className="flex items-center gap-3">
                 <div className="stat-icon bg-amber-50 text-amber-600"><TrashIcon className="h-5 w-5" /></div>
                 <div>
-                  <p className="text-sm font-medium text-slate-900">
+                  <p className="text-sm font-medium text-ink">
                     {item.original_collection}
-                    <span className="ml-2 font-mono text-xs text-slate-400">{item.original_record_id}</span>
+                    <span className="ml-2 font-mono text-xs text-ink-subtle">{item.original_record_id}</span>
                   </p>
-                  <p className="text-xs text-slate-400">Deleted: {item.deleted_at ? new Date(item.deleted_at).toLocaleString() : '—'}</p>
+                  <p className="text-xs text-ink-subtle">Deleted: {item.deleted_at ? new Date(item.deleted_at).toLocaleString() : '—'}</p>
                 </div>
               </div>
               {hasRole('secretary') && (
@@ -71,7 +71,7 @@ export default function RecycleBin() {
       )}
 
       {!hasRole('secretary') && (
-        <div className="flex items-start gap-2 text-xs text-slate-500">
+        <div className="flex items-start gap-2 text-xs text-ink-muted">
           <ShieldCheckIcon className="mt-0.5 h-4 w-4 shrink-0" />
           Assistant secretaries can list records; only the Main Secretary can permanently delete one.
         </div>

@@ -149,21 +149,21 @@ export default function DepartmentDetail() {
     <div className="mx-auto max-w-4xl">
       <button
         onClick={() => navigate('/departments')}
-        className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-ink-muted transition-colors hover:text-ink"
       >
         <ArrowLeftIcon className="h-4 w-4" />
         Back to Departments
       </button>
 
       <div className="card mb-6">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-hairline pb-5">
           <div className="flex items-center gap-4">
-            <div className="stat-icon bg-emerald-50 text-emerald-600">
+            <div className="stat-icon bg-emerald-50 text-success">
               <BuildingOfficeIcon className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{dept.name}</h1>
-              <p className="mt-1 text-sm text-slate-500">{dept.description || 'No description'}</p>
+              <h1 className="text-2xl font-semibold tracking-tight text-ink">{dept.name}</h1>
+              <p className="mt-1 text-sm text-ink-muted">{dept.description || 'No description'}</p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -193,16 +193,16 @@ export default function DepartmentDetail() {
         </div>
 
         <div className="pt-5">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">Leadership</h2>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Leadership</h2>
           {dept.leaders?.length ? (
-            <ul className="divide-y divide-border">
+            <ul className="divide-y divide-hairline">
               {dept.leaders.map((l: any) => (
                 <li key={l.id} className="flex items-center justify-between py-3">
-                  <span className="text-sm font-medium text-slate-900 capitalize">
+                  <span className="text-sm font-medium text-ink capitalize">
                     {l.role_in_department?.replace(/_/g, ' ') || 'Leader'}
                   </span>
                   <span className="flex items-center gap-3">
-                    <span className="font-mono text-xs text-slate-500">{getUserName(l.user_id) || l.user_id}</span>
+                    <span className="font-mono text-xs text-ink-muted">{getUserName(l.user_id) || l.user_id}</span>
                     {isSecretary && (
                       <button onClick={() => removeLeader(l.user_id)} className="btn btn-icon" title="Remove leader">
                         <XMarkIcon className="h-4 w-4 text-rose-500" />
@@ -213,7 +213,7 @@ export default function DepartmentDetail() {
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-slate-500">No leaders assigned yet.</p>
+            <p className="text-sm text-ink-muted">No leaders assigned yet.</p>
           )}
         </div>
       </div>
@@ -221,10 +221,10 @@ export default function DepartmentDetail() {
       {members && (
         <div className="card mb-6">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Members ({members.length})</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-subtle">Members ({members.length})</h2>
           </div>
           {members.length === 0 ? (
-            <p className="py-6 text-sm text-slate-500">No active members in this department.</p>
+            <p className="py-6 text-sm text-ink-muted">No active members in this department.</p>
           ) : (
             <div className="table-wrap overflow-x-auto">
               <table className="table">
@@ -234,7 +234,7 @@ export default function DepartmentDetail() {
                 <tbody>
                   {members.map((m: any) => (
                     <tr key={m.id} className="cursor-pointer" onClick={() => navigate(`/members/${m.id}`)}>
-                      <td className="font-medium text-slate-900">{m.full_name}</td>
+                      <td className="font-medium text-ink">{m.full_name}</td>
                       <td className="font-mono text-xs">{m.member_code}</td>
                       <td>{m.membership_status}</td>
                     </tr>
@@ -381,8 +381,8 @@ function ModalHeader({ title, desc, onClose, icon }: { title: string; desc: stri
       <div className="flex items-center gap-2">
         <div className="stat-icon bg-primary-light text-primary">{icon}</div>
         <div>
-          <h3 className="text-base font-semibold text-slate-900">{title}</h3>
-          <p className="text-xs text-slate-500">{desc}</p>
+          <h3 className="text-base font-semibold text-ink">{title}</h3>
+          <p className="text-xs text-ink-muted">{desc}</p>
         </div>
       </div>
       <button type="button" onClick={onClose} className="btn btn-icon">

@@ -45,7 +45,7 @@ export default function FinanceIncomeTab() {
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm text-slate-500">Money received that is not a member contribution.</p>
+        <p className="text-sm text-ink-muted">Money received that is not a member contribution.</p>
         {canRecord && <button onClick={() => { setError(''); setShow(true); }} className="btn btn-primary"><PlusIcon className="h-4 w-4" /> New Income</button>}
       </div>
       <ErrorBox text={show ? '' : error} />
@@ -56,7 +56,7 @@ export default function FinanceIncomeTab() {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td className="font-medium text-slate-900">{r.title}</td>
+                  <td className="font-medium text-ink">{r.title}</td>
                   <td>{money(r.amount)}</td>
                   <td>{new Date(r.date).toLocaleDateString()}</td>
                   <td>{r.category?.name || '—'}</td>

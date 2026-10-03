@@ -80,32 +80,44 @@ export default function Register() {
   const field = 'input w-full';
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-dvh bg-canvas">
       {/* Brand panel */}
-      <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-slate-900 p-12 lg:flex">
-        <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-indigo-600/30 blur-3xl" />
-        <div className="absolute -bottom-40 -right-24 h-96 w-96 rounded-full bg-violet-600/20 blur-3xl" />
+      <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-ink p-12 lg:flex">
+        <div aria-hidden className="pointer-events-none absolute -left-40 -top-40 h-[32rem] w-[32rem] rounded-full bg-primary/40 blur-3xl" />
+        <div aria-hidden className="pointer-events-none absolute -bottom-48 -right-32 h-[32rem] w-[32rem] rounded-full bg-accent-bright/15 blur-3xl" />
         <div className="relative flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-xl font-bold text-white backdrop-blur">F</div>
+          <div className="flex h-11 w-11 items-center justify-center rounded-control bg-white/10 text-xl font-bold text-white backdrop-blur">F</div>
           <div>
-            <p className="text-base font-semibold text-white">Fellowship Manager</p>
-            <p className="text-xs text-slate-400">Church Administration System</p>
+            <p className="text-base font-semibold tracking-tight text-white">Fellowship Manager</p>
+            <p className="text-xs text-white/50">Church Administration System</p>
           </div>
         </div>
-        <div className="relative max-w-md">
-          <h1 className="text-3xl font-semibold leading-tight text-white">Request access for your fellowship.</h1>
-          <p className="mt-4 text-sm leading-relaxed text-slate-400">
+        <div className="relative max-w-md animate-fade-rise">
+          <h1 className="text-3xl font-semibold leading-tight tracking-tight text-white">Request access for your fellowship.</h1>
+          <p className="mt-4 text-sm leading-relaxed text-white/60">
             Tell us about your fellowship and a platform administrator will review your request. Once approved you
             become its Secretary, with credentials for your own fellowship only.
           </p>
-          <ul className="mt-8 space-y-2 text-sm text-slate-400">
-            <li>· Your fellowship's data stays separate from every other fellowship.</li>
-            <li>· Approval makes you the Secretary and creates an account for every role your fellowship needs.</li>
-            <li>· The Secretary then manages all of those accounts — roles, e-mail, passwords.</li>
-            <li>· Nothing is activated until an administrator approves it.</li>
+          <ul className="mt-8 space-y-2.5 text-sm leading-relaxed text-white/60">
+            <li className="flex gap-2.5">
+              <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-accent-bright" />
+              Your fellowship's data stays separate from every other fellowship.
+            </li>
+            <li className="flex gap-2.5">
+              <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-accent-bright" />
+              Approval makes you the Secretary and creates an account for every role your fellowship needs.
+            </li>
+            <li className="flex gap-2.5">
+              <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-accent-bright" />
+              The Secretary then manages all of those accounts — roles, e-mail, passwords.
+            </li>
+            <li className="flex gap-2.5">
+              <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-accent-bright" />
+              Nothing is activated until an administrator approves it.
+            </li>
           </ul>
         </div>
-        <p className="relative text-xs text-slate-500">Fellowship Management System © {new Date().getFullYear()}</p>
+        <p className="relative text-xs text-white/40">Fellowship Management System © {new Date().getFullYear()}</p>
       </div>
 
       {/* Form panel */}

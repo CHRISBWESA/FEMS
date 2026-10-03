@@ -25,10 +25,10 @@ export default function MyLoans() {
             <tbody>
               {loans.map((l) => (
                 <tr key={l.id}>
-                  <td className="font-medium text-slate-900">{l.asset.name} <span className="font-mono text-xs text-slate-400">{l.asset.asset_tag}</span></td>
+                  <td className="font-medium text-ink">{l.asset.name} <span className="font-mono text-xs text-ink-subtle">{l.asset.asset_tag}</span></td>
                   <td>{new Date(l.checked_out_at).toLocaleDateString()}</td>
                   <td>{l.due_date ? new Date(l.due_date).toLocaleDateString() : '—'}</td>
-                  <td>{l.checked_in_at ? <span className="text-slate-500">Returned {new Date(l.checked_in_at).toLocaleDateString()}</span> : l.overdue ? <span className="font-medium text-rose-700">Overdue</span> : <span className="text-amber-700">With you</span>}</td>
+                  <td>{l.checked_in_at ? <span className="text-ink-muted">Returned {new Date(l.checked_in_at).toLocaleDateString()}</span> : l.overdue ? <span className="font-medium text-rose-700">Overdue</span> : <span className="text-amber-700">With you</span>}</td>
                 </tr>
               ))}
             </tbody>

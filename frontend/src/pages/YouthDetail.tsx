@@ -139,21 +139,21 @@ export default function YouthDetail() {
     <div className="mx-auto max-w-4xl">
       <button
         onClick={() => navigate('/youth')}
-        className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-ink-muted transition-colors hover:text-ink"
       >
         <ArrowLeftIcon className="h-4 w-4" />
         Back to Youth &amp; Children
       </button>
 
       <div className="card mb-6">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-hairline pb-5">
           <div className="flex items-center gap-4">
             <div className="stat-icon bg-primary-light text-primary">
               <FaceSmileIcon className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{participant.fullName}</h1>
-              <p className="mt-1 text-sm text-slate-500">
+              <h1 className="text-2xl font-semibold tracking-tight text-ink">{participant.fullName}</h1>
+              <p className="mt-1 text-sm text-ink-muted">
                 {participant.ageGroup?.name || 'No age group assigned'}
                 {participant.age !== undefined ? ` · ${participant.age} yrs` : ''}
               </p>
@@ -164,13 +164,13 @@ export default function YouthDetail() {
           </span>
         </div>
 
-        <div className="flex gap-1 overflow-x-auto border-b border-border pt-4">
+        <div className="flex gap-1 overflow-x-auto border-b border-hairline pt-4">
           {visibleTabs.map((t) => (
             <button
               key={t}
               onClick={() => selectTab(t)}
               className={`whitespace-nowrap rounded-t-lg px-3 py-2 text-sm font-medium transition-colors ${
-                tab === t ? 'bg-primary-light text-primary' : 'text-slate-500 hover:text-slate-900'
+                tab === t ? 'bg-primary-light text-primary' : 'text-ink-muted hover:text-ink'
               }`}
             >
               {t}
@@ -189,7 +189,7 @@ export default function YouthDetail() {
               {participant.gender && <Field label="Gender" value={participant.gender} />}
               <Field label="Department" value={participant.departmentId ? 'Assigned' : 'None'} />
               {!canEdit && (
-                <p className="col-span-2 text-xs text-slate-400">
+                <p className="col-span-2 text-xs text-ink-subtle">
                   Some fields are hidden — you don't have permission to view full participant details.
                 </p>
               )}
@@ -199,7 +199,7 @@ export default function YouthDetail() {
           {tab === 'Guardians' && (
             <div>
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Guardians</h2>
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-subtle">Guardians</h2>
                 {canManageGuardians && (
                   <button onClick={() => setShowAddGuardian(true)} className="btn btn-secondary">
                     <UserPlusIcon className="h-4 w-4" />
@@ -208,17 +208,17 @@ export default function YouthDetail() {
                 )}
               </div>
               {!guardians?.length ? (
-                <p className="py-4 text-sm text-slate-500">No guardians recorded yet.</p>
+                <p className="py-4 text-sm text-ink-muted">No guardians recorded yet.</p>
               ) : (
-                <ul className="divide-y divide-border">
+                <ul className="divide-y divide-hairline">
                   {guardians.map((g: any) => (
                     <li key={g.id} className="flex items-center justify-between py-3">
                       <div>
-                        <p className="text-sm font-medium text-slate-900">
+                        <p className="text-sm font-medium text-ink">
                           {g.guardianMember?.full_name || g.guardian_member_id}
                           {g.is_primary && <span className="ml-2 status-badge status-active">Primary</span>}
                         </p>
-                        <p className="text-xs capitalize text-slate-500">{g.relationship_type}</p>
+                        <p className="text-xs capitalize text-ink-muted">{g.relationship_type}</p>
                       </div>
                       {canManageGuardians && (
                         <button onClick={() => removeGuardian(g.id)} className="btn btn-icon" title="Remove guardian">
@@ -234,9 +234,9 @@ export default function YouthDetail() {
 
           {tab === 'Attendance' && (
             <div>
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">Attendance History</h2>
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Attendance History</h2>
               {!attendance?.length ? (
-                <p className="py-4 text-sm text-slate-500">No attendance recorded yet.</p>
+                <p className="py-4 text-sm text-ink-muted">No attendance recorded yet.</p>
               ) : (
                 <div className="table-wrap overflow-x-auto">
                   <table className="table">
@@ -253,7 +253,7 @@ export default function YouthDetail() {
                 </div>
               )}
               {canManageAttendance && (
-                <p className="mt-4 text-xs text-slate-400">
+                <p className="mt-4 text-xs text-ink-subtle">
                   Record new attendance from the activity's own attendance page under Youth Programs.
                 </p>
               )}
@@ -262,17 +262,17 @@ export default function YouthDetail() {
 
           {tab === 'Documents' && (
             <div>
-              <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-slate-400">
+              <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-ink-subtle">
                 <DocumentTextIcon className="h-4 w-4" /> Department Documents
               </h2>
               {!documents?.length ? (
-                <p className="py-4 text-sm text-slate-500">
+                <p className="py-4 text-sm text-ink-muted">
                   No documents found for this participant's department. Documents are managed from IT Content.
                 </p>
               ) : (
-                <ul className="divide-y divide-border">
+                <ul className="divide-y divide-hairline">
                   {documents.map((d: any) => (
-                    <li key={d.id} className="py-3 text-sm text-slate-700">{d.title}</li>
+                    <li key={d.id} className="py-3 text-sm text-ink">{d.title}</li>
                   ))}
                 </ul>
               )}
@@ -281,10 +281,10 @@ export default function YouthDetail() {
 
           {tab === 'Safeguarding' && (
             <div>
-              <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-slate-400">
+              <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-ink-subtle">
                 <ShieldExclamationIcon className="h-4 w-4" /> Safeguarding Notes
               </h2>
-              <p className="whitespace-pre-wrap text-sm text-slate-700">
+              <p className="whitespace-pre-wrap text-sm text-ink">
                 {participant.notes || 'No safeguarding notes recorded.'}
               </p>
             </div>
@@ -299,8 +299,8 @@ export default function YouthDetail() {
               <div className="flex items-center gap-2">
                 <div className="stat-icon bg-primary-light text-primary"><UserPlusIcon className="h-5 w-5" /></div>
                 <div>
-                  <h3 className="text-base font-semibold text-slate-900">Add Guardian</h3>
-                  <p className="text-xs text-slate-500">Link an existing fellowship member as a guardian.</p>
+                  <h3 className="text-base font-semibold text-ink">Add Guardian</h3>
+                  <p className="text-xs text-ink-muted">Link an existing fellowship member as a guardian.</p>
                 </div>
               </div>
               <button type="button" onClick={() => setShowAddGuardian(false)} className="btn btn-icon">
@@ -332,7 +332,7 @@ export default function YouthDetail() {
                   onChange={(e) => setGuardianForm({ ...guardianForm, relationshipType: e.target.value })}
                 />
               </div>
-              <label className="flex items-center gap-2 text-sm text-slate-700">
+              <label className="flex items-center gap-2 text-sm text-ink">
                 <input
                   type="checkbox"
                   checked={guardianForm.isPrimary}
@@ -357,8 +357,8 @@ export default function YouthDetail() {
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs font-medium uppercase tracking-wider text-slate-400">{label}</dt>
-      <dd className="mt-1 text-sm text-slate-900 capitalize">{value}</dd>
+      <dt className="text-xs font-medium uppercase tracking-wider text-ink-subtle">{label}</dt>
+      <dd className="mt-1 text-sm text-ink capitalize">{value}</dd>
     </div>
   );
 }

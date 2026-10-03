@@ -30,10 +30,10 @@ export default function FellowshipSite() {
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="flex min-h-screen items-center justify-center bg-canvas px-4">
         <div className="card max-w-md p-8 text-center">
-          <h1 className="text-xl font-semibold text-slate-900">This site is not available</h1>
-          <p className="mt-2 text-sm text-slate-600">
+          <h1 className="text-xl font-semibold text-ink">This site is not available</h1>
+          <p className="mt-2 text-sm text-ink-muted">
             The page could not be loaded. Please try again in a moment.
           </p>
         </div>
@@ -43,8 +43,8 @@ export default function FellowshipSite() {
 
   if (!site) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <p className="text-sm text-slate-500">Loading…</p>
+      <div className="flex min-h-screen items-center justify-center bg-canvas">
+        <p className="text-sm text-ink-muted">Loading…</p>
       </div>
     );
   }
@@ -131,10 +131,10 @@ function activePage(pages: PublicPage[], pathname: string): PublicPage | undefin
 
 function NotPublished() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="flex min-h-screen items-center justify-center bg-canvas px-4">
       <div className="card max-w-md p-8 text-center">
-        <h1 className="text-xl font-semibold text-slate-900">Page not found</h1>
-        <p className="mt-2 text-sm text-slate-600">
+        <h1 className="text-xl font-semibold text-ink">Page not found</h1>
+        <p className="mt-2 text-sm text-ink-muted">
           There is no published site at this address.
         </p>
         <Link to="/site" className="btn btn-primary mt-6">Go to Fellowship Manager</Link>

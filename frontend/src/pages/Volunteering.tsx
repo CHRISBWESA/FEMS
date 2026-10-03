@@ -83,14 +83,14 @@ function OpportunitiesTab({ canCreate }: { canCreate: boolean }) {
           {rows.map((o) => (
             <button key={o.id} onClick={() => navigate(`/volunteering/${o.id}`)} className="card text-left transition hover:shadow-md">
               <div className="flex items-start justify-between gap-2">
-                <h3 className="font-semibold text-slate-900">{o.title}</h3>
+                <h3 className="font-semibold text-ink">{o.title}</h3>
                 <span className={`status-badge ${badge(o.status)} capitalize`}>{o.status}</span>
               </div>
-              {o.description && <p className="mt-1 line-clamp-2 text-sm text-slate-600">{o.description}</p>}
-              <dl className="mt-3 space-y-1 text-xs text-slate-500">
-                {o.department && <div>Department: <span className="text-slate-700">{o.department.name}</span></div>}
-                {o.coordinator && <div>Coordinator: <span className="text-slate-700">{o.coordinator.full_name}</span></div>}
-                <div>{o.upcomingShifts} upcoming shift{o.upcomingShifts === 1 ? '' : 's'} · <span className="text-slate-700">{o.spotsLeft} spot{o.spotsLeft === 1 ? '' : 's'} left</span>{o.nextShiftAt && <> · next {new Date(o.nextShiftAt).toLocaleString()}</>}</div>
+              {o.description && <p className="mt-1 line-clamp-2 text-sm text-ink-muted">{o.description}</p>}
+              <dl className="mt-3 space-y-1 text-xs text-ink-muted">
+                {o.department && <div>Department: <span className="text-ink">{o.department.name}</span></div>}
+                {o.coordinator && <div>Coordinator: <span className="text-ink">{o.coordinator.full_name}</span></div>}
+                <div>{o.upcomingShifts} upcoming shift{o.upcomingShifts === 1 ? '' : 's'} · <span className="text-ink">{o.spotsLeft} spot{o.spotsLeft === 1 ? '' : 's'} left</span>{o.nextShiftAt && <> · next {new Date(o.nextShiftAt).toLocaleString()}</>}</div>
               </dl>
             </button>
           ))}
@@ -131,7 +131,7 @@ function MineTab() {
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[['Times served', data.totals.attended], ['Hours served', data.totals.hoursServed], ['Upcoming', data.totals.upcoming], ['Missed', data.totals.noShow]].map(([l, v]) => (
-          <div key={l as string} className="card"><p className="text-sm text-slate-500">{l}</p><p className="text-2xl font-semibold text-slate-900">{v}</p></div>
+          <div key={l as string} className="card"><p className="text-sm text-ink-muted">{l}</p><p className="text-2xl font-semibold text-ink">{v}</p></div>
         ))}
       </div>
       {data.items.length === 0 ? <Empty text="You have not signed up for any service yet" /> : (
@@ -142,9 +142,9 @@ function MineTab() {
               {data.items.map((i: any) => (
                 <tr key={i.id}>
                   <td>{new Date(i.startsAt).toLocaleString()}</td>
-                  <td className="font-medium text-slate-900">{i.opportunity.title}{i.location && <span className="ml-2 text-xs text-slate-400">{i.location}</span>}</td>
+                  <td className="font-medium text-ink">{i.opportunity.title}{i.location && <span className="ml-2 text-xs text-ink-subtle">{i.location}</span>}</td>
                   <td>{i.role || '—'}</td>
-                  <td className="capitalize">{i.status.replace('_', ' ')}{i.hours > 0 && <span className="ml-2 text-xs text-slate-400">{i.hours}h</span>}</td>
+                  <td className="capitalize">{i.status.replace('_', ' ')}{i.hours > 0 && <span className="ml-2 text-xs text-ink-subtle">{i.hours}h</span>}</td>
                 </tr>
               ))}
             </tbody>
@@ -166,7 +166,7 @@ function RolesTab() {
   return (
     <div>
       <div className="mb-4 flex justify-between">
-        <p className="text-sm text-slate-600">Roles are the kinds of service people can do (usher, sound desk…). Required skills are matched against member profiles to suggest volunteers.</p>
+        <p className="text-sm text-ink-muted">Roles are the kinds of service people can do (usher, sound desk…). Required skills are matched against member profiles to suggest volunteers.</p>
         <button className="btn btn-primary" onClick={() => setDialog({})}><PlusIcon className="h-4 w-4" /> New role</button>
       </div>
       {!rows ? <Spinner /> : rows.length === 0 ? <Empty text="No roles yet" /> : (
@@ -176,7 +176,7 @@ function RolesTab() {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td className="font-medium text-slate-900">{r.name}{r.description && <p className="text-xs font-normal text-slate-500">{r.description}</p>}</td>
+                  <td className="font-medium text-ink">{r.name}{r.description && <p className="text-xs font-normal text-ink-muted">{r.description}</p>}</td>
                   <td>{r.required_skills.length ? r.required_skills.join(', ') : '—'}</td>
                   <td><span className={`status-badge ${r.is_active ? 'status-active' : 'status-inactive'}`}>{r.is_active ? 'Active' : 'Inactive'}</span></td>
                   <td className="space-x-2 text-right"><button className="btn btn-secondary btn-sm" onClick={() => setDialog({ row: r })}>Edit</button><button className="btn btn-secondary btn-sm" onClick={() => toggle(r)}>{r.is_active ? 'Deactivate' : 'Activate'}</button></td>
@@ -223,7 +223,7 @@ function ReportsTab() {
       </form>
       {error ? <Empty text={error} /> : !data ? <Spinner /> : (
         <>
-          {data.scope === 'department' && <p className="text-sm text-slate-500">Showing your department only.</p>}
+          {data.scope === 'department' && <p className="text-sm text-ink-muted">Showing your department only.</p>}
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
             {[
               ['Volunteers', data.participation.volunteers],
@@ -231,36 +231,36 @@ function ReportsTab() {
               ['Attendance rate', data.participation.attendanceRate == null ? '—' : `${data.participation.attendanceRate}%`],
               ['Shifts filled', data.participation.fillRate == null ? '—' : `${data.participation.fillRate}%`],
               ['Unfilled (next 14 days)', `${data.upcoming.unfilled} of ${data.upcoming.next14Days}`],
-            ].map(([l, v]) => <div key={l as string} className="card"><p className="text-sm text-slate-500">{l}</p><p className="text-2xl font-semibold text-slate-900">{v}</p></div>)}
+            ].map(([l, v]) => <div key={l as string} className="card"><p className="text-sm text-ink-muted">{l}</p><p className="text-2xl font-semibold text-ink">{v}</p></div>)}
           </div>
           <div className="grid gap-6 lg:grid-cols-2">
             <div className="card">
-              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">By department</h3>
-              {data.byDepartment.length === 0 ? <p className="text-sm text-slate-500">Nothing in this period.</p> : (
+              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">By department</h3>
+              {data.byDepartment.length === 0 ? <p className="text-sm text-ink-muted">Nothing in this period.</p> : (
                 <ul className="space-y-2">{data.byDepartment.map((d: any, i: number) => {
                   const max = Math.max(...data.byDepartment.map((x: any) => x.attended), 1);
-                  return <li key={i} className="flex items-center gap-3 text-sm"><span className="w-40 truncate text-slate-700">{d.department}</span><Bar value={d.attended} max={max} /><span className="w-24 text-right text-slate-600">{d.attended} · {d.hours}h</span></li>;
+                  return <li key={i} className="flex items-center gap-3 text-sm"><span className="w-40 truncate text-ink">{d.department}</span><Bar value={d.attended} max={max} /><span className="w-24 text-right text-ink-muted">{d.attended} · {d.hours}h</span></li>;
                 })}</ul>
               )}
             </div>
             <div className="card">
-              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">Service per month</h3>
-              {data.monthly.length === 0 ? <p className="text-sm text-slate-500">Nothing in this period.</p> : (
+              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Service per month</h3>
+              {data.monthly.length === 0 ? <p className="text-sm text-ink-muted">Nothing in this period.</p> : (
                 <ul className="space-y-2">{data.monthly.map((m: any) => {
                   const max = Math.max(...data.monthly.map((x: any) => x.attended), 1);
-                  return <li key={m.month} className="flex items-center gap-3 text-sm"><span className="w-20 text-slate-700">{m.month}</span><Bar value={m.attended} max={max} /><span className="w-24 text-right text-slate-600">{m.attended} · {m.hours}h</span></li>;
+                  return <li key={m.month} className="flex items-center gap-3 text-sm"><span className="w-20 text-ink">{m.month}</span><Bar value={m.attended} max={max} /><span className="w-24 text-right text-ink-muted">{m.attended} · {m.hours}h</span></li>;
                 })}</ul>
               )}
             </div>
           </div>
           <div className="card">
-            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">By opportunity</h3>
-            {data.byOpportunity.length === 0 ? <p className="text-sm text-slate-500">Nothing in this period.</p> : (
+            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">By opportunity</h3>
+            {data.byOpportunity.length === 0 ? <p className="text-sm text-ink-muted">Nothing in this period.</p> : (
               <div className="overflow-x-auto"><table className="table"><thead><tr><th>Opportunity</th><th>Department</th><th>Shifts</th><th>Attended</th><th>No-show</th><th>Hours</th></tr></thead>
-                <tbody>{data.byOpportunity.map((o: any) => <tr key={o.id}><td className="font-medium text-slate-900">{o.title}</td><td>{o.department || '—'}</td><td>{o.shifts}</td><td>{o.attended}</td><td>{o.no_show}</td><td>{o.hours}</td></tr>)}</tbody></table></div>
+                <tbody>{data.byOpportunity.map((o: any) => <tr key={o.id}><td className="font-medium text-ink">{o.title}</td><td>{o.department || '—'}</td><td>{o.shifts}</td><td>{o.attended}</td><td>{o.no_show}</td><td>{o.hours}</td></tr>)}</tbody></table></div>
             )}
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-400"><HandRaisedIcon className="h-4 w-4" /> Figures are aggregates only; individual service history is visible just to the member and to authorised leaders.</div>
+          <div className="flex items-center gap-2 text-xs text-ink-subtle"><HandRaisedIcon className="h-4 w-4" /> Figures are aggregates only; individual service history is visible just to the member and to authorised leaders.</div>
         </>
       )}
     </div>

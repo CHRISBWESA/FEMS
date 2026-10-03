@@ -38,7 +38,7 @@ export default function Audit() {
         </div>
       ) : logs.length === 0 ? (
         <div className="empty-state">
-          <div className="stat-icon bg-slate-100 text-slate-400">
+          <div className="stat-icon bg-surface-sunken text-ink-subtle">
             <ShieldCheckIcon className="h-6 w-6" />
           </div>
           <p className="empty-title">No audit entries</p>
@@ -60,29 +60,29 @@ export default function Audit() {
             <tbody>
               {logs.map((log: any) => (
                 <tr key={log.id}>
-                  <td className="whitespace-nowrap text-xs text-slate-500">
+                  <td className="whitespace-nowrap text-xs text-ink-muted">
                     {log.timestamp ? new Date(log.timestamp).toLocaleString() : '—'}
                   </td>
                   <td className="text-xs">
                     {log.actor ? (
                       <>
-                        <span className="block font-medium text-slate-900">{log.actor.name || log.actor.email}</span>
+                        <span className="block font-medium text-ink">{log.actor.name || log.actor.email}</span>
                         {log.actor.roles?.length > 0 && (
-                          <span className="text-slate-400">{log.actor.roles.join(', ').replace(/_/g, ' ')}</span>
+                          <span className="text-ink-subtle">{log.actor.roles.join(', ').replace(/_/g, ' ')}</span>
                         )}
                       </>
                     ) : (
-                      <span className="text-slate-400">System</span>
+                      <span className="text-ink-subtle">System</span>
                     )}
                   </td>
                   <td>
-                    <span className="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-700">
+                    <span className="rounded-md bg-surface-sunken px-2 py-0.5 font-mono text-xs text-ink">
                       {log.action}
                     </span>
                   </td>
-                  <td className="text-slate-500">{log.entity_type}</td>
-                  <td className="font-mono text-xs text-slate-500">{log.ip_address || '—'}</td>
-                  <td className="max-w-xs truncate text-slate-500">{log.comment || '—'}</td>
+                  <td className="text-ink-muted">{log.entity_type}</td>
+                  <td className="font-mono text-xs text-ink-muted">{log.ip_address || '—'}</td>
+                  <td className="max-w-xs truncate text-ink-muted">{log.comment || '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -92,7 +92,7 @@ export default function Audit() {
 
       {total > 0 && (
         <div className="mt-4 flex items-center justify-between">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-ink-muted">
             Showing {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, total)} of {total}
           </p>
           <div className="flex items-center gap-2">
@@ -104,7 +104,7 @@ export default function Audit() {
               <ChevronLeftIcon className="h-4 w-4" />
               Prev
             </button>
-            <span className="text-sm text-slate-500">Page {page} of {totalPages || 1}</span>
+            <span className="text-sm text-ink-muted">Page {page} of {totalPages || 1}</span>
             <button
               onClick={() => setPage(p => p + 1)}
               disabled={page >= totalPages}

@@ -43,30 +43,30 @@ export default function PlatformContact() {
       <Section>
         <div className="grid gap-8 lg:grid-cols-2">
           <div className="card p-8">
-            <h3 className="text-lg font-semibold text-slate-900">Ask for access</h3>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+            <h3 className="text-lg font-semibold text-ink">Ask for access</h3>
+            <p className="mt-2 text-sm leading-relaxed text-ink-muted">
               If you want a fellowship set up on the system, the request form is the way. It goes to a platform
               administrator, who reviews it and creates the accounts on approval.
             </p>
             <a href="/register" className="btn btn-primary mt-6">Open the request form</a>
 
-            <h3 className="mt-10 text-lg font-semibold text-slate-900">Already have access?</h3>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+            <h3 className="mt-10 text-lg font-semibold text-ink">Already have access?</h3>
+            <p className="mt-2 text-sm leading-relaxed text-ink-muted">
               Sign in to reach your fellowship’s records, or reset your password if you have been locked out.
             </p>
             <a href="/login" className="btn btn-secondary mt-6">Sign in</a>
           </div>
 
           <div className="card p-8">
-            <h3 className="text-lg font-semibold text-slate-900">Write to us</h3>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+            <h3 className="text-lg font-semibold text-ink">Write to us</h3>
+            <p className="mt-2 text-sm leading-relaxed text-ink-muted">
               For a question that is not an access request, e-mail the address below.
             </p>
 
             {CONTACT_EMAIL ? (
-              <div className="mt-6 rounded-lg bg-slate-50 p-4">
+              <div className="mt-6 rounded-lg bg-canvas p-4">
                 <div className="flex items-center gap-3">
-                  <EnvelopeIcon className="h-5 w-5 shrink-0 text-slate-400" />
+                  <EnvelopeIcon className="h-5 w-5 shrink-0 text-ink-subtle" />
                   <span className="min-w-0 flex-1 break-all font-mono text-sm text-slate-800">{CONTACT_EMAIL}</span>
                 </div>
                 <button type="button" onClick={copy} className="btn btn-secondary btn-sm mt-3 w-full">
@@ -74,20 +74,20 @@ export default function PlatformContact() {
                 </button>
               </div>
             ) : (
-              <div className="mt-6 rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
+              <div className="mt-6 rounded-lg bg-canvas p-4 text-sm text-ink-muted">
                 No contact address has been configured for this deployment. Use the access request form instead.
               </div>
             )}
 
-            <h3 className="mt-8 text-lg font-semibold text-slate-900">What to expect</h3>
-            <ul className="mt-3 space-y-2.5 text-sm text-slate-600">
+            <h3 className="mt-8 text-lg font-semibold text-ink">What to expect</h3>
+            <ul className="mt-3 space-y-2.5 text-sm text-ink-muted">
               {[
                 'Access requests are read by a person, usually within a few working days.',
                 'If your fellowship already exists, we will point you at the Secretary rather than creating a second one.',
                 'We will ask which fellowship you belong to before discussing anybody’s records.',
               ].map((line) => (
                 <li key={line} className="flex gap-2">
-                  <CheckCircleIcon className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                  <CheckCircleIcon className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                   <span>{line}</span>
                 </li>
               ))}
@@ -97,19 +97,19 @@ export default function PlatformContact() {
 
         <div className="mt-8 grid gap-6 sm:grid-cols-2">
           <div className="card flex items-start gap-4 p-6">
-            <MapPinIcon className="h-5 w-5 shrink-0 text-slate-400" />
+            <MapPinIcon className="h-5 w-5 shrink-0 text-ink-subtle" />
             <div>
-              <p className="text-sm font-semibold text-slate-900">Where this is run</p>
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="text-sm font-semibold text-ink">Where this is run</p>
+              <p className="mt-1 text-sm text-ink-muted">
                 Each fellowship’s own address is published on its own site, not here.
               </p>
             </div>
           </div>
           <div className="card flex items-start gap-4 p-6">
-            <PhoneIcon className="h-5 w-5 shrink-0 text-slate-400" />
+            <PhoneIcon className="h-5 w-5 shrink-0 text-ink-subtle" />
             <div>
-              <p className="text-sm font-semibold text-slate-900">Telephone</p>
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="text-sm font-semibold text-ink">Telephone</p>
+              <p className="mt-1 text-sm text-ink-muted">
                 Support is by e-mail. A published number would be a number nobody answers.
               </p>
             </div>

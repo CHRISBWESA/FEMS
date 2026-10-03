@@ -51,12 +51,12 @@ export default function FormModal({
   return (
     <Modal title={title} onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
-        {description && <p className="text-sm text-slate-600">{description}</p>}
+        {description && <p className="text-sm text-ink-muted">{description}</p>}
         <ErrorBox text={error} />
         {fields.map((f) => (
           <div key={f.name}>
             {f.type === 'checkbox' ? (
-              <label className="flex items-center gap-2 text-sm text-slate-700">
+              <label className="flex items-center gap-2 text-sm text-ink">
                 <input type="checkbox" checked={!!values[f.name]} onChange={(e) => setValues({ ...values, [f.name]: e.target.checked })} />
                 {f.label}
               </label>
@@ -78,7 +78,7 @@ export default function FormModal({
                 )}
               </>
             )}
-            {f.help && <p className="mt-1 text-xs text-slate-400">{f.help}</p>}
+            {f.help && <p className="mt-1 text-xs text-ink-subtle">{f.help}</p>}
           </div>
         ))}
         <div className="flex gap-2">

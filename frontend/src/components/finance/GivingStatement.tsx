@@ -23,14 +23,14 @@ export default function GivingStatement({ url }: { url: string }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
-        <div className="card"><p className="text-sm text-slate-500">Total given</p><p className="text-2xl font-semibold text-slate-900">{money(data.total)}</p></div>
-        <div className="card"><p className="text-sm text-slate-500">Contributions</p><p className="text-2xl font-semibold text-slate-900">{data.count}</p></div>
+        <div className="card"><p className="text-sm text-ink-muted">Total given</p><p className="text-2xl font-semibold text-ink">{money(data.total)}</p></div>
+        <div className="card"><p className="text-sm text-ink-muted">Contributions</p><p className="text-2xl font-semibold text-ink">{data.count}</p></div>
       </div>
 
       {data.byType.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {data.byType.map((t: any) => (
-            <span key={t.type} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium capitalize text-slate-700">{t.type}: {money(t.total)}</span>
+            <span key={t.type} className="rounded-full bg-surface-sunken px-3 py-1 text-xs font-medium capitalize text-ink">{t.type}: {money(t.total)}</span>
           ))}
         </div>
       )}
@@ -44,7 +44,7 @@ export default function GivingStatement({ url }: { url: string }) {
                 <tr key={c.id}>
                   <td>{new Date(c.date).toLocaleDateString()}</td>
                   <td className="capitalize">{c.contribution_type}</td>
-                  <td className="font-medium text-slate-900">{money(c.amount)}</td>
+                  <td className="font-medium text-ink">{money(c.amount)}</td>
                   <td>{c.campaign?.name || '—'}</td>
                 </tr>
               ))}
@@ -52,15 +52,15 @@ export default function GivingStatement({ url }: { url: string }) {
           </table>
         </div>
       )}
-      {data.truncated && <p className="text-xs text-slate-400">Showing the most recent 1,000 contributions.</p>}
+      {data.truncated && <p className="text-xs text-ink-subtle">Showing the most recent 1,000 contributions.</p>}
 
       {data.pledges.length > 0 && (
         <section>
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-slate-400">Pledges</h3>
-          <ul className="divide-y divide-border">
+          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Pledges</h3>
+          <ul className="divide-y divide-hairline">
             {data.pledges.map((p: any) => (
               <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
-                <span className="text-slate-800">{money(p.amount)} <span className="text-slate-500">{p.frequency.replace('_', ' ')}{p.campaign ? ` · ${p.campaign.name}` : ''}</span></span>
+                <span className="text-slate-800">{money(p.amount)} <span className="text-ink-muted">{p.frequency.replace('_', ' ')}{p.campaign ? ` · ${p.campaign.name}` : ''}</span></span>
                 <span className={Number(p.fulfillment.balance) > 0 ? 'text-amber-700' : 'text-emerald-700'}>
                   {money(p.fulfillment.receivedAmount)} of {money(p.fulfillment.expectedAmount)}
                 </span>

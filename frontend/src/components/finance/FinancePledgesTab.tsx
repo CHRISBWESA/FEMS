@@ -46,7 +46,7 @@ export default function FinancePledgesTab() {
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-sm text-slate-500">Recurring commitments. Recording a contribution is always a separate, deliberate action.</p>
+        <p className="text-sm text-ink-muted">Recurring commitments. Recording a contribution is always a separate, deliberate action.</p>
         {canManage && <button onClick={() => { setError(''); setShow(true); }} className="btn btn-primary"><PlusIcon className="h-4 w-4" /> New Pledge</button>}
       </div>
       <ErrorBox text={show ? '' : error} />
@@ -59,8 +59,8 @@ export default function FinancePledgesTab() {
                 const f = fulfil[p.id];
                 return (
                   <tr key={p.id}>
-                    <td className="font-medium text-slate-900">{p.member?.full_name}</td>
-                    <td>{money(p.amount)} <span className="text-slate-500">{p.frequency.replace('_', ' ')}</span></td>
+                    <td className="font-medium text-ink">{p.member?.full_name}</td>
+                    <td>{money(p.amount)} <span className="text-ink-muted">{p.frequency.replace('_', ' ')}</span></td>
                     <td>{p.campaign?.name || '—'}</td>
                     <td><span className={`status-badge ${p.is_active ? 'status-active' : 'status-inactive'}`}>{p.is_active ? 'Active' : 'Inactive'}</span></td>
                     <td>

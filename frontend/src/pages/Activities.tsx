@@ -152,7 +152,7 @@ export default function Activities() {
         </div>
       ) : activities.length === 0 ? (
         <div className="empty-state">
-          <div className="stat-icon bg-slate-100 text-slate-400">
+          <div className="stat-icon bg-surface-sunken text-ink-subtle">
             <CalendarIcon className="h-6 w-6" />
           </div>
           <p className="empty-title">No activities found</p>
@@ -169,10 +169,10 @@ export default function Activities() {
                       <CalendarIcon className="h-6 w-6" />
                     </div>
                     <div>
-                      <h3 className={`text-base font-semibold ${a.status === 'cancelled' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
+                      <h3 className={`text-base font-semibold ${a.status === 'cancelled' ? 'text-ink-subtle line-through' : 'text-ink'}`}>
                         {a.title}
                       </h3>
-                      <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500">
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-muted">
                         <span className="inline-flex items-center gap-1">
                           <ClockIcon className="h-4 w-4" />
                           {new Date(a.date).toLocaleString()}
@@ -185,7 +185,7 @@ export default function Activities() {
                         )}
                       </div>
                       {a.description && (
-                        <p className="mt-2 text-sm text-slate-600">{a.description}</p>
+                        <p className="mt-2 text-sm text-ink-muted">{a.description}</p>
                       )}
                     </div>
                   </div>
@@ -195,7 +195,7 @@ export default function Activities() {
                 </div>
               </button>
               {canManage && (
-                <div className="mt-3 flex flex-wrap justify-end gap-2 border-t border-border pt-3">
+                <div className="mt-3 flex flex-wrap justify-end gap-2 border-t border-hairline pt-3">
                   <button onClick={(e) => { e.stopPropagation(); openEdit(a); }} className="btn btn-secondary btn-sm">
                     <PencilSquareIcon className="h-4 w-4" />
                     Edit
@@ -226,10 +226,10 @@ export default function Activities() {
                   <CalendarIcon className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-slate-900">
+                  <h3 className="text-base font-semibold text-ink">
                     {editing ? 'Edit Activity' : 'Add Activity'}
                   </h3>
-                  <p className="text-xs text-slate-500">Members are notified when an activity is created.</p>
+                  <p className="text-xs text-ink-muted">Members are notified when an activity is created.</p>
                 </div>
               </div>
               <button type="button" onClick={() => { setShowCreate(false); setEditing(null); }} className="btn btn-icon">

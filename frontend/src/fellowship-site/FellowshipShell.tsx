@@ -34,23 +34,23 @@ export default function FellowshipShell({ site, children }: { site: FellowshipSi
   const { profile } = site;
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `whitespace-nowrap text-sm font-medium transition-colors ${
-      isActive ? 'text-primary' : 'text-slate-600 hover:text-slate-900'
+      isActive ? 'text-primary' : 'text-ink-muted hover:text-ink'
     }`;
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <header className="sticky top-0 z-30 border-b border-border bg-white/95 backdrop-blur">
+    <div className="flex min-h-screen flex-col bg-canvas text-foreground">
+      <header className="sticky top-0 z-30 border-b border-hairline bg-white/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
           <Link to={base} className="flex min-w-0 items-center gap-2.5">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-base font-bold text-white">
               {site.fellowship.name.charAt(0).toUpperCase()}
             </span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-semibold leading-tight text-slate-900">
+              <span className="block truncate text-sm font-semibold leading-tight text-ink">
                 {site.fellowship.name}
               </span>
               {profile?.tagline && (
-                <span className="hidden truncate text-xs leading-tight text-slate-500 sm:block">{profile.tagline}</span>
+                <span className="hidden truncate text-xs leading-tight text-ink-muted sm:block">{profile.tagline}</span>
               )}
             </span>
           </Link>
@@ -66,19 +66,19 @@ export default function FellowshipShell({ site, children }: { site: FellowshipSi
               <div className="relative">
                 <button
                   type="button"
-                  className="text-sm font-medium text-slate-600 hover:text-slate-900"
+                  className="text-sm font-medium text-ink-muted hover:text-ink"
                   aria-expanded={moreOpen}
                   onClick={() => setMoreOpen((o) => !o)}
                 >
                   More
                 </button>
                 {moreOpen && (
-                  <div className="absolute right-0 top-full z-40 mt-2 w-56 overflow-hidden rounded-xl bg-white py-1 shadow-elevated ring-1 ring-border">
+                  <div className="absolute right-0 top-full z-40 mt-2 w-56 overflow-hidden rounded-xl bg-white py-1 shadow-elevated ring-1 ring-hairline">
                     {overflow.map((p) => (
                       <Link
                         key={p.key}
                         to={base + p.path}
-                        className="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50"
+                        className="block px-4 py-2.5 text-sm text-ink hover:bg-canvas"
                       >
                         {p.label}
                       </Link>
@@ -107,13 +107,13 @@ export default function FellowshipShell({ site, children }: { site: FellowshipSi
         </div>
 
         {open && (
-          <nav className="border-t border-border bg-white lg:hidden">
+          <nav className="border-t border-hairline bg-white lg:hidden">
             <div className="mx-auto max-w-6xl px-4 py-2">
               {visible.map((p) => (
                 <Link
                   key={p.key}
                   to={base + p.path}
-                  className="block rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  className="block rounded-lg px-3 py-2.5 text-sm font-medium text-ink hover:bg-canvas"
                 >
                   {p.label}
                 </Link>
@@ -125,55 +125,55 @@ export default function FellowshipShell({ site, children }: { site: FellowshipSi
 
       <main className="flex-1">{children}</main>
 
-      <footer className="mt-20 border-t border-border bg-white">
+      <footer className="mt-20 border-t border-hairline bg-white">
         <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
           <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <p className="text-sm font-semibold text-slate-900">{site.fellowship.name}</p>
-              {profile?.tagline && <p className="mt-2 text-sm text-slate-500">{profile.tagline}</p>}
+              <p className="text-sm font-semibold text-ink">{site.fellowship.name}</p>
+              {profile?.tagline && <p className="mt-2 text-sm text-ink-muted">{profile.tagline}</p>}
               {!profile?.tagline && site.fellowship.location && (
-                <p className="mt-2 text-sm text-slate-500">{site.fellowship.location}</p>
+                <p className="mt-2 text-sm text-ink-muted">{site.fellowship.location}</p>
               )}
             </div>
 
             <div>
-              <p className="text-sm font-semibold text-slate-900">Explore</p>
+              <p className="text-sm font-semibold text-ink">Explore</p>
               <ul className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
                 {visible.slice(0, 8).map((p) => (
                   <li key={p.key}>
-                    <Link to={base + p.path} className="text-slate-600 hover:text-primary">{p.label}</Link>
+                    <Link to={base + p.path} className="text-ink-muted hover:text-primary">{p.label}</Link>
                   </li>
                 ))}
               </ul>
             </div>
 
             <div className="sm:col-span-2">
-              <p className="text-sm font-semibold text-slate-900">Reach us</p>
-              <ul className="mt-3 space-y-2.5 text-sm text-slate-600">
+              <p className="text-sm font-semibold text-ink">Reach us</p>
+              <ul className="mt-3 space-y-2.5 text-sm text-ink-muted">
                 {profile?.address && (
-                  <li className="flex gap-2"><MapPinIcon className="h-4 w-4 shrink-0 text-slate-400" />{profile.address}</li>
+                  <li className="flex gap-2"><MapPinIcon className="h-4 w-4 shrink-0 text-ink-subtle" />{profile.address}</li>
                 )}
                 {profile?.phone && (
                   <li className="flex gap-2">
-                    <PhoneIcon className="h-4 w-4 shrink-0 text-slate-400" />
+                    <PhoneIcon className="h-4 w-4 shrink-0 text-ink-subtle" />
                     <a href={`tel:${profile.phone.replace(/[^\d+]/g, '')}`} className="hover:text-primary">{profile.phone}</a>
                   </li>
                 )}
                 {profile?.email && (
                   <li className="flex gap-2">
-                    <EnvelopeIcon className="h-4 w-4 shrink-0 text-slate-400" />
+                    <EnvelopeIcon className="h-4 w-4 shrink-0 text-ink-subtle" />
                     <a href={`mailto:${profile.email}`} className="break-all hover:text-primary">{profile.email}</a>
                   </li>
                 )}
                 {profile?.service_times && (
                   <li className="flex gap-2">
-                    <ClockIcon className="h-4 w-4 shrink-0 text-slate-400" />{profile.service_times}
+                    <ClockIcon className="h-4 w-4 shrink-0 text-ink-subtle" />{profile.service_times}
                   </li>
                 )}
                 {/* A fellowship that has published no contact details must not look broken, so the fallback points
                     at the pages that are always useful. */}
                 {!profile?.address && !profile?.phone && !profile?.email && (
-                  <li className="text-slate-500">
+                  <li className="text-ink-muted">
                     <Link to={base + '/contact'} className="hover:text-primary">Contact us</Link> to reach this fellowship.
                   </li>
                 )}
@@ -189,9 +189,9 @@ export default function FellowshipShell({ site, children }: { site: FellowshipSi
             </div>
           </div>
 
-          <p className="mt-10 border-t border-border pt-6 text-xs text-slate-400">
+          <p className="mt-10 border-t border-hairline pt-6 text-xs text-ink-subtle">
             © {new Date().getFullYear()} {site.fellowship.name}.{' '}
-            <Link to="/site" className="hover:text-slate-600">Powered by Fellowship Manager</Link>
+            <Link to="/site" className="hover:text-ink-muted">Powered by Fellowship Manager</Link>
           </p>
         </div>
       </footer>
@@ -205,7 +205,7 @@ function SocialLink({ href, label }: { href: string; label: string }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="text-slate-600 hover:text-primary"
+      className="text-ink-muted hover:text-primary"
     >
       {label}
     </a>

@@ -23,7 +23,7 @@ export function Modal({ title, onClose, children, max = 'max-w-md' }: { title: s
     <div className="modal-backdrop" onClick={onClose}>
       <div className={`modal ${max}`} onClick={(e) => e.stopPropagation()}>
         <div className="mb-5 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+          <h3 className="text-base font-semibold text-ink">{title}</h3>
           <button type="button" onClick={onClose} className="btn btn-icon"><XMarkIcon className="h-5 w-5" /></button>
         </div>
         {children}
@@ -47,7 +47,7 @@ export function Spinner() {
 export function Bar({ value, max, className = 'bg-primary' }: { value: number; max: number; className?: string }) {
   const pct = max > 0 ? Math.max(2, Math.round((value / max) * 100)) : 0;
   return (
-    <div className="h-2 flex-1 rounded-full bg-slate-100">
+    <div className="h-2 flex-1 rounded-full bg-surface-sunken">
       <div className={`h-2 rounded-full ${className}`} style={{ width: value > 0 ? `${Math.min(100, pct)}%` : 0 }} />
     </div>
   );

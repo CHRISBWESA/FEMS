@@ -1,4 +1,4 @@
-ï»¿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
@@ -164,7 +164,7 @@ export default function Users() {
           roles: [roleName],
           fellowshipId: isAdmin() ? roleFellowshipId : undefined,
         }, { withCredentials: true });
-        window.alert(`Account created for ${m.full_name} with the ${roleLabel(roleName)} role.\n\nTemporary password: ${password}\n\nShare it with them â€” they must change it on login.`);
+        window.alert(`Account created for ${m.full_name} with the ${roleLabel(roleName)} role.\n\nTemporary password: ${password}\n\nShare it with them — they must change it on login.`);
         setNewAccountEmail('');
         setNewAccountPassword('');
       }
@@ -182,7 +182,7 @@ export default function Users() {
     if (!reason) return;
     try {
       await axios.post(`/users/${u.id}/request-role-removal`, { role, reason }, { withCredentials: true });
-      alert('Unassignment requested â€” it takes effect once the chairperson approves it.');
+      alert('Unassignment requested — it takes effect once the chairperson approves it.');
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to request unassignment');
     }
@@ -391,9 +391,9 @@ export default function Users() {
           <h1 className="page-title">Users</h1>
           <p className="page-desc">
             {category === 'system'
-              ? 'Accounts that run FEMS itself. They belong to no fellowship and never see a fellowshipâ€™s members, finances or other operational data.'
+              ? 'Accounts that run FEMS itself. They belong to no fellowship and never see a fellowship’s members, finances or other operational data.'
               : isAdmin()
-                ? 'Fellowship accounts across the platform. Create one on an ownerâ€™s behalf below; a whole new fellowship is created from Platform â€º Fellowships.'
+                ? 'Fellowship accounts across the platform. Create one on an owner’s behalf below; a whole new fellowship is created from Platform › Fellowships.'
                 : 'Manage account access. Every account belongs to a member.'}
           </p>
         </div>
@@ -443,7 +443,7 @@ export default function Users() {
           <AdminAccounts embedded />
         ) : (
           <div className="empty-state">
-            <div className="stat-icon bg-slate-100 text-slate-400"><ShieldCheckIcon className="h-6 w-6" /></div>
+            <div className="stat-icon bg-surface-sunken text-ink-subtle"><ShieldCheckIcon className="h-6 w-6" /></div>
             <p className="empty-title">Not available to your role</p>
             <p className="empty-desc">System accounts are managed by platform roles only.</p>
           </div>
@@ -467,10 +467,10 @@ export default function Users() {
       {(view === 'accounts' || isAdmin()) && (
       <>
       <div className="relative mb-4">
-        <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+        <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-subtle" />
         <input
           type="text"
-          placeholder="Search by name, email or memberâ€¦"
+          placeholder="Search by name, email or member…"
           className="input pl-10"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -483,7 +483,7 @@ export default function Users() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="empty-state">
-          <div className="stat-icon bg-slate-100 text-slate-400">
+          <div className="stat-icon bg-surface-sunken text-ink-subtle">
             <UsersIcon className="h-6 w-6" />
           </div>
         <p className="empty-title">{search ? 'No matches' : isAdmin() ? 'No fellowship administrators yet' : 'No users found'}</p>
@@ -518,12 +518,12 @@ export default function Users() {
                     <td>
                       <div className="flex items-center gap-3">
                         <div className="avatar h-8 w-8 text-xs">{initials(u)}</div>
-                        <span className="font-medium text-slate-900">
+                        <span className="font-medium text-ink">
                           {u.first_name} {u.last_name}
                         </span>
                       </div>
                     </td>
-                    <td className="text-slate-500">{u.email}</td>
+                    <td className="text-ink-muted">{u.email}</td>
                     <td>
                       <div className="flex flex-wrap items-center gap-1">
                         {(u.roles || []).map((role: string) => (
@@ -536,7 +536,7 @@ export default function Users() {
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); unassignUserRole(u, role); }}
                                 title={`Remove ${roleLabel(role)} (chairperson approval)`}
-                                className="text-slate-400 transition-colors hover:text-rose-600"
+                                className="text-ink-subtle transition-colors hover:text-rose-600"
                               >
                                 <XMarkIcon className="h-3 w-3" />
                               </button>
@@ -545,10 +545,10 @@ export default function Users() {
                         ))}
                       </div>
                     </td>
-                    <td className="text-slate-500">
+                    <td className="text-ink-muted">
                       {u.member
-                        ? <span>{u.member.full_name} <span className="font-mono text-xxs text-slate-400">({u.member.member_code})</span></span>
-                        : 'â€”'}
+                        ? <span>{u.member.full_name} <span className="font-mono text-xxs text-ink-subtle">({u.member.member_code})</span></span>
+                        : '—'}
                     </td>
                     <td>
                       <span className={`status-badge ${u.is_active === false ? 'status-inactive' : 'status-active'}`}>
@@ -580,7 +580,7 @@ export default function Users() {
                           <PencilSquareIcon className="h-4 w-4" />
                         </button>
                         {u.is_active === false ? (
-                          <button onClick={() => setActive(u.id, true)} title="Activate" className="btn btn-icon text-emerald-600">
+                          <button onClick={() => setActive(u.id, true)} title="Activate" className="btn btn-icon text-success">
                             <PlayIcon className="h-4 w-4" />
                           </button>
                         ) : (
@@ -619,8 +619,8 @@ export default function Users() {
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <h3 className="text-sm font-semibold capitalize text-slate-900">{roleLabel(role.name)}</h3>
-                      <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">{role.description || ''}</p>
+                      <h3 className="text-sm font-semibold capitalize text-ink">{roleLabel(role.name)}</h3>
+                      <p className="mt-0.5 line-clamp-1 text-xs text-ink-muted">{role.description || ''}</p>
                     </div>
                     <span className={`status-badge ${holders > 0 ? 'status-active' : 'status-inactive'}`}>
                       {holders} holder{holders === 1 ? '' : 's'}
@@ -642,10 +642,10 @@ export default function Users() {
               return (
                 <div className="space-y-4">
                   <div className="card">
-                    <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
+                    <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-hairline pb-4">
                       <div>
-                        <h2 className="text-lg font-semibold text-slate-900">{roleLabel(role.name)}</h2>
-                        <p className="mt-0.5 text-sm text-slate-500">{role.description}</p>
+                        <h2 className="text-lg font-semibold text-ink">{roleLabel(role.name)}</h2>
+                        <p className="mt-0.5 text-sm text-ink-muted">{role.description}</p>
                       </div>
                       <span className={`status-badge ${holders.length > 0 ? 'status-active' : 'status-inactive'}`}>
                         {holders.length} holder{holders.length === 1 ? '' : 's'}
@@ -654,7 +654,7 @@ export default function Users() {
 
                     {/* Role assignment. A platform administrator gets the read-only explanation instead, so the
                         fellowship selector - which only ever scoped the assign picker - is hidden for them too. */}
-                    <div className="mb-5 rounded-lg bg-slate-50 p-4 ring-1 ring-inset ring-border">
+                    <div className="mb-5 rounded-lg bg-canvas p-4 ring-1 ring-inset ring-hairline">
                       {!isAdmin() && (
                         <div className="mb-3">
                           <label className="label">Fellowship</label>
@@ -663,7 +663,7 @@ export default function Users() {
                             value={roleFellowshipId}
                             onChange={(e) => { setRoleFellowshipId(e.target.value); setRoleAssignPick(''); }}
                           >
-                            <option value="">Select a fellowshipâ€¦</option>
+                            <option value="">Select a fellowship…</option>
                             {fellowships.map((f) => (
                               <option key={f.id} value={f.id}>{f.name}</option>
                             ))}
@@ -673,9 +673,9 @@ export default function Users() {
                       {/* A platform administrator no longer assigns fellowship roles at all, so for that role this
                           whole block is replaced by an explanation instead of a control that can only fail. */}
                       {isAdmin() ? (
-                        <div className="rounded-lg bg-slate-50 p-4 ring-1 ring-inset ring-border">
+                        <div className="rounded-lg bg-canvas p-4 ring-1 ring-inset ring-hairline">
                           <p className="text-sm font-medium text-slate-800">Read-only for a platform administrator</p>
-                          <p className="mt-1 text-sm text-slate-600">
+                          <p className="mt-1 text-sm text-ink-muted">
                             A fellowship&rsquo;s roles are assigned by that fellowship&rsquo;s own Secretary. To help
                             with something inside a fellowship, use <span className="font-medium">Platform &rsaquo; Impersonation</span>{' '}
                             to sign in as one of its users.
@@ -699,7 +699,7 @@ export default function Users() {
                           setNewAccountPassword('');
                         }}
                       >
-                        <option value="">Select a personâ€¦</option>
+                        <option value="">Select a person…</option>
                         <optgroup label="Existing accounts without this role">
                           {cands.users.map((u) => (
                             <option key={u.id} value={`user:${u.id}`}>{u.first_name} {u.last_name} ({u.email})</option>
@@ -754,18 +754,18 @@ export default function Users() {
                     </div>
 
                     {/* Holders */}
-                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Holders</h3>
+                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-subtle">Holders</h3>
                     {holders.length === 0 ? (
-                      <p className="py-4 text-sm text-slate-500">No one holds this role yet.</p>
+                      <p className="py-4 text-sm text-ink-muted">No one holds this role yet.</p>
                     ) : (
-                      <ul className="divide-y divide-border">
+                      <ul className="divide-y divide-hairline">
                         {holders.map((u) => (
                           <li key={u.id} className="flex items-center justify-between py-2.5">
                             <div className="flex items-center gap-3">
                               <div className="avatar h-8 w-8 text-xs">{initials(u)}</div>
                               <div>
-                                <p className="text-sm font-medium text-slate-900">{u.first_name} {u.last_name}</p>
-                                <p className="text-xs text-slate-400">{u.email}{u.member ? ` Â· ${u.member.member_code}` : ''}</p>
+                                <p className="text-sm font-medium text-ink">{u.first_name} {u.last_name}</p>
+                                <p className="text-xs text-ink-subtle">{u.email}{u.member ? ` · ${u.member.member_code}` : ''}</p>
                               </div>
                             </div>
                             {/* Unassigning is a role change too, so it is hidden from a platform administrator
@@ -822,7 +822,7 @@ export default function Users() {
                       setNewMemberMode(false);
                     }}
                   >
-                    <option value="">Select a fellowshipâ€¦</option>
+                    <option value="">Select a fellowship…</option>
                     {fellowships.map((f) => (
                       <option key={f.id} value={f.id}>{f.name}</option>
                     ))}
@@ -847,29 +847,29 @@ export default function Users() {
                     }
                   }}
                 >
-                  <option value="">Select a memberâ€¦</option>
+                  <option value="">Select a member…</option>
                   {members
                     .filter((m) => !m.user_id && (!isAdmin() || !form.fellowshipId || m.fellowship_id === form.fellowshipId))
                     .map((m) => (
                       <option key={m.id} value={m.id}>{m.full_name} ({m.member_code})</option>
                     ))}
-                  {isAdmin() && form.fellowshipId && <option value="__new__">+ Create new memberâ€¦</option>}
+                  {isAdmin() && form.fellowshipId && <option value="__new__">+ Create new member…</option>}
                 </select>
                 {form.memberId && !newMemberMode && (
-                  <p className="mt-1 text-xs text-slate-400">Details prefilled from the member record.</p>
+                  <p className="mt-1 text-xs text-ink-subtle">Details prefilled from the member record.</p>
                 )}
                 {isAdmin() && !form.fellowshipId && (
-                  <p className="mt-1 text-xs text-slate-400">Select a fellowship first.</p>
+                  <p className="mt-1 text-xs text-ink-subtle">Select a fellowship first.</p>
                 )}
                 {newMemberMode && (
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-xs text-ink-subtle">
                     A member record will be created from the first/last name below, then linked to this account.
                   </p>
                 )}
               </div>
 
               {newMemberMode && (
-                <div className="rounded-lg bg-slate-50 p-3 ring-1 ring-inset ring-border">
+                <div className="rounded-lg bg-canvas p-3 ring-1 ring-inset ring-hairline">
                   <label className="label">New member gender *</label>
                   <select
                     required
@@ -920,7 +920,7 @@ export default function Users() {
                         className={`rounded-lg border px-3 py-1.5 text-sm transition-colors ${
                           checked
                             ? 'border-primary bg-primary-light font-medium text-primary-dark'
-                            : 'border-border bg-white text-slate-600 hover:bg-slate-50'
+                            : 'border-hairline bg-white text-ink-muted hover:bg-canvas'
                         }`}
                       >
                         {role.description || role.name.replace(/_/g, ' ')}
@@ -929,7 +929,7 @@ export default function Users() {
                   })}
                 </div>
                 {form.roles.length === 0 && (
-                  <p className="mt-1.5 text-xs text-slate-400">Defaults to Ordinary Member.</p>
+                  <p className="mt-1.5 text-xs text-ink-subtle">Defaults to Ordinary Member.</p>
                 )}
               </div>
             </div>
@@ -988,15 +988,15 @@ export default function Users() {
             }}
             className="space-y-4"
           >
-            <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600 ring-1 ring-inset ring-border">
+            <p className="rounded-lg bg-canvas p-3 text-sm text-ink-muted ring-1 ring-inset ring-hairline">
               For an owner who cannot request access themselves. This creates the account inside an existing
-              fellowship; a <em>new</em> fellowship is created from Platform â€º Fellowships. A temporary password is
+              fellowship; a <em>new</em> fellowship is created from Platform › Fellowships. A temporary password is
               shown once, and the account must change it at first sign-in.
             </p>
             <div>
               <label className="label">Fellowship *</label>
               <select name="fellowshipId" required className="select w-full" defaultValue="">
-                <option value="" disabled>Select a fellowshipâ€¦</option>
+                <option value="" disabled>Select a fellowship…</option>
                 {fellowships.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
               </select>
             </div>
@@ -1021,16 +1021,16 @@ export default function Users() {
             <div>
               <label className="label">Role *</label>
               <select name="role" required className="select w-full" defaultValue="secretary">
-                <option value="secretary">Secretary â€” runs the fellowship</option>
+                <option value="secretary">Secretary — runs the fellowship</option>
                 <option value="assistant_secretary">Assistant Secretary</option>
-                <option value="chairperson">Chairperson â€” approvals and oversight</option>
+                <option value="chairperson">Chairperson — approvals and oversight</option>
                 <option value="assistant_chairperson">Assistant Chairperson</option>
-                <option value="treasurer">Treasurer â€” money</option>
-                <option value="it_admin">IT Administrator â€” runs the instance and dashboard content</option>
+                <option value="treasurer">Treasurer — money</option>
+                <option value="it_admin">IT Administrator — runs the instance and dashboard content</option>
               </select>
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="mt-1 text-xs text-ink-subtle">
                 Platform roles cannot be assigned here. The first account for a new fellowship is created with
-                Platform â€º Fellowships â€º Onboard fellowship.
+                Platform › Fellowships › Onboard fellowship.
               </p>
             </div>
             <div className="flex gap-2">
@@ -1074,7 +1074,7 @@ export default function Users() {
             />
             <label className="label">Role to add *</label>
             <select required className="select" value={assignRole} onChange={(e) => setAssignRole(e.target.value)}>
-              <option value="">Select a roleâ€¦</option>
+              <option value="">Select a role…</option>
               {roleOptions
                 .filter((r) => !(assignTarget.roles || []).includes(r.name))
                 .map((r) => (
@@ -1104,8 +1104,8 @@ function ModalHeader({ title, desc, onClose, icon }: { title: string; desc: stri
       <div className="flex items-center gap-2">
         <div className="stat-icon bg-primary-light text-primary">{icon}</div>
         <div className="max-w-xs">
-          <h3 className="text-base font-semibold text-slate-900">{title}</h3>
-          <p className="truncate text-xs text-slate-500">{desc}</p>
+          <h3 className="text-base font-semibold text-ink">{title}</h3>
+          <p className="truncate text-xs text-ink-muted">{desc}</p>
         </div>
       </div>
       <button type="button" onClick={onClose} className="btn btn-icon">

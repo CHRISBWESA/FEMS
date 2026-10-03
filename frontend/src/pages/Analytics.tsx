@@ -8,16 +8,16 @@ type Section = 'membership' | 'participation' | 'finance' | 'youth' | 'resources
 const LABEL: Record<Section, string> = { membership: 'Membership', participation: 'Participation', finance: 'Finance', youth: 'Youth', resources: 'Resources', volunteers: 'Volunteers' };
 
 const Card = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <div className="card"><h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">{title}</h3>{children}</div>
+  <div className="card"><h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">{title}</h3>{children}</div>
 );
 const Stat = ({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) => (
-  <div className="card"><p className="text-sm text-slate-500">{label}</p><p className="text-2xl font-semibold text-slate-900">{value ?? '—'}</p>{hint && <p className="mt-1 text-xs text-slate-400">{hint}</p>}</div>
+  <div className="card"><p className="text-sm text-ink-muted">{label}</p><p className="text-2xl font-semibold text-ink">{value ?? '—'}</p>{hint && <p className="mt-1 text-xs text-ink-subtle">{hint}</p>}</div>
 );
 const pct = (v: number | null | undefined) => (v == null ? '—' : `${v}%`);
 function Bars({ rows, label, value, fmt = (n: number) => String(n) }: { rows: any[]; label: (r: any) => string; value: (r: any) => number; fmt?: (n: number) => string }) {
-  if (!rows?.length) return <p className="text-sm text-slate-500">Nothing to show for this period.</p>;
+  if (!rows?.length) return <p className="text-sm text-ink-muted">Nothing to show for this period.</p>;
   const max = Math.max(...rows.map(value), 1);
-  return <ul className="space-y-2">{rows.map((r, i) => <li key={i} className="flex items-center gap-3 text-sm"><span className="w-40 shrink-0 truncate text-slate-700">{label(r)}</span><Bar value={value(r)} max={max} /><span className="w-24 text-right font-medium text-slate-800">{fmt(value(r))}</span></li>)}</ul>;
+  return <ul className="space-y-2">{rows.map((r, i) => <li key={i} className="flex items-center gap-3 text-sm"><span className="w-40 shrink-0 truncate text-ink">{label(r)}</span><Bar value={value(r)} max={max} /><span className="w-24 text-right font-medium text-slate-800">{fmt(value(r))}</span></li>)}</ul>;
 }
 
 export default function Analytics() {
@@ -83,7 +83,7 @@ export default function Analytics() {
 
       {!overview ? <Spinner /> : (
         <>
-          {overview.scope === 'department' && <p className="mb-3 text-sm text-slate-500">Showing your department only.</p>}
+          {overview.scope === 'department' && <p className="mb-3 text-sm text-ink-muted">Showing your department only.</p>}
           <div className="tabs mb-4">
             <button className={`tab ${tab === 'overview' ? 'tab-active' : ''}`} onClick={() => setTab('overview')}>Overview</button>
             {available.map((s) => <button key={s} className={`tab ${tab === s ? 'tab-active' : ''}`} onClick={() => setTab(s)}>{LABEL[s]}</button>)}
@@ -113,7 +113,7 @@ function OverviewTab({ data, go }: { data: any; go: (s: Section) => void }) {
     <div className="space-y-6">
       {shown.map(([section, items]) => (
         <div key={section}>
-          <div className="mb-2 flex items-center justify-between"><h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">{LABEL[section]}</h2><button className="text-sm font-medium text-primary hover:underline" onClick={() => go(section)}>Details →</button></div>
+          <div className="mb-2 flex items-center justify-between"><h2 className="text-sm font-semibold uppercase tracking-wider text-ink-subtle">{LABEL[section]}</h2><button className="text-sm font-medium text-primary hover:underline" onClick={() => go(section)}>Details →</button></div>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">{items.map(([l, v, h]) => <Stat key={l} label={l} value={v} hint={h} />)}</div>
         </div>
       ))}
@@ -157,7 +157,7 @@ function Membership({ d }: { d: any }) {
         <Card title="Registrations by month"><Bars rows={d.growth} label={(r) => r.month} value={(r) => r.registered} /></Card>
         <Card title="Active members by department">
           <Bars rows={d.byDepartment} label={(r) => r.name ?? 'Unknown'} value={(r) => r.activeMembers} />
-          {d.activeWithoutDepartment != null && <p className="mt-3 text-sm text-slate-500">{d.activeWithoutDepartment} active member{d.activeWithoutDepartment === 1 ? '' : 's'} not in any department.</p>}
+          {d.activeWithoutDepartment != null && <p className="mt-3 text-sm text-ink-muted">{d.activeWithoutDepartment} active member{d.activeWithoutDepartment === 1 ? '' : 's'} not in any department.</p>}
         </Card>
       </div>
       <Card title="Status changes by month">
@@ -185,15 +185,15 @@ function Participation({ d, onEvent, eventId }: { d: any; onEvent: (id: string) 
         <Card title="By department"><Bars rows={d.byDepartment} label={(r) => r.name ?? 'Unknown'} value={(r) => r.attendance} /></Card>
       </div>
       <Card title="Recent events">
-        {d.recentEvents.length === 0 ? <p className="text-sm text-slate-500">No events in this period.</p> : (
+        {d.recentEvents.length === 0 ? <p className="text-sm text-ink-muted">No events in this period.</p> : (
           <div className="overflow-x-auto"><table className="table"><thead><tr><th>Event</th><th>Date</th><th>Department</th><th>Members</th><th>Name only</th><th /></tr></thead>
-            <tbody>{d.recentEvents.map((e: any) => <tr key={e.id}><td className="font-medium text-slate-900">{e.title}</td><td>{new Date(e.date).toLocaleDateString()}</td><td>{e.department || '—'}</td><td>{e.memberLinked}</td><td>{e.nameOnly}</td>
+            <tbody>{d.recentEvents.map((e: any) => <tr key={e.id}><td className="font-medium text-ink">{e.title}</td><td>{new Date(e.date).toLocaleDateString()}</td><td>{e.department || '—'}</td><td>{e.memberLinked}</td><td>{e.nameOnly}</td>
               <td className="text-right"><button className="btn btn-secondary btn-sm" onClick={() => onEvent(eventId === e.id ? '' : e.id)}>{eventId === e.id ? 'Hide' : 'Details'}</button></td></tr>)}</tbody></table></div>
         )}
       </Card>
       {d.event && (
         <Card title={`Event: ${d.event.title}`}>
-          <p className="text-sm text-slate-600">{new Date(d.event.date).toLocaleString()} · {d.event.memberLinked} member-linked, {d.event.nameOnly} name-only</p>
+          <p className="text-sm text-ink-muted">{new Date(d.event.date).toLocaleString()} · {d.event.memberLinked} member-linked, {d.event.nameOnly} name-only</p>
           {d.event.attendeesByDepartment.length > 0 && <div className="mt-3"><Bars rows={d.event.attendeesByDepartment} label={(r) => r.name} value={(r) => r.attendees} /></div>}
         </Card>
       )}
@@ -205,7 +205,7 @@ function Finance({ d }: { d: any }) {
   const c = d.contributions;
   return (
     <>
-      {d.period && <p className="text-sm text-slate-600">Financial period: <span className="font-medium">{d.period.name}</span></p>}
+      {d.period && <p className="text-sm text-ink-muted">Financial period: <span className="font-medium">{d.period.name}</span></p>}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {c && <Stat label="Contributions" value={money(c.total)} hint={`${c.count} record${c.count === 1 ? '' : 's'}`} />}
         {d.income && <Stat label="Other income" value={money(d.income.total)} />}
@@ -271,9 +271,9 @@ function Volunteers({ d }: { d: any }) {
         <Card title="By department"><Bars rows={d.byDepartment} label={(r) => r.department} value={(r) => r.attended} /></Card>
       </div>
       <Card title="By opportunity">
-        {d.byOpportunity.length === 0 ? <p className="text-sm text-slate-500">Nothing in this period.</p> : (
+        {d.byOpportunity.length === 0 ? <p className="text-sm text-ink-muted">Nothing in this period.</p> : (
           <div className="overflow-x-auto"><table className="table"><thead><tr><th>Opportunity</th><th>Shifts</th><th>Attended</th><th>No-show</th><th>Hours</th></tr></thead>
-            <tbody>{d.byOpportunity.map((o: any) => <tr key={o.id}><td className="font-medium text-slate-900">{o.title}</td><td>{o.shifts}</td><td>{o.attended}</td><td>{o.no_show}</td><td>{o.hours}</td></tr>)}</tbody></table></div>
+            <tbody>{d.byOpportunity.map((o: any) => <tr key={o.id}><td className="font-medium text-ink">{o.title}</td><td>{o.shifts}</td><td>{o.attended}</td><td>{o.no_show}</td><td>{o.hours}</td></tr>)}</tbody></table></div>
         )}
       </Card>
     </>

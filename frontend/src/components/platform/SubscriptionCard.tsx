@@ -28,19 +28,19 @@ export default function SubscriptionCard({ fellowshipId }: { fellowshipId: strin
     <div className="card mb-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Subscription</h2>
-          {s ? <p className="mt-1 text-lg font-semibold text-slate-900">{s.plan.name} <span className="text-sm font-normal text-slate-500">{s.plan.price} {s.plan.currency} / {s.plan.billingInterval}</span></p>
-            : <p className="mt-1 text-sm text-slate-500">No subscription. This fellowship is not under plan limits.</p>}
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-subtle">Subscription</h2>
+          {s ? <p className="mt-1 text-lg font-semibold text-ink">{s.plan.name} <span className="text-sm font-normal text-ink-muted">{s.plan.price} {s.plan.currency} / {s.plan.billingInterval}</span></p>
+            : <p className="mt-1 text-sm text-ink-muted">No subscription. This fellowship is not under plan limits.</p>}
         </div>
         {s && <span className={`status-badge ${badge(s.status)} capitalize`}>{s.status.replace('_', ' ')}</span>}
       </div>
 
       {s && (
         <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-          {s.trialEndsAt && <div><dt className="text-xs uppercase text-slate-400">Trial ends</dt><dd>{new Date(s.trialEndsAt).toLocaleDateString()}</dd></div>}
-          {s.currentPeriodEnd && <div><dt className="text-xs uppercase text-slate-400">Paid until</dt><dd>{new Date(s.currentPeriodEnd).toLocaleDateString()}</dd></div>}
-          {s.cancelAtPeriodEnd && <div><dt className="text-xs uppercase text-slate-400">Cancels</dt><dd className="text-amber-700">At period end</dd></div>}
-          {s.pastDueSince && <div><dt className="text-xs uppercase text-slate-400">Overdue since</dt><dd className="text-rose-700">{new Date(s.pastDueSince).toLocaleDateString()}</dd></div>}
+          {s.trialEndsAt && <div><dt className="text-xs uppercase text-ink-subtle">Trial ends</dt><dd>{new Date(s.trialEndsAt).toLocaleDateString()}</dd></div>}
+          {s.currentPeriodEnd && <div><dt className="text-xs uppercase text-ink-subtle">Paid until</dt><dd>{new Date(s.currentPeriodEnd).toLocaleDateString()}</dd></div>}
+          {s.cancelAtPeriodEnd && <div><dt className="text-xs uppercase text-ink-subtle">Cancels</dt><dd className="text-amber-700">At period end</dd></div>}
+          {s.pastDueSince && <div><dt className="text-xs uppercase text-ink-subtle">Overdue since</dt><dd className="text-rose-700">{new Date(s.pastDueSince).toLocaleDateString()}</dd></div>}
         </dl>
       )}
 
@@ -50,8 +50,8 @@ export default function SubscriptionCard({ fellowshipId }: { fellowshipId: strin
           const limit = typeof v === 'number' ? null : v.limit;
           return (
             <div key={k} className="flex items-center gap-3 text-sm">
-              <span className="w-44 text-slate-700">{LIMIT_LABELS[k] || k}</span>
-              {limit ? <Bar value={used} max={limit} className={used >= limit ? 'bg-rose-500' : 'bg-primary'} /> : <span className="flex-1 text-xs text-slate-400">no limit</span>}
+              <span className="w-44 text-ink">{LIMIT_LABELS[k] || k}</span>
+              {limit ? <Bar value={used} max={limit} className={used >= limit ? 'bg-rose-500' : 'bg-primary'} /> : <span className="flex-1 text-xs text-ink-subtle">no limit</span>}
               <span className="w-20 text-right font-medium">{used}{limit ? ` / ${limit}` : ''}</span>
             </div>
           );
@@ -59,7 +59,7 @@ export default function SubscriptionCard({ fellowshipId }: { fellowshipId: strin
       </div>
 
       {manage && (
-        <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
+        <div className="mt-4 flex flex-wrap gap-2 border-t border-hairline pt-4">
           {!s && <button className="btn btn-primary btn-sm" onClick={() => setDialog('assign')}>Assign plan</button>}
           {s && ['trialing', 'active', 'past_due'].includes(s.status) && <button className="btn btn-secondary btn-sm" onClick={() => setDialog('change')}>Change plan</button>}
           {s && ['trialing', 'active', 'past_due', 'expired'].includes(s.status) && <button className="btn btn-secondary btn-sm" onClick={() => setDialog('invoice')}>Issue invoice</button>}
@@ -69,21 +69,21 @@ export default function SubscriptionCard({ fellowshipId }: { fellowshipId: strin
       )}
 
       {d.invoices.length > 0 && (
-        <div className="mt-4 border-t border-border pt-4">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Invoices</h3>
+        <div className="mt-4 border-t border-hairline pt-4">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-subtle">Invoices</h3>
           <div className="overflow-x-auto"><table className="table"><thead><tr><th>Number</th><th>Amount</th><th>Due</th><th>Status</th><th /></tr></thead>
             <tbody>{d.invoices.map((i: any) => (
               <tr key={i.id}><td className="font-mono text-xs">{i.number}</td><td>{i.amount} {i.currency}</td><td>{new Date(i.dueAt).toLocaleDateString()}</td>
-                <td><span className={`status-badge ${badge(i.status)} capitalize`}>{i.status}</span>{i.receipt && <span className="ml-2 text-xs text-slate-400">{i.receipt.number}</span>}</td>
+                <td><span className={`status-badge ${badge(i.status)} capitalize`}>{i.status}</span>{i.receipt && <span className="ml-2 text-xs text-ink-subtle">{i.receipt.number}</span>}</td>
                 <td className="space-x-2 text-right">{manage && i.status === 'open' && <><button className="btn btn-primary btn-sm" onClick={() => setDialog({ pay: i })}>Record payment</button><button className="btn btn-secondary btn-sm" onClick={() => setDialog({ void: i })}>Void</button></>}</td></tr>
             ))}</tbody></table></div>
         </div>
       )}
 
       {d.history.length > 0 && (
-        <details className="mt-4 border-t border-border pt-4">
-          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider text-slate-400">History</summary>
-          <ul className="mt-2 space-y-1 text-sm">{d.history.map((h: any) => <li key={h.id} className="flex justify-between gap-3"><span className="capitalize text-slate-700">{h.type.replace(/_/g, ' ')}{h.note && <span className="ml-2 text-xs text-slate-400">{h.note}</span>}</span><span className="text-xs text-slate-400">{new Date(h.at).toLocaleString()}</span></li>)}</ul>
+        <details className="mt-4 border-t border-hairline pt-4">
+          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider text-ink-subtle">History</summary>
+          <ul className="mt-2 space-y-1 text-sm">{d.history.map((h: any) => <li key={h.id} className="flex justify-between gap-3"><span className="capitalize text-ink">{h.type.replace(/_/g, ' ')}{h.note && <span className="ml-2 text-xs text-ink-subtle">{h.note}</span>}</span><span className="text-xs text-ink-subtle">{new Date(h.at).toLocaleString()}</span></li>)}</ul>
         </details>
       )}
 

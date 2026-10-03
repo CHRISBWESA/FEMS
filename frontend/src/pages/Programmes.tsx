@@ -147,7 +147,7 @@ export default function Programmes() {
         </div>
       ) : programmes.length === 0 ? (
         <div className="empty-state">
-          <div className="stat-icon bg-slate-100 text-slate-400">
+          <div className="stat-icon bg-surface-sunken text-ink-subtle">
             <BookOpenIcon className="h-6 w-6" />
           </div>
           <p className="empty-title">No programmes yet</p>
@@ -166,8 +166,8 @@ export default function Programmes() {
             <tbody>
               {programmes.map((p) => (
                 <tr key={p.id}>
-                  <td className="font-medium text-slate-900">{p.name}</td>
-                  <td className="text-slate-500">{p.description || '—'}</td>
+                  <td className="font-medium text-ink">{p.name}</td>
+                  <td className="text-ink-muted">{p.description || '—'}</td>
                   <td className="text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button onClick={() => openEdit(p)} title="Edit" className="btn btn-secondary btn-sm">
@@ -195,10 +195,10 @@ export default function Programmes() {
                   <BookOpenIcon className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-slate-900">
+                  <h3 className="text-base font-semibold text-ink">
                     {editing ? 'Edit Programme' : 'Add Programme'}
                   </h3>
-                  <p className="text-xs text-slate-500">Course offered by the university.</p>
+                  <p className="text-xs text-ink-muted">Course offered by the university.</p>
                 </div>
               </div>
               <button type="button" onClick={() => setShowModal(false)} className="btn btn-icon">
@@ -253,8 +253,8 @@ export default function Programmes() {
                   <CloudArrowUpIcon className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-slate-900">Bulk Upload Programmes</h3>
-                  <p className="text-xs text-slate-500">Import courses from a CSV file.</p>
+                  <h3 className="text-base font-semibold text-ink">Bulk Upload Programmes</h3>
+                  <p className="text-xs text-ink-muted">Import courses from a CSV file.</p>
                 </div>
               </div>
               <button type="button" onClick={() => setShowUpload(false)} className="btn btn-icon">
@@ -262,10 +262,10 @@ export default function Programmes() {
               </button>
             </div>
 
-            <div className="mb-4 rounded-lg bg-primary-light px-4 py-3 text-sm text-slate-600">
+            <div className="mb-4 rounded-lg bg-primary-light px-4 py-3 text-sm text-ink-muted">
               Columns: <span className="font-mono text-xs">{CSV_HEADERS.join(', ')}</span>
               <br />
-              <span className="text-xs text-slate-500">Only <span className="font-mono">name</span> is required. Duplicates are skipped and reported.</span>
+              <span className="text-xs text-ink-muted">Only <span className="font-mono">name</span> is required. Duplicates are skipped and reported.</span>
             </div>
 
             <button type="button" onClick={downloadTemplate} className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary-dark">
@@ -289,8 +289,8 @@ export default function Programmes() {
             />
 
             {uploadResult && (
-              <div className="mt-4 rounded-lg border border-border bg-white p-4">
-                <p className="text-sm font-semibold text-slate-900">
+              <div className="mt-4 rounded-lg border border-hairline bg-white p-4">
+                <p className="text-sm font-semibold text-ink">
                   Import complete: {uploadResult.created} created, {uploadResult.failed} skipped/failed
                 </p>
                 {uploadResult.failures?.length > 0 && (

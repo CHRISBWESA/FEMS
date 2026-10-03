@@ -30,15 +30,15 @@ export default function AttendancePublic() {
   };
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-slate-50 px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+    <div className="flex min-h-dvh items-center justify-center bg-canvas px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       <div className="card w-full max-w-md p-8 text-center">
         {!done ? (
           <>
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary-light text-primary">
               <BuildingOfficeIcon className="h-6 w-6" />
             </div>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900">Mark Your Attendance</h1>
-            <p className="mt-1 mb-6 text-sm text-slate-500">Enter your full name to check in.</p>
+            <h1 className="text-xl font-semibold tracking-tight text-ink">Mark Your Attendance</h1>
+            <p className="mt-1 mb-6 text-sm text-ink-muted">Enter your full name to check in.</p>
 
             {!online && (
               <div className="mb-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800 ring-1 ring-inset ring-amber-600/20">
@@ -66,11 +66,11 @@ export default function AttendancePublic() {
           </>
         ) : (
           <>
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-success">
               <CheckBadgeIcon className="h-7 w-7" />
             </div>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900">You're checked in!</h1>
-            <p className="mt-1 text-sm text-slate-500">Your attendance has been recorded. Thank you, {name}.</p>
+            <h1 className="text-xl font-semibold tracking-tight text-ink">You're checked in!</h1>
+            <p className="mt-1 text-sm text-ink-muted">Your attendance has been recorded. Thank you, {name}.</p>
           </>
         )}
       </div>

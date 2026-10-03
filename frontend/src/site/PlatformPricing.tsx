@@ -60,28 +60,28 @@ export default function PlatformPricing() {
         )}
 
         {!plans && !failed && (
-          <p className="text-sm text-slate-500">Loading plans…</p>
+          <p className="text-sm text-ink-muted">Loading plans…</p>
         )}
 
         {plans && plans.length === 0 && (
-          <p className="text-sm text-slate-500">No plans have been published yet. Contact an administrator to arrange one.</p>
+          <p className="text-sm text-ink-muted">No plans have been published yet. Contact an administrator to arrange one.</p>
         )}
 
         {plans && plans.length > 0 && (
           <div className="grid gap-6 lg:grid-cols-3">
             {plans.map((plan) => (
               <div key={plan.code} className="card flex flex-col p-7">
-                <h3 className="text-lg font-semibold text-slate-900">{plan.name}</h3>
+                <h3 className="text-lg font-semibold text-ink">{plan.name}</h3>
                 {plan.description && (
-                  <p className="mt-2 text-sm leading-relaxed text-slate-600">{plan.description}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-ink-muted">{plan.description}</p>
                 )}
 
                 <p className="mt-6 flex items-baseline gap-1.5">
-                  <span className="text-4xl font-semibold tracking-tight text-slate-900">
+                  <span className="text-4xl font-semibold tracking-tight text-ink">
                     {plan.price === 0 ? 'Free' : plan.price.toLocaleString()}
                   </span>
                   {plan.price > 0 && (
-                    <span className="text-sm text-slate-500">
+                    <span className="text-sm text-ink-muted">
                       {plan.currency} per {plan.interval}
                     </span>
                   )}
@@ -95,10 +95,10 @@ export default function PlatformPricing() {
                 )}
 
                 {plan.modules.length > 0 && (
-                  <ul className="mt-6 flex-1 space-y-2 border-t border-border pt-5">
+                  <ul className="mt-6 flex-1 space-y-2 border-t border-hairline pt-5">
                     {plan.modules.map((m) => (
-                      <li key={m} className="flex gap-2 text-sm text-slate-600">
-                        <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                      <li key={m} className="flex gap-2 text-sm text-ink-muted">
+                        <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                         <span>{humaniseModule(m)}</span>
                       </li>
                     ))}
@@ -113,8 +113,8 @@ export default function PlatformPricing() {
           </div>
         )}
 
-        <div className="mx-auto mt-10 flex max-w-3xl items-start gap-3 rounded-xl bg-slate-50 p-5 text-sm text-slate-600">
-          <ShieldCheckIcon className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
+        <div className="mx-auto mt-10 flex max-w-3xl items-start gap-3 rounded-xl bg-canvas p-5 text-sm text-ink-muted">
+          <ShieldCheckIcon className="mt-0.5 h-5 w-5 shrink-0 text-ink-subtle" />
           <p>
             There is no payment gateway here, and none is implied. “Get Started” sends a request that an
             administrator reviews; billing is arranged directly with the fellowship. Nothing is charged online.

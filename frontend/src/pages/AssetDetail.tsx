@@ -60,7 +60,7 @@ export default function AssetDetail() {
 
   const post = (path: string, body: object) => axios.post(`/resources/${path}`, body, { withCredentials: true }).then(() => refresh());
 
-  if (error) return <div className="mx-auto max-w-4xl"><button onClick={() => navigate('/resources')} className="mb-4 text-sm text-slate-500">← Back</button><Empty text={error} /></div>;
+  if (error) return <div className="mx-auto max-w-4xl"><button onClick={() => navigate('/resources')} className="mb-4 text-sm text-ink-muted">← Back</button><Empty text={error} /></div>;
   if (!asset) return <Spinner />;
 
   const inactive = ['retired', 'lost'].includes(asset.status);
@@ -155,15 +155,15 @@ export default function AssetDetail() {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <button onClick={() => navigate('/resources')} className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-900"><ArrowLeftIcon className="h-4 w-4" /> Back to Resources</button>
+      <button onClick={() => navigate('/resources')} className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-ink-muted hover:text-ink"><ArrowLeftIcon className="h-4 w-4" /> Back to Resources</button>
 
       <div className="card mb-6">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-hairline pb-5">
           <div className="flex items-center gap-4">
             <div className="stat-icon bg-indigo-50 text-indigo-600"><CubeIcon className="h-6 w-6" /></div>
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{asset.name}</h1>
-              <p className="mt-1 font-mono text-xs text-slate-500">{asset.asset_tag}{asset.serial_number ? ` · SN ${asset.serial_number}` : ''}</p>
+              <h1 className="text-2xl font-semibold tracking-tight text-ink">{asset.name}</h1>
+              <p className="mt-1 font-mono text-xs text-ink-muted">{asset.asset_tag}{asset.serial_number ? ` · SN ${asset.serial_number}` : ''}</p>
             </div>
           </div>
           <span className={`status-badge ${asset.status === 'available' ? 'status-active' : inactive ? 'status-inactive' : 'status-draft'} capitalize`}>{asset.status.replace(/_/g, ' ')}</span>
@@ -179,13 +179,13 @@ export default function AssetDetail() {
             ...(asset.openLoan ? [['On loan to', `${asset.openLoan.member.full_name}${asset.openLoan.due_date ? ` · due ${new Date(asset.openLoan.due_date).toLocaleDateString()}` : ''}`]] : []),
             ...(inactive ? [['Reason', asset.retired_reason]] : []),
           ].map(([k, v]) => (
-            <div key={k as string}><dt className="text-xs uppercase tracking-wider text-slate-400">{k}</dt><dd className="mt-1 text-sm capitalize text-slate-900">{(v as string) || '—'}</dd></div>
+            <div key={k as string}><dt className="text-xs uppercase tracking-wider text-ink-subtle">{k}</dt><dd className="mt-1 text-sm capitalize text-ink">{(v as string) || '—'}</dd></div>
           ))}
         </dl>
-        {asset.notes && <p className="border-t border-border pt-4 text-sm text-slate-600">{asset.notes}</p>}
+        {asset.notes && <p className="border-t border-hairline pt-4 text-sm text-ink-muted">{asset.notes}</p>}
 
         {!inactive && (
-          <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
+          <div className="mt-4 flex flex-wrap gap-2 border-t border-hairline pt-4">
             {btn('Check out', 'checkout', canLoan && !asset.is_consumable && asset.status === 'available')}
             {btn('Check in', 'checkin', canLoan && asset.status === 'checked_out')}
             {btn('Transfer', 'transfer', canAssign && asset.status !== 'checked_out')}
@@ -204,48 +204,48 @@ export default function AssetDetail() {
       {!tabData ? <Spinner /> : tabData.length === 0 ? <Empty text={`No ${tab} yet`} /> : (
         <div className="card">
           {tab === 'history' && (
-            <ol className="relative space-y-4 border-l border-border pl-6">
+            <ol className="relative space-y-4 border-l border-hairline pl-6">
               {tabData.map((h) => (
                 <li key={h.id} className="relative">
                   <span className="absolute -left-[31px] top-1.5 h-2.5 w-2.5 rounded-full bg-primary ring-4 ring-white" />
-                  <p className="text-sm font-medium capitalize text-slate-900">{h.eventType.replace(/_/g, ' ')}
-                    {h.member && <span className="ml-2 font-normal normal-case text-slate-600">{h.member}</span>}
-                    {(h.fromValue || h.toValue) && <span className="ml-2 font-normal normal-case text-slate-600">{h.fromValue ?? '—'} → {h.toValue ?? '—'}</span>}
-                    {(h.fromDepartment || h.toDepartment) && h.fromDepartment !== h.toDepartment && <span className="ml-2 font-normal normal-case text-slate-600">dept: {h.fromDepartment ?? '—'} → {h.toDepartment ?? '—'}</span>}
-                    {(h.fromLocation || h.toLocation) && h.fromLocation !== h.toLocation && <span className="ml-2 font-normal normal-case text-slate-600">location: {h.fromLocation ?? '—'} → {h.toLocation ?? '—'}</span>}
+                  <p className="text-sm font-medium capitalize text-ink">{h.eventType.replace(/_/g, ' ')}
+                    {h.member && <span className="ml-2 font-normal normal-case text-ink-muted">{h.member}</span>}
+                    {(h.fromValue || h.toValue) && <span className="ml-2 font-normal normal-case text-ink-muted">{h.fromValue ?? '—'} → {h.toValue ?? '—'}</span>}
+                    {(h.fromDepartment || h.toDepartment) && h.fromDepartment !== h.toDepartment && <span className="ml-2 font-normal normal-case text-ink-muted">dept: {h.fromDepartment ?? '—'} → {h.toDepartment ?? '—'}</span>}
+                    {(h.fromLocation || h.toLocation) && h.fromLocation !== h.toLocation && <span className="ml-2 font-normal normal-case text-ink-muted">location: {h.fromLocation ?? '—'} → {h.toLocation ?? '—'}</span>}
                   </p>
-                  <p className="text-xs text-slate-400">{new Date(h.occurredAt).toLocaleString()}{h.actor ? ` · ${h.actor}` : ''}</p>
-                  {h.note && <p className="mt-1 text-sm text-slate-600">“{h.note}”</p>}
+                  <p className="text-xs text-ink-subtle">{new Date(h.occurredAt).toLocaleString()}{h.actor ? ` · ${h.actor}` : ''}</p>
+                  {h.note && <p className="mt-1 text-sm text-ink-muted">“{h.note}”</p>}
                 </li>
               ))}
             </ol>
           )}
           {tab === 'maintenance' && (
-            <ul className="divide-y divide-border">
+            <ul className="divide-y divide-hairline">
               {tabData.map((m) => (
                 <li key={m.id} className="py-3 text-sm">
-                  <div className="flex justify-between"><span className="font-medium capitalize text-slate-900">{m.type} · {m.status.replace('_', ' ')}</span><span className="text-slate-400">{new Date(m.scheduled_for).toLocaleDateString()}</span></div>
-                  <p className="text-slate-600">{m.description}</p>
-                  {canCost && m.cost != null && <p className="text-xs text-slate-400">Cost {money(m.cost)}</p>}
+                  <div className="flex justify-between"><span className="font-medium capitalize text-ink">{m.type} · {m.status.replace('_', ' ')}</span><span className="text-ink-subtle">{new Date(m.scheduled_for).toLocaleDateString()}</span></div>
+                  <p className="text-ink-muted">{m.description}</p>
+                  {canCost && m.cost != null && <p className="text-xs text-ink-subtle">Cost {money(m.cost)}</p>}
                 </li>
               ))}
             </ul>
           )}
           {tab === 'loans' && (
-            <ul className="divide-y divide-border">
+            <ul className="divide-y divide-hairline">
               {tabData.map((l) => (
                 <li key={l.id} className="flex flex-wrap justify-between gap-2 py-3 text-sm">
-                  <span className="font-medium text-slate-900">{l.member.full_name}</span>
-                  <span className="text-slate-500">{new Date(l.checked_out_at).toLocaleDateString()} → {l.checked_in_at ? new Date(l.checked_in_at).toLocaleDateString() : <span className="text-amber-700">still out{l.due_date && new Date(l.due_date) < new Date() ? ' (overdue)' : ''}</span>}</span>
+                  <span className="font-medium text-ink">{l.member.full_name}</span>
+                  <span className="text-ink-muted">{new Date(l.checked_out_at).toLocaleDateString()} → {l.checked_in_at ? new Date(l.checked_in_at).toLocaleDateString() : <span className="text-amber-700">still out{l.due_date && new Date(l.due_date) < new Date() ? ' (overdue)' : ''}</span>}</span>
                 </li>
               ))}
             </ul>
           )}
           {tab === 'documents' && (
-            <ul className="divide-y divide-border">
+            <ul className="divide-y divide-hairline">
               {tabData.map((d) => (
                 <li key={d.id} className="flex items-center justify-between py-3 text-sm">
-                  <span className="text-slate-900">{d.document?.title || 'Document unavailable'}{d.label && <span className="ml-2 text-slate-500">({d.label})</span>}</span>
+                  <span className="text-ink">{d.document?.title || 'Document unavailable'}{d.label && <span className="ml-2 text-ink-muted">({d.label})</span>}</span>
                   {canDocs && <button className="btn btn-secondary btn-sm" onClick={async () => { if (window.confirm('Remove this attachment?')) { try { await axios.post(`/resources/assets/${id}/documents/${d.id}/remove`, {}, { withCredentials: true }); refresh(); } catch (e: any) { alert(errMsg(e, 'Failed')); } } }}>Remove</button>}
                 </li>
               ))}

@@ -97,7 +97,7 @@ export default function Impersonation() {
         </div>
       )}
 
-      <div className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600 ring-1 ring-inset ring-border">
+      <div className="rounded-lg bg-canvas p-4 text-sm text-ink-muted ring-1 ring-inset ring-hairline">
         <p>
           Acting as a user gives you exactly that person&rsquo;s access to their own fellowship. Every session is
           time-boxed, cannot be extended, is written to the platform audit trail, appears in the
@@ -109,8 +109,8 @@ export default function Impersonation() {
       {error && <p className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">{error}</p>}
 
       <div className="card">
-        <h2 className="mb-1 text-sm font-semibold uppercase tracking-wider text-slate-400">Choose an account</h2>
-        <p className="mb-4 text-sm text-slate-500">Only active fellowship accounts appear. Platform accounts cannot be impersonated.</p>
+        <h2 className="mb-1 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Choose an account</h2>
+        <p className="mb-4 text-sm text-ink-muted">Only active fellowship accounts appear. Platform accounts cannot be impersonated.</p>
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <input className="input max-w-xs" placeholder="Search name or e-mail…" value={q} onChange={(e) => setQ(e.target.value)} />
           <select className="select w-56" value={fellowshipId} onChange={(e) => setFellowshipId(e.target.value)}>
@@ -128,10 +128,10 @@ export default function Impersonation() {
               <tbody>
                 {filtered.map((t) => (
                   <tr key={t.id}>
-                    <td className="font-medium text-slate-900">{t.name}</td>
+                    <td className="font-medium text-ink">{t.name}</td>
                     <td>{t.email}</td>
-                    <td className="text-xs text-slate-500">{t.fellowship || '—'}</td>
-                    <td className="text-xs text-slate-500">{t.roles.join(', ').replace(/_/g, ' ')}</td>
+                    <td className="text-xs text-ink-muted">{t.fellowship || '—'}</td>
+                    <td className="text-xs text-ink-muted">{t.roles.join(', ').replace(/_/g, ' ')}</td>
                     <td className="text-right">
                       <button className="btn btn-primary btn-sm" disabled={busy === t.id} onClick={() => setPicked(t)}>
                         <EyeIcon className="h-4 w-4" /> Act as this user
@@ -146,7 +146,7 @@ export default function Impersonation() {
       </div>
 
       <div className="card">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">Session history</h2>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Session history</h2>
         {!history ? <Spinner /> : history.length === 0 ? <Empty text="No impersonation sessions yet" /> : (
           <div className="table-wrap overflow-x-auto">
             <table className="table">
@@ -156,17 +156,17 @@ export default function Impersonation() {
                   <tr key={s.id}>
                     <td className="whitespace-nowrap text-xs">{s.startedAt ? new Date(s.startedAt).toLocaleString() : '—'}</td>
                     <td className="text-xs">{s.admin?.name || '—'}</td>
-                    <td className="text-xs font-medium text-slate-900">{s.targetEmail}</td>
-                    <td className="text-xs text-slate-500">
+                    <td className="text-xs font-medium text-ink">{s.targetEmail}</td>
+                    <td className="text-xs text-ink-muted">
                       {fellowships.find((f) => f.id === s.fellowshipId)?.name || '—'}
                     </td>
-                    <td className="max-w-xs truncate text-xs text-slate-500">{s.reason}</td>
+                    <td className="max-w-xs truncate text-xs text-ink-muted">{s.reason}</td>
                     <td>
                       <span className={`status-badge ${badge(s.status, s.live)}`}>
                         {s.status === 'active' && !s.live ? 'expired' : s.status}
                       </span>
                       {s.live && s.expiresAt && (
-                        <p className="mt-1 text-xs text-slate-400">until {new Date(s.expiresAt).toLocaleTimeString()}</p>
+                        <p className="mt-1 text-xs text-ink-subtle">until {new Date(s.expiresAt).toLocaleTimeString()}</p>
                       )}
                     </td>
                     <td className="text-right">
@@ -202,7 +202,7 @@ export default function Impersonation() {
               <select name="durationMinutes" className="select w-full" defaultValue="30">
                 {DURATIONS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
               </select>
-              <p className="mt-1 text-xs text-slate-400">The session ends on its own and cannot be extended.</p>
+              <p className="mt-1 text-xs text-ink-subtle">The session ends on its own and cannot be extended.</p>
             </div>
             <div className="flex gap-2">
               <button type="submit" disabled={busy === picked.id} className="btn btn-primary flex-1">
@@ -220,7 +220,7 @@ export default function Impersonation() {
             onSubmit={(e) => { e.preventDefault(); endNow(ending); setEnding(null); }}
             className="space-y-4"
           >
-            <p className="text-sm text-slate-600">Ending takes effect on the impersonated session&rsquo;s very next request.</p>
+            <p className="text-sm text-ink-muted">Ending takes effect on the impersonated session&rsquo;s very next request.</p>
             <div>
               <label className="label">Reason (recorded)</label>
               <input name="reason" className="input w-full" defaultValue="Support issue resolved." />

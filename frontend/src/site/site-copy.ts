@@ -75,11 +75,11 @@ export const PLATFORM_NAV: SiteNavItem[] = [
 
 export const HERO = {
   eyebrow: 'Fellowship Management System',
-  title: 'Run your fellowship’s administration in one place.',
+  title: 'Your fellowship’s records, finances and people — in one system.',
   body:
-    'Members, departments, activities, finance, youth and resources — with every fellowship kept strictly to its own data, and a public site for each one.',
-  primaryCta: { label: 'Get Started', to: '/register' },
-  secondaryCta: { label: 'Sign In', to: '/login' },
+    'FEMS replaces the registers, spreadsheets, shared drives and website updates scattered across a fellowship with a single record of truth: members, departments, activities, finance, youth, assets and volunteering, each fellowship kept strictly to its own data.',
+  primaryCta: { label: 'Request access', to: '/register' },
+  secondaryCta: { label: 'Explore the system', to: '/site/features' },
 };
 
 export interface FeatureItem {

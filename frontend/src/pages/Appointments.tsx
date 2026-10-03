@@ -79,12 +79,12 @@ export default function Appointments() {
     setTimeout(() => setNotice(''), 5000);
   };
 
-  if (loading) return <p className="text-sm text-slate-500">Loading…</p>;
+  if (loading) return <p className="text-sm text-ink-muted">Loading…</p>;
   if (error) {
     return (
       <div className="card p-6">
-        <h1 className="text-lg font-semibold text-slate-900">Appointments</h1>
-        <p className="mt-2 text-sm text-slate-600">{error}</p>
+        <h1 className="text-lg font-semibold text-ink">Appointments</h1>
+        <p className="mt-2 text-sm text-ink-muted">{error}</p>
       </div>
     );
   }
@@ -95,8 +95,8 @@ export default function Appointments() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Appointments</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">Appointments</h1>
+        <p className="mt-1 text-sm text-ink-muted">
           Invite the people who hold your fellowship&rsquo;s offices. An invitation creates no account until the
           person accepts it and chooses their own password.
         </p>
@@ -110,8 +110,8 @@ export default function Appointments() {
       )}
 
       {!canInvite && (
-        <div className="flex items-start gap-3 rounded-lg bg-slate-50 px-4 py-3 text-sm text-slate-600 ring-1 ring-inset ring-border">
-          <ExclamationTriangleIcon className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
+        <div className="flex items-start gap-3 rounded-lg bg-canvas px-4 py-3 text-sm text-ink-muted ring-1 ring-inset ring-hairline">
+          <ExclamationTriangleIcon className="mt-0.5 h-5 w-5 shrink-0 text-ink-subtle" />
           <p>
             You can see who has been invited, but not invite anybody. That belongs to the fellowship administrator.
           </p>
@@ -121,15 +121,15 @@ export default function Appointments() {
       {canInvite && <InviteForm canAppointOfficers={canAppointOfficers} onDone={load} flash={flash} />}
 
       <div className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
           Invitations{pending.length > 0 && ` (${pending.length} awaiting a reply)`}
         </h2>
 
         {invitations.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-border bg-white px-6 py-12 text-center">
+          <div className="rounded-2xl border border-dashed border-hairline bg-white px-6 py-12 text-center">
             <IdentificationIcon className="mx-auto h-8 w-8 text-slate-300" />
-            <p className="mt-3 text-sm font-medium text-slate-900">Nobody has been invited yet</p>
-            <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">
+            <p className="mt-3 text-sm font-medium text-ink">Nobody has been invited yet</p>
+            <p className="mx-auto mt-1 max-w-md text-sm text-ink-muted">
               Invite the people who will hold each office above. A Treasurer and a Secretary are marked required
               because a fellowship cannot run without them; the rest are yours to fill or leave.
             </p>
@@ -142,21 +142,21 @@ export default function Appointments() {
 
         {settled.length > 0 && (
           <details className="mt-4">
-            <summary className="cursor-pointer text-sm font-medium text-slate-500">
+            <summary className="cursor-pointer text-sm font-medium text-ink-muted">
               {settled.length} settled invitation{settled.length === 1 ? '' : 's'}
             </summary>
             <div className="mt-3 space-y-2">
               {settled.map((i) => (
                 <div key={i.id} className="card flex flex-wrap items-center gap-3 p-4 opacity-75">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-slate-900">{i.name}</p>
-                    <p className="truncate text-xs text-slate-500">{i.email}</p>
+                    <p className="truncate text-sm font-medium text-ink">{i.name}</p>
+                    <p className="truncate text-xs text-ink-muted">{i.email}</p>
                   </div>
                   <span
                     className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
                       i.status === 'accepted'
                         ? 'bg-emerald-50 text-emerald-700'
-                        : 'bg-slate-100 text-slate-500'
+                        : 'bg-surface-sunken text-ink-muted'
                     }`}
                   >
                     {i.status}
@@ -217,10 +217,10 @@ function InvitationRow({
     <div className="card p-5">
       <div className="flex flex-wrap items-center gap-3">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-slate-900">{invitation.name}</p>
-          <p className="truncate text-xs text-slate-500">{invitation.email}</p>
+          <p className="truncate text-sm font-semibold text-ink">{invitation.name}</p>
+          <p className="truncate text-xs text-ink-muted">{invitation.email}</p>
         </div>
-        <span className="flex shrink-0 items-center gap-1 text-xs text-slate-500">
+        <span className="flex shrink-0 items-center gap-1 text-xs text-ink-muted">
           <ClockIcon className="h-3.5 w-3.5" />
           {daysLeft > 0 ? `${daysLeft} day${daysLeft === 1 ? '' : 's'} left` : 'expired'}
         </span>
@@ -305,7 +305,7 @@ function InviteForm({
 
   return (
     <div className="card p-6">
-      <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
+      <h2 className="flex items-center gap-2 text-base font-semibold text-ink">
         <UserPlusIcon className="h-5 w-5 text-primary" /> Invite somebody
       </h2>
 
@@ -358,7 +358,7 @@ function InviteForm({
           <div>
             <label htmlFor="i-email" className="label">E-mail *</label>
             <input id="i-email" type="email" required maxLength={254} className="input w-full" value={form.email} onChange={set('email')} />
-            <p className="mt-1 text-xs text-slate-400">The invitation is only sent to this address by hand.</p>
+            <p className="mt-1 text-xs text-ink-subtle">The invitation is only sent to this address by hand.</p>
           </div>
           <div>
             <label htmlFor="i-phone" className="label">Phone</label>
@@ -369,7 +369,7 @@ function InviteForm({
         <fieldset>
           <legend className="label">Roles *</legend>
 
-          <p className="mb-2 text-xs text-slate-500">
+          <p className="mb-2 text-xs text-ink-muted">
             Offices carry the fellowship&rsquo;s authority, so appointing one is a separate permission. Holding a role
             never grants the power to appoint it.
           </p>
@@ -384,8 +384,8 @@ function InviteForm({
                     canAppointOfficers
                       ? on
                         ? 'border-primary bg-primary-light'
-                        : 'border-border hover:bg-slate-50'
-                      : 'border-dashed border-border opacity-50'
+                        : 'border-hairline hover:bg-canvas'
+                      : 'border-dashed border-hairline opacity-50'
                   }`}
                 >
                   <input
@@ -396,8 +396,8 @@ function InviteForm({
                     onChange={() => toggleRole(role)}
                   />
                   <span>
-                    <span className="font-medium text-slate-900">{roleLabel(role)}</span>
-                    <span className="block text-xs text-slate-500">
+                    <span className="font-medium text-ink">{roleLabel(role)}</span>
+                    <span className="block text-xs text-ink-muted">
                       {canAppointOfficers ? 'Approves money or records.' : 'Only the fellowship administrator can appoint this.'}
                     </span>
                   </span>
@@ -406,7 +406,7 @@ function InviteForm({
             })}
           </div>
 
-          <p className="mb-2 mt-5 text-xs text-slate-500">Ordinary roles &mdash; anyone with the appointment permission may offer these.</p>
+          <p className="mb-2 mt-5 text-xs text-ink-muted">Ordinary roles &mdash; anyone with the appointment permission may offer these.</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {ordinaryRoles.map(({ role, label }) => {
               const on = form.roles.includes(role);
@@ -414,11 +414,11 @@ function InviteForm({
                 <label
                   key={role}
                   className={`flex items-center gap-2.5 rounded-lg border p-3 text-sm ${
-                    on ? 'border-primary bg-primary-light' : 'border-border hover:bg-slate-50'
+                    on ? 'border-primary bg-primary-light' : 'border-hairline hover:bg-canvas'
                   }`}
                 >
                   <input type="checkbox" className="mr-0.5" checked={on} onChange={() => toggleRole(role)} />
-                  <span className="font-medium text-slate-900">{label}</span>
+                  <span className="font-medium text-ink">{label}</span>
                 </label>
               );
             })}

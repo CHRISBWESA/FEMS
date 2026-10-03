@@ -158,17 +158,17 @@ export default function MemberDetail() {
     <div className="mx-auto max-w-4xl">
       <button
         onClick={() => navigate(-1)}
-        className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-ink-muted transition-colors hover:text-ink"
       >
         <ArrowLeftIcon className="h-4 w-4" />
         Back
       </button>
 
       <div className="card mb-6">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-hairline pb-5">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{member.full_name}</h1>
-            <p className="mt-1 text-sm text-slate-500">{member.member_code}</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-ink">{member.full_name}</h1>
+            <p className="mt-1 text-sm text-ink-muted">{member.member_code}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <span className={`status-badge ${member.membership_status === 'active' ? 'status-active' : member.membership_status === 'graduated' ? 'status-graduated' : 'status-inactive'}`}>
@@ -201,13 +201,13 @@ export default function MemberDetail() {
         </div>
 
         {tabs.filter((t) => t.show).length > 1 && (
-          <div className="flex gap-1 overflow-x-auto border-b border-border pt-4">
+          <div className="flex gap-1 overflow-x-auto border-b border-hairline pt-4">
             {tabs.filter((t) => t.show).map((t) => (
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
                 className={`whitespace-nowrap rounded-t-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  tab === t.key ? 'bg-primary-light text-primary' : 'text-slate-500 hover:text-slate-900'
+                  tab === t.key ? 'bg-primary-light text-primary' : 'text-ink-muted hover:text-ink'
                 }`}
               >
                 {t.label}
@@ -220,12 +220,12 @@ export default function MemberDetail() {
           <div className="grid grid-cols-1 gap-8 pt-5 md:grid-cols-2">
             {infoSections.map((section) => (
               <div key={section.title}>
-                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">{section.title}</h2>
+                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">{section.title}</h2>
                 <dl className="space-y-3">
                   {section.rows.map((row) => (
                     <div key={row.label} className="flex justify-between gap-4">
-                      <dt className="shrink-0 text-sm text-slate-500">{row.label}</dt>
-                      <dd className="text-right text-sm font-medium text-slate-900">{row.value}</dd>
+                      <dt className="shrink-0 text-sm text-ink-muted">{row.label}</dt>
+                      <dd className="text-right text-sm font-medium text-ink">{row.value}</dd>
                     </div>
                   ))}
                 </dl>
@@ -252,8 +252,8 @@ export default function MemberDetail() {
                   <PencilSquareIcon className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-slate-900">Edit Member</h3>
-                  <p className="text-xs text-slate-500">{member.member_code}</p>
+                  <h3 className="text-base font-semibold text-ink">Edit Member</h3>
+                  <p className="text-xs text-ink-muted">{member.member_code}</p>
                 </div>
               </div>
               <button type="button" onClick={() => setShowEdit(false)} className="btn btn-icon">

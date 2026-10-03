@@ -62,10 +62,10 @@ export default function CredentialsModal({
         </p>
 
         {fellowship && (
-          <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-700">
+          <div className="rounded-lg bg-canvas p-3 text-sm text-ink">
             <div><span className="font-medium">{fellowship}</span></div>
             {subdomain && (
-              <div className="mt-1 text-slate-600">
+              <div className="mt-1 text-ink-muted">
                 Public site: <span className="font-mono">{subdomain}</span> - not published yet. Turn it on from
                 the fellowship's settings once its content is ready.
               </div>
@@ -75,7 +75,7 @@ export default function CredentialsModal({
 
         <div className="overflow-hidden rounded-lg border border-slate-200">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+            <thead className="bg-canvas text-left text-xs uppercase tracking-wide text-ink-muted">
               <tr>
                 <th className="px-3 py-2">Role</th>
                 <th className="px-3 py-2">Account</th>
@@ -87,11 +87,11 @@ export default function CredentialsModal({
               {accounts.map((a) => (
                 <tr key={a.id} className={a.isPlaceholder ? 'bg-amber-50/50' : ''}>
                   <td className="px-3 py-2 align-top">
-                    <div className="font-medium text-slate-900">{a.roles.map(labelFor).join(', ')}</div>
+                    <div className="font-medium text-ink">{a.roles.map(labelFor).join(', ')}</div>
                     {a.isPlaceholder && <div className="text-xs text-amber-700">Nobody holds this yet</div>}
                   </td>
                   <td className="px-3 py-2 align-top">
-                    <div className="font-mono text-xs break-all text-slate-700">{a.email}</div>
+                    <div className="font-mono text-xs break-all text-ink">{a.email}</div>
                   </td>
                   <td className="px-3 py-2 align-top">
                     <input
@@ -113,8 +113,8 @@ export default function CredentialsModal({
         </div>
 
         {outstandingRoles && outstandingRoles.length > 0 && (
-          <p className="text-sm text-slate-600">
-            Still to appoint: <span className="font-medium text-slate-900">{outstandingRoles.join(', ')}</span>.
+          <p className="text-sm text-ink-muted">
+            Still to appoint: <span className="font-medium text-ink">{outstandingRoles.join(', ')}</span>.
             Edit each highlighted address to the real office holder.
           </p>
         )}

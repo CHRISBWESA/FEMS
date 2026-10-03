@@ -189,7 +189,7 @@ export default function ItContent() {
       ) : activeTab === 'documents' ? (
         documents.length === 0 ? (
           <div className="empty-state">
-            <div className="stat-icon bg-slate-100 text-slate-400">
+            <div className="stat-icon bg-surface-sunken text-ink-subtle">
               <DocumentTextIcon className="h-6 w-6" />
             </div>
             <p className="empty-title">No documents found</p>
@@ -208,10 +208,10 @@ export default function ItContent() {
                     {(d.approval_status || 'pending').toLowerCase().replace('_', ' ')}
                   </span>
                 </div>
-                <h3 className="mt-3 text-sm font-semibold text-slate-900">{d.title}</h3>
-                <p className="mt-1 text-sm text-slate-500">File: {d.filename}</p>
+                <h3 className="mt-3 text-sm font-semibold text-ink">{d.title}</h3>
+                <p className="mt-1 text-sm text-ink-muted">File: {d.filename}</p>
                 {(d.uploaded_by === user?.id || canAnnounce) && (
-                  <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
+                  <div className="mt-3 flex flex-wrap gap-2 border-t border-hairline pt-3">
                     {d.approval_status === 'DRAFT' && (
                       <button onClick={() => submitDocument(d.id)} className="btn btn-secondary btn-sm">
                         Submit for Approval
@@ -237,7 +237,7 @@ export default function ItContent() {
       ) : activeTab === 'announcements' ? (
         announcements.length === 0 ? (
           <div className="empty-state">
-            <div className="stat-icon bg-slate-100 text-slate-400">
+            <div className="stat-icon bg-surface-sunken text-ink-subtle">
               <MegaphoneIcon className="h-6 w-6" />
             </div>
             <p className="empty-title">No announcements found</p>
@@ -249,12 +249,12 @@ export default function ItContent() {
             {announcements.map((a: any) => (
               <div key={a.id} className="card">
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <h3 className="text-base font-semibold text-slate-900">{a.title}</h3>
+                  <h3 className="text-base font-semibold text-ink">{a.title}</h3>
                   <span className={`status-badge ${statusClass(a.status)}`}>{(a.status || '').toLowerCase()}</span>
                 </div>
-                <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-600">{a.content}</p>
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-ink-muted">{a.content}</p>
                 {canApproveAnnouncement && ['DRAFT', 'REJECTED'].includes(a.status) && a.created_by !== user?.id && (
-                  <div className="mt-3 flex gap-2 border-t border-border pt-3">
+                  <div className="mt-3 flex gap-2 border-t border-hairline pt-3">
                     <button onClick={() => approveAnnouncement(a.id, 'approved')} className="btn btn-success btn-sm">
                       <CheckIcon className="h-3.5 w-3.5" /> Approve & Publish
                     </button>
@@ -270,7 +270,7 @@ export default function ItContent() {
         )
       ) : gallery.length === 0 ? (
         <div className="empty-state">
-          <div className="stat-icon bg-slate-100 text-slate-400">
+          <div className="stat-icon bg-surface-sunken text-ink-subtle">
             <PhotoIcon className="h-6 w-6" />
           </div>
           <p className="empty-title">No gallery images found</p>
@@ -281,10 +281,10 @@ export default function ItContent() {
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {gallery.map((img: any) => (
             <div key={img.id} className="card">
-              <div className="flex aspect-square items-center justify-center rounded-lg bg-slate-100">
-                <PhotoIcon className="h-8 w-8 text-slate-400" />
+              <div className="flex aspect-square items-center justify-center rounded-lg bg-surface-sunken">
+                <PhotoIcon className="h-8 w-8 text-ink-subtle" />
               </div>
-              <p className="mt-2 text-center text-sm font-medium text-slate-700">{img.title}</p>
+              <p className="mt-2 text-center text-sm font-medium text-ink">{img.title}</p>
             </div>
           ))}
           </div>
@@ -300,8 +300,8 @@ export default function ItContent() {
                   <CloudArrowUpIcon className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-slate-900">Upload Document</h3>
-                  <p className="text-xs text-slate-500">Saved as draft; submit it for approval after upload.</p>
+                  <h3 className="text-base font-semibold text-ink">Upload Document</h3>
+                  <p className="text-xs text-ink-muted">Saved as draft; submit it for approval after upload.</p>
                 </div>
               </div>
               <button type="button" onClick={() => setShowUpload(false)} className="btn btn-icon">
@@ -321,7 +321,7 @@ export default function ItContent() {
                   {departments.filter(d => d.is_active !== false).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
               </div>
-              <label className="flex items-center gap-2 text-sm text-slate-700">
+              <label className="flex items-center gap-2 text-sm text-ink">
                 <input type="checkbox" checked={docForm.isWebsiteContent} onChange={(e) => setDocForm({ ...docForm, isWebsiteContent: e.target.checked })} />
                 This is website content
               </label>
@@ -352,8 +352,8 @@ export default function ItContent() {
                   <MegaphoneIcon className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-slate-900">New Announcement</h3>
-                  <p className="text-xs text-slate-500">Requires chairperson approval before publishing.</p>
+                  <h3 className="text-base font-semibold text-ink">New Announcement</h3>
+                  <p className="text-xs text-ink-muted">Requires chairperson approval before publishing.</p>
                 </div>
               </div>
               <button type="button" onClick={() => setShowAnnouncement(false)} className="btn btn-icon">

@@ -34,7 +34,7 @@ export function Section({
   id?: string;
 }) {
   return (
-    <section id={id} className={`mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 lg:px-8 ${className}`}>
+    <section id={id} className={`section py-16 sm:py-20 ${className}`}>
       {children}
     </section>
   );
@@ -43,11 +43,9 @@ export function Section({
 export function SectionHeading({ eyebrow, title, body }: { eyebrow?: string; title: string; body?: string }) {
   return (
     <div className="max-w-2xl">
-      {eyebrow && (
-        <p className="text-xs font-semibold uppercase tracking-wider text-primary">{eyebrow}</p>
-      )}
-      <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">{title}</h2>
-      {body && <p className="mt-4 text-base leading-relaxed text-slate-600">{body}</p>}
+      {eyebrow && <p className="eyebrow">{eyebrow}</p>}
+      <h2 className="mt-3 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">{title}</h2>
+      {body && <p className="mt-4 text-base leading-relaxed text-ink-muted">{body}</p>}
     </div>
   );
 }
@@ -85,11 +83,11 @@ export function LiveStats() {
 
   return (
     <Section>
-      <dl className="grid gap-6 rounded-2xl bg-slate-900 p-8 sm:grid-cols-3">
+      <dl className="grid gap-px overflow-hidden rounded-card border border-hairline bg-hairline sm:grid-cols-3">
         {tiles.map((t) => (
-          <div key={t.label}>
-            <dd className="text-4xl font-semibold tracking-tight text-white">{t.value.toLocaleString()}</dd>
-            <dt className="mt-1 text-sm text-slate-400">{t.label}</dt>
+          <div key={t.label} className="bg-surface px-8 py-7">
+            <dd className="text-4xl font-semibold tabular-nums tracking-tight text-ink">{t.value.toLocaleString()}</dd>
+            <dt className="mt-1.5 text-sm text-ink-muted">{t.label}</dt>
           </div>
         ))}
       </dl>
@@ -100,16 +98,22 @@ export function LiveStats() {
 export function CtaBanner() {
   return (
     <Section>
-      <div className="flex flex-col items-start gap-6 rounded-2xl bg-primary p-8 sm:p-10 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col items-start gap-8 rounded-card bg-primary p-8 sm:p-12 lg:flex-row lg:items-center lg:justify-between">
         <div className="max-w-xl">
-          <h2 className="text-2xl font-semibold tracking-tight text-white">Ready to get your fellowship set up?</h2>
-          <p className="mt-2 text-sm leading-relaxed text-indigo-100">
+          <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+            Ready to get your fellowship set up?
+          </h2>
+          <p className="mt-3 text-sm leading-relaxed text-white/75">
             Request access and an administrator will review it. Nothing is created until they approve it.
           </p>
         </div>
-        <div className="flex shrink-0 gap-3">
-          <Link to="/login" className="btn btn-secondary">Sign In</Link>
-          <Link to="/register" className="btn bg-white text-primary hover:bg-indigo-50">Get Started</Link>
+        <div className="flex shrink-0 flex-wrap gap-3">
+          <Link to="/login" className="btn btn-secondary">
+            Sign in
+          </Link>
+          <Link to="/register" className="btn btn-lg bg-white text-primary shadow-elevated hover:bg-white/90">
+            Request access
+          </Link>
         </div>
       </div>
     </Section>
@@ -121,19 +125,42 @@ export function CtaBanner() {
 export function PlatformHome() {
   return (
     <>
-      <div className="relative overflow-hidden bg-slate-900">
-        <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-indigo-600/30 blur-3xl" />
-        <div className="absolute -bottom-40 -right-24 h-96 w-96 rounded-full bg-violet-600/20 blur-3xl" />
-        <Section className="relative py-24 lg:py-32">
-          <div className="max-w-3xl">
-            <p className="text-sm font-semibold uppercase tracking-wider text-indigo-300">{HERO.eyebrow}</p>
-            <h1 className="mt-4 text-4xl font-semibold leading-tight tracking-tight text-white sm:text-5xl">
-              {HERO.title}
-            </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-300">{HERO.body}</p>
-            <div className="mt-9 flex flex-wrap gap-3">
-              <Link to={HERO.primaryCta.to} className="btn btn-primary px-6 py-3">{HERO.primaryCta.label}</Link>
-              <Link to={HERO.secondaryCta.to} className="btn btn-secondary px-6 py-3">{HERO.secondaryCta.label}</Link>
+      <div className="relative overflow-hidden bg-ink">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -left-40 -top-40 h-[34rem] w-[34rem] rounded-full bg-primary/35 blur-3xl"
+        />
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-ink/60 to-transparent" />
+        <Section className="relative py-20 lg:py-28">
+          <div className="grid items-center gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+            <div className="max-w-xl animate-fade-rise">
+              <p className="text-xs font-semibold uppercase tracking-wider text-accent-bright">{HERO.eyebrow}</p>
+              <h1 className="mt-5 text-4xl font-semibold leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-display-md">
+                {HERO.title}
+              </h1>
+              <p className="mt-6 text-lg leading-relaxed text-white/70">{HERO.body}</p>
+              <div className="mt-9 flex flex-wrap gap-3">
+                <Link to={HERO.primaryCta.to} className="btn btn-lg bg-accent text-white shadow-elevated hover:brightness-110">
+                  {HERO.primaryCta.label}
+                </Link>
+                <Link
+                  to={HERO.secondaryCta.to}
+                  className="btn btn-lg border border-white/20 bg-white/5 text-white hover:bg-white/10"
+                >
+                  {HERO.secondaryCta.label}
+                </Link>
+              </div>
+              <ul className="mt-10 flex flex-wrap gap-x-7 gap-y-2.5 text-sm text-white/60">
+                {['No shared data between fellowships', 'Role-based access', 'Audit trail'].map((point) => (
+                  <li key={point} className="flex items-center gap-2">
+                    <ShieldCheckIcon className="h-4 w-4 shrink-0 text-accent-bright" />
+                    {point}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="animate-fade-rise [animation-delay:120ms]">
+              <ProductPreview />
             </div>
           </div>
         </Section>
@@ -143,42 +170,42 @@ export function PlatformHome() {
 
       <Section>
         <SectionHeading
-          eyebrow="Features"
-          title="Everything a fellowship actually runs on"
+          eyebrow="Capabilities"
+          title="Every part of a fellowship’s administration, working together"
           body="Each of these is a working part of the system, not a roadmap item."
         />
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((f) => {
             const Icon = ICONS[f.icon] ?? Squares2X2Icon;
             return (
               <div key={f.title} className="card card-hover p-6">
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary-light text-primary">
+                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-control bg-primary-light text-primary">
                   <Icon className="h-5 w-5" />
                 </div>
-                <h3 className="text-base font-semibold text-slate-900">{f.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-600">{f.body}</p>
+                <h3 className="text-base font-semibold text-ink">{f.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-ink-muted">{f.body}</p>
               </div>
             );
           })}
         </div>
       </Section>
 
-      <Section>
+      <Section className="border-y border-hairline bg-surface-sunken">
         <SectionHeading
-          eyebrow="Solutions"
+          eyebrow="Why it matters"
           title="Built around how fellowships are actually structured"
           body="Congregations, not companies — so the system models the offices you already have."
         />
-        <div className="mt-10 grid gap-6 lg:grid-cols-3">
+        <div className="mt-12 grid gap-5 lg:grid-cols-3">
           {SOLUTIONS.map((s) => (
             <div key={s.audience} className="card p-6">
-              <p className="text-xs font-semibold uppercase tracking-wider text-primary">{s.audience}</p>
-              <h3 className="mt-2 text-lg font-semibold text-slate-900">{s.title}</h3>
-              <p className="mt-3 text-sm leading-relaxed text-slate-600">{s.body}</p>
-              <ul className="mt-4 space-y-2">
+              <p className="eyebrow">{s.audience}</p>
+              <h3 className="mt-2 text-lg font-semibold text-ink">{s.title}</h3>
+              <p className="mt-3 text-sm leading-relaxed text-ink-muted">{s.body}</p>
+              <ul className="mt-5 space-y-2.5">
                 {s.points.map((p) => (
-                  <li key={p} className="flex gap-2 text-sm text-slate-600">
-                    <ShieldCheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                  <li key={p} className="flex gap-2.5 text-sm leading-relaxed text-ink-muted">
+                    <ShieldCheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-success" />
                     <span>{p}</span>
                   </li>
                 ))}
@@ -190,6 +217,76 @@ export function PlatformHome() {
 
       <CtaBanner />
     </>
+  );
+}
+
+/**
+ * A composed view of the application itself, rather than a decorative illustration.
+ *
+ * It is drawn with the same tokens as the real interface, so it cannot drift from what a customer actually sees, and
+ * the figures are labelled as an example because no real fellowship's numbers belong on a marketing page.
+ */
+function ProductPreview() {
+  return (
+    <div className="rounded-card border border-white/10 bg-white/[0.04] p-2 shadow-overlay backdrop-blur-sm">
+      <div className="overflow-hidden rounded-[0.5rem] bg-canvas">
+        <div className="flex items-center gap-2 border-b border-hairline bg-surface px-4 py-2.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-hairline" />
+          <span className="h-2.5 w-2.5 rounded-full bg-hairline" />
+          <span className="ml-1 truncate text-[11px] font-medium text-ink-subtle">Fellowship Manager — Dashboard</span>
+        </div>
+
+        <div className="p-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              { k: 'Members', v: '248' },
+              { k: 'Departments', v: '12' },
+              { k: 'This month', v: 'TZS 4.1M' },
+              { k: 'Pending', v: '7' },
+            ].map((s) => (
+              <div key={s.k} className="rounded-control border border-hairline bg-surface p-3">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-ink-subtle">{s.k}</p>
+                <p className="mt-1 text-lg font-semibold tabular-nums text-ink">{s.v}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-3 rounded-control border border-hairline bg-surface p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-ink">Contributions</p>
+              <span className="badge badge-success">On track</span>
+            </div>
+            <div className="mt-4 flex h-20 items-end gap-1.5">
+              {[38, 52, 44, 61, 73, 58, 82, 69, 88, 76, 94, 81].map((h, i) => (
+                <div key={i} className="flex-1 rounded-t bg-primary/15" style={{ height: `${h}%` }}>
+                  <div className="w-full rounded-t bg-primary" style={{ height: `${Math.max(18, h - 22)}%`, marginTop: 'auto' }} />
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-[10px] text-ink-subtle">Example figures, shown to illustrate the dashboard.</p>
+          </div>
+
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-control border border-hairline bg-surface p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-subtle">Needs attention</p>
+              <ul className="mt-2 space-y-1.5">
+                {['3 expense approvals', '2 expiring accounts', '1 unreplied prayer request'].map((t) => (
+                  <li key={t} className="flex items-center gap-2 text-[11px] text-ink-muted">
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-warning" />
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-control border border-hairline bg-surface p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-subtle">Next activity</p>
+              <p className="mt-2 text-xs font-medium text-ink">Midweek prayer meeting</p>
+              <p className="mt-1 text-[11px] text-ink-subtle">Wednesday, 18:00 · 42 attending</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 

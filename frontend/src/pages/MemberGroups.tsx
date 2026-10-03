@@ -107,7 +107,7 @@ export default function MemberGroups() {
         <div className="flex justify-center py-20"><span className="spinner" /></div>
       ) : groups.length === 0 && !error ? (
         <div className="empty-state">
-          <div className="stat-icon bg-slate-100 text-slate-400"><RectangleGroupIcon className="h-6 w-6" /></div>
+          <div className="stat-icon bg-surface-sunken text-ink-subtle"><RectangleGroupIcon className="h-6 w-6" /></div>
           <p className="empty-title">No groups yet</p>
           <p className="empty-desc">Create a group to organise members outside of departments.</p>
         </div>
@@ -116,9 +116,9 @@ export default function MemberGroups() {
           {groups.map((g) => (
             <button key={g.id} onClick={() => openGroup(g.id)} className="card card-hover block w-full text-left">
               <div className="stat-icon bg-indigo-50 text-indigo-600"><RectangleGroupIcon className="h-6 w-6" /></div>
-              <h3 className={`mt-4 text-base font-semibold ${g.isActive ? 'text-slate-900' : 'text-slate-400'}`}>{g.name}</h3>
-              <p className="mt-1 line-clamp-2 text-sm text-slate-500">{g.description || 'No description'}</p>
-              <p className="mt-3 text-sm text-slate-500">{g.memberCount} member(s)</p>
+              <h3 className={`mt-4 text-base font-semibold ${g.isActive ? 'text-ink' : 'text-ink-subtle'}`}>{g.name}</h3>
+              <p className="mt-1 line-clamp-2 text-sm text-ink-muted">{g.description || 'No description'}</p>
+              <p className="mt-3 text-sm text-ink-muted">{g.memberCount} member(s)</p>
             </button>
           ))}
         </div>
@@ -128,7 +128,7 @@ export default function MemberGroups() {
         <div className="modal-backdrop" onClick={() => setShowCreate(false)}>
           <form onSubmit={createGroup} onClick={(e) => e.stopPropagation()} className="modal max-w-md">
             <div className="mb-5 flex items-center justify-between">
-              <h3 className="text-base font-semibold text-slate-900">New group</h3>
+              <h3 className="text-base font-semibold text-ink">New group</h3>
               <button type="button" onClick={() => setShowCreate(false)} className="btn btn-icon"><XMarkIcon className="h-5 w-5" /></button>
             </div>
             {error && <div className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">{error}</div>}
@@ -155,8 +155,8 @@ export default function MemberGroups() {
           <div onClick={(e) => e.stopPropagation()} className="modal max-w-lg">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h3 className="text-base font-semibold text-slate-900">{open.name}</h3>
-                <p className="text-xs text-slate-500">{open.description || 'No description'}</p>
+                <h3 className="text-base font-semibold text-ink">{open.name}</h3>
+                <p className="text-xs text-ink-muted">{open.description || 'No description'}</p>
               </div>
               <button type="button" onClick={() => setOpen(null)} className="btn btn-icon"><XMarkIcon className="h-5 w-5" /></button>
             </div>
@@ -165,10 +165,10 @@ export default function MemberGroups() {
               <div className="mb-4">
                 <input className="input" placeholder="Search members to add…" value={search} onChange={(e) => setSearch(e.target.value)} />
                 {candidates.length > 0 && (
-                  <ul className="mt-2 divide-y divide-border rounded-lg ring-1 ring-inset ring-border">
+                  <ul className="mt-2 divide-y divide-hairline rounded-lg ring-1 ring-inset ring-hairline">
                     {candidates.map((c) => (
                       <li key={c.id} className="flex items-center justify-between px-3 py-2 text-sm">
-                        <span>{c.full_name} <span className="font-mono text-xs text-slate-400">{c.member_code}</span></span>
+                        <span>{c.full_name} <span className="font-mono text-xs text-ink-subtle">{c.member_code}</span></span>
                         <button onClick={() => addMember(c.id)} className="btn btn-secondary btn-sm">
                           <UserPlusIcon className="h-4 w-4" /> Add
                         </button>
@@ -180,12 +180,12 @@ export default function MemberGroups() {
             )}
 
             {open.members.length === 0 ? (
-              <p className="py-4 text-sm text-slate-500">No members in this group yet.</p>
+              <p className="py-4 text-sm text-ink-muted">No members in this group yet.</p>
             ) : (
-              <ul className="max-h-72 divide-y divide-border overflow-y-auto">
+              <ul className="max-h-72 divide-y divide-hairline overflow-y-auto">
                 {open.members.map((m: any) => (
                   <li key={m.memberId} className="flex items-center justify-between py-2 text-sm">
-                    <span className="text-slate-800">{m.fullName} <span className="font-mono text-xs text-slate-400">{m.memberCode}</span></span>
+                    <span className="text-slate-800">{m.fullName} <span className="font-mono text-xs text-ink-subtle">{m.memberCode}</span></span>
                     {canManage && (
                       <button onClick={() => removeMember(m.memberId)} className="btn btn-icon" title="Remove from group">
                         <TrashIcon className="h-4 w-4 text-rose-500" />

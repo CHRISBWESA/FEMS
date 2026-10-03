@@ -60,46 +60,46 @@ export default function ActivityDetail() {
     <div className="mx-auto max-w-3xl">
       <button
         onClick={() => navigate(-1)}
-        className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-ink-muted transition-colors hover:text-ink"
       >
         <ArrowLeftIcon className="h-4 w-4" />
         Back
       </button>
 
       <div className="card">
-        <div className="flex items-start gap-4 border-b border-border pb-5">
+        <div className="flex items-start gap-4 border-b border-hairline pb-5">
           <div className="stat-icon bg-indigo-50 text-indigo-600">
             <CalendarIcon className="h-6 w-6" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{activity.title}</h1>
-            <p className="mt-1 text-sm text-slate-500">
+            <h1 className="text-2xl font-semibold tracking-tight text-ink">{activity.title}</h1>
+            <p className="mt-1 text-sm text-ink-muted">
               {new Date(activity.date).toLocaleString()}
               {activity.end_date && ` — ${new Date(activity.end_date).toLocaleString()}`}
             </p>
             {activity.location && (
-              <p className="mt-0.5 text-sm text-slate-500">📍 {activity.location}</p>
+              <p className="mt-0.5 text-sm text-ink-muted">📍 {activity.location}</p>
             )}
           </div>
         </div>
 
         {activity.description && (
-          <p className="mt-5 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
+          <p className="mt-5 whitespace-pre-wrap text-sm leading-relaxed text-ink">
             {activity.description}
           </p>
         )}
 
         <div className="mt-5 flex items-center gap-2">
-          <span className="text-sm text-slate-500">Audience:</span>
+          <span className="text-sm text-ink-muted">Audience:</span>
           <span className="status-badge status-submitted">
             {activity.audience_type?.replace('_', ' ') || 'All'}
           </span>
         </div>
 
         {isAllMembers && (
-          <div className="mt-6 rounded-xl bg-slate-50 p-5 ring-1 ring-inset ring-border">
-            <h2 className="text-sm font-semibold text-slate-900">Confirm Attendance</h2>
-            <p className="mt-1 text-sm text-slate-500">Confirm your presence at this activity.</p>
+          <div className="mt-6 rounded-xl bg-canvas p-5 ring-1 ring-inset ring-hairline">
+            <h2 className="text-sm font-semibold text-ink">Confirm Attendance</h2>
+            <p className="mt-1 text-sm text-ink-muted">Confirm your presence at this activity.</p>
             <div className="mt-3 flex gap-2">
               <input
                 type="text"

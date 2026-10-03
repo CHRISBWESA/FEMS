@@ -66,18 +66,18 @@ export default function Profile() {
       </div>
 
       <div className="card mb-4">
-        <div className="flex items-center gap-4 border-b border-border pb-5">
+        <div className="flex items-center gap-4 border-b border-hairline pb-5">
           <div className="avatar h-14 w-14 text-lg">{initials}</div>
           <div>
-            <p className="text-lg font-semibold text-slate-900">
+            <p className="text-lg font-semibold text-ink">
               {info.first_name} {info.last_name}
             </p>
-            <p className="text-sm text-slate-500">{info.email}</p>
+            <p className="text-sm text-ink-muted">{info.email}</p>
           </div>
         </div>
         <dl className="space-y-3 pt-5">
           <div className="flex justify-between gap-4">
-            <dt className="text-sm text-slate-500">Roles</dt>
+            <dt className="text-sm text-ink-muted">Roles</dt>
             <dd className="flex flex-wrap justify-end gap-1.5">
               {(info.roles || []).map((role: string) => (
                 <span key={role} className="status-badge status-final capitalize">
@@ -87,7 +87,7 @@ export default function Profile() {
             </dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-sm text-slate-500">Status</dt>
+            <dt className="text-sm text-ink-muted">Status</dt>
             <dd>
               <span className={`status-badge ${info.is_active === false ? 'status-inactive' : 'status-active'}`}>
                 {info.is_active === false ? 'Inactive' : 'Active'}
@@ -117,9 +117,9 @@ export default function Profile() {
                 <div className="stat-icon bg-primary-light text-primary">
                   <IdentificationIcon className="h-5 w-5" />
                 </div>
-                <h3 className="text-base font-semibold text-slate-900">Change Password</h3>
+                <h3 className="text-base font-semibold text-ink">Change Password</h3>
               </div>
-              <button type="button" onClick={() => setShowChangePassword(false)} className="p-1.5 text-slate-400 hover:text-slate-700">
+              <button type="button" onClick={() => setShowChangePassword(false)} className="p-1.5 text-ink-subtle hover:text-ink">
                 <XMarkIcon className="h-5 w-5" />
               </button>
             </div>

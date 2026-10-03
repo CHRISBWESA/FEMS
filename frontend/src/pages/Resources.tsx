@@ -110,7 +110,7 @@ function AssetsTab({ canManage, canCost }: { canManage: boolean; canCost: boolea
       </div>
       {error && <Empty text={error} />}
       {!rows ? <Spinner /> : rows.length === 0 && !error ? (
-        <div className="empty-state"><div className="stat-icon bg-slate-100 text-slate-400"><CubeIcon className="h-6 w-6" /></div><p className="empty-title">No assets found</p></div>
+        <div className="empty-state"><div className="stat-icon bg-surface-sunken text-ink-subtle"><CubeIcon className="h-6 w-6" /></div><p className="empty-title">No assets found</p></div>
       ) : (
         <div className="table-wrap overflow-x-auto">
           <table className="table">
@@ -119,7 +119,7 @@ function AssetsTab({ canManage, canCost }: { canManage: boolean; canCost: boolea
               {rows.map((a) => (
                 <tr key={a.id} className="cursor-pointer" onClick={() => navigate(`/resources/${a.id}`)}>
                   <td className="font-mono text-xs">{a.asset_tag}</td>
-                  <td className="font-medium text-slate-900">{a.name}{a.is_consumable && <span className="ml-2 text-xs text-slate-400">× {a.quantity}</span>}</td>
+                  <td className="font-medium text-ink">{a.name}{a.is_consumable && <span className="ml-2 text-xs text-ink-subtle">× {a.quantity}</span>}</td>
                   <td>{a.category?.name || '—'}</td>
                   <td>{a.location?.name || '—'}</td>
                   <td>{a.owning_department?.name || '—'}</td>
@@ -133,7 +133,7 @@ function AssetsTab({ canManage, canCost }: { canManage: boolean; canCost: boolea
         </div>
       )}
       {total > PAGE && (
-        <div className="mt-4 flex items-center justify-between text-sm text-slate-500">
+        <div className="mt-4 flex items-center justify-between text-sm text-ink-muted">
           <span>Page {page} of {pages} · {total} assets</span>
           <div className="flex gap-2">
             <button className="btn btn-secondary btn-sm" disabled={page === 1} onClick={() => setPage(page - 1)}>Prev</button>
@@ -183,7 +183,7 @@ function MaintenanceTab({ canMaintain, canCost }: { canMaintain: boolean; canCos
 
   return (
     <div>
-      <label className="mb-3 flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={overdue} onChange={(e) => setOverdue(e.target.checked)} /> Overdue only</label>
+      <label className="mb-3 flex items-center gap-2 text-sm text-ink"><input type="checkbox" checked={overdue} onChange={(e) => setOverdue(e.target.checked)} /> Overdue only</label>
       {error && <Empty text={error} />}
       {!rows ? <Spinner /> : rows.length === 0 && !error ? <Empty text="No maintenance to show" /> : (
         <div className="table-wrap overflow-x-auto">
@@ -192,7 +192,7 @@ function MaintenanceTab({ canMaintain, canCost }: { canMaintain: boolean; canCos
             <tbody>
               {rows.map((m) => (
                 <tr key={m.id}>
-                  <td className="cursor-pointer font-medium text-primary" onClick={() => navigate(`/resources/${m.asset.id}`)}>{m.asset.name} <span className="font-mono text-xs text-slate-400">{m.asset.asset_tag}</span></td>
+                  <td className="cursor-pointer font-medium text-primary" onClick={() => navigate(`/resources/${m.asset.id}`)}>{m.asset.name} <span className="font-mono text-xs text-ink-subtle">{m.asset.asset_tag}</span></td>
                   <td className="capitalize">{m.type}</td>
                   <td className="max-w-xs truncate">{m.description}</td>
                   <td className={m.status !== 'completed' && m.status !== 'cancelled' && new Date(m.scheduled_for) < new Date() ? 'font-medium text-rose-700' : ''}>{new Date(m.scheduled_for).toLocaleDateString()}</td>
@@ -243,14 +243,14 @@ function SetupTab() {
   const List = ({ title, kind, rows, singular }: { title: string; kind: 'categories' | 'locations'; rows: any[]; singular: 'category' | 'location' }) => (
     <section>
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">{title}</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-subtle">{title}</h2>
         <button className="btn btn-secondary btn-sm" onClick={() => setAdding(singular)}><PlusIcon className="h-4 w-4" /> Add</button>
       </div>
       {rows.length === 0 ? <Empty text={`No ${title.toLowerCase()} yet`} /> : (
-        <ul className="divide-y divide-border rounded-lg bg-white ring-1 ring-inset ring-border">
+        <ul className="divide-y divide-hairline rounded-lg bg-white ring-1 ring-inset ring-hairline">
           {rows.map((r) => (
             <li key={r.id} className="flex items-center justify-between px-4 py-2 text-sm">
-              <span className={r.is_active ? 'text-slate-900' : 'text-slate-400 line-through'}>{r.name}</span>
+              <span className={r.is_active ? 'text-ink' : 'text-ink-subtle line-through'}>{r.name}</span>
               <button className="btn btn-secondary btn-sm" onClick={() => toggle(kind, r)}>{r.is_active ? 'Deactivate' : 'Activate'}</button>
             </li>
           ))}
@@ -282,31 +282,31 @@ function ReportsTab() {
   if (error) return <Empty text={error} />;
   if (!data) return <Spinner />;
   const Rows = ({ rows, label }: { rows: any[]; label: (r: any) => string }) => {
-    if (!rows.length) return <p className="text-sm text-slate-500">Nothing to show.</p>;
+    if (!rows.length) return <p className="text-sm text-ink-muted">Nothing to show.</p>;
     const max = Math.max(...rows.map((r) => r.count), 1);
-    return <ul className="space-y-2">{rows.map((r, i) => <li key={i} className="flex items-center gap-3 text-sm"><span className="w-40 truncate text-slate-700">{label(r)}</span><Bar value={r.count} max={max} /><span className="w-8 text-right font-medium">{r.count}</span></li>)}</ul>;
+    return <ul className="space-y-2">{rows.map((r, i) => <li key={i} className="flex items-center gap-3 text-sm"><span className="w-40 truncate text-ink">{label(r)}</span><Bar value={r.count} max={max} /><span className="w-8 text-right font-medium">{r.count}</span></li>)}</ul>;
   };
-  const Card = ({ title, children }: { title: string; children: React.ReactNode }) => <div className="card"><h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">{title}</h3>{children}</div>;
+  const Card = ({ title, children }: { title: string; children: React.ReactNode }) => <div className="card"><h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">{title}</h3>{children}</div>;
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[['Available', data.totals.available ?? 0], ['On loan', data.totals.checked_out ?? 0], ['In maintenance', data.totals.in_maintenance ?? 0], ['Overdue loans', data.loans.overdue]].map(([l, v]) => (
-          <div key={l as string} className="card"><p className="text-sm text-slate-500">{l}</p><p className="text-2xl font-semibold text-slate-900">{v}</p></div>
+          <div key={l as string} className="card"><p className="text-sm text-ink-muted">{l}</p><p className="text-2xl font-semibold text-ink">{v}</p></div>
         ))}
       </div>
-      {data.acquisitionValue !== null && <p className="text-sm text-slate-600">Acquisition value of active assets: <span className="font-semibold">{money(data.acquisitionValue)}</span></p>}
+      {data.acquisitionValue !== null && <p className="text-sm text-ink-muted">Acquisition value of active assets: <span className="font-semibold">{money(data.acquisitionValue)}</span></p>}
       <div className="grid gap-6 lg:grid-cols-2">
         <Card title="By category"><Rows rows={data.byCategory} label={(r) => r.name} /></Card>
         <Card title="By location"><Rows rows={data.byLocation} label={(r) => r.name} /></Card>
         <Card title="By condition"><Rows rows={data.byCondition} label={(r) => r.condition} /></Card>
         <Card title="By department"><Rows rows={data.byDepartment} label={(r) => r.name} /></Card>
         <Card title={`Movement (${new Date(data.range.from).toLocaleDateString()} – ${new Date(data.range.to).toLocaleDateString()})`}>
-          <ul className="space-y-1 text-sm">{Object.entries(data.movement).length === 0 ? <li className="text-slate-500">No movement.</li> : Object.entries(data.movement).map(([k, v]) => <li key={k} className="flex justify-between"><span className="capitalize text-slate-700">{k.replace(/_/g, ' ')}</span><span className="font-medium">{v as number}</span></li>)}</ul>
+          <ul className="space-y-1 text-sm">{Object.entries(data.movement).length === 0 ? <li className="text-ink-muted">No movement.</li> : Object.entries(data.movement).map(([k, v]) => <li key={k} className="flex justify-between"><span className="capitalize text-ink">{k.replace(/_/g, ' ')}</span><span className="font-medium">{v as number}</span></li>)}</ul>
         </Card>
         <Card title="Maintenance & stock">
-          <p className="text-sm text-slate-700">Overdue maintenance: <span className="font-medium">{data.maintenance.overdue}</span></p>
-          <h4 className="mt-3 text-xs font-semibold uppercase text-slate-400">Low stock</h4>
-          {data.lowStock.length === 0 ? <p className="text-sm text-slate-500">All stock above reorder level.</p> : (
+          <p className="text-sm text-ink">Overdue maintenance: <span className="font-medium">{data.maintenance.overdue}</span></p>
+          <h4 className="mt-3 text-xs font-semibold uppercase text-ink-subtle">Low stock</h4>
+          {data.lowStock.length === 0 ? <p className="text-sm text-ink-muted">All stock above reorder level.</p> : (
             <ul className="mt-1 space-y-1 text-sm">{data.lowStock.map((s: any) => <li key={s.id} className="flex justify-between"><span>{s.name}</span><span className="text-amber-700">{s.quantity} / {s.reorder_level}</span></li>)}</ul>
           )}
         </Card>

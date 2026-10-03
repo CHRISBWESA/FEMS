@@ -5,6 +5,7 @@ import { PASSWORD_HINT, storeSessionTokens } from '../lib/session';
 import { onSignOut } from '../offline/session';
 import { pendingCount } from '../offline/outbox';
 import { useAuth } from '../App';
+import { Alert, Button } from '../components/ui';
 
 // Shown instead of the app while the account still has a temporary password. The server refuses everything else
 // until it has been replaced, so this is the only thing that can work.
@@ -39,7 +40,7 @@ export default function ForcePasswordChange({ onDone }: { onDone: () => void }) 
           onClick={() => reveal(id)}
           aria-label={visible[id] ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
           title={visible[id] ? 'Hide' : 'Show'}
-          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1.5 text-ink-subtle transition-colors hover:bg-surface-sunken hover:text-ink"
         >
           {visible[id] ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
         </button>
@@ -74,19 +75,27 @@ export default function ForcePasswordChange({ onDone }: { onDone: () => void }) 
   };
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-slate-50 px-4 py-6">
-      <form onSubmit={submit} className="card w-full max-w-md space-y-4 p-6 sm:p-8">
+    <div className="flex min-h-dvh items-center justify-center bg-canvas px-4 py-6">
+      <form onSubmit={submit} className="card w-full max-w-md card-pad space-y-5 p-6 sm:p-8">
         <div className="text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary-light text-primary"><LockClosedIcon className="h-6 w-6" /></div>
-          <h1 className="text-xl font-semibold tracking-tight text-slate-900">Choose your own password</h1>
-          <p className="mt-1 text-sm text-slate-500">You signed in with a temporary password. Set a new one to continue.</p>
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-control bg-primary-light text-primary">
+            <LockClosedIcon className="h-6 w-6" />
+          </div>
+          <h1 className="text-xl font-semibold tracking-tight text-ink">Choose your own password</h1>
+          <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
+            You signed in with a temporary password. Set a new one to continue.
+          </p>
         </div>
-        {error && <div className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">{error}</div>}
+        {error && <Alert tone="danger">{error}</Alert>}
         {field('current-pw', 'Temporary password', current, setCurrent, { autoComplete: 'current-password' })}
         {field('new-pw', 'New password', next, setNext, { autoComplete: 'new-password', minLength: 10, hint: PASSWORD_HINT })}
         {field('confirm-pw', 'Repeat the new password', confirm, setConfirm, { autoComplete: 'new-password' })}
-        <button type="submit" disabled={saving} className="btn btn-primary min-h-11 w-full">{saving ? <span className="spinner border-white" /> : 'Save and continue'}</button>
-        <button type="button" onClick={signOut} className="btn btn-secondary min-h-11 w-full">Sign out</button>
+        <Button type="submit" variant="primary" size="lg" className="btn-block" loading={saving}>
+          Save and continue
+        </Button>
+        <Button type="button" variant="secondary" className="btn-block" onClick={signOut}>
+          Sign out
+        </Button>
       </form>
     </div>
   );

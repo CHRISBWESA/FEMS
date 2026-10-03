@@ -3,9 +3,9 @@ import axios from 'axios';
 
 function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-lg bg-slate-50 p-4 ring-1 ring-inset ring-border">
-      <p className="text-xs uppercase tracking-wider text-slate-400">{label}</p>
-      <p className="mt-1 text-xl font-semibold text-slate-900">{value}</p>
+    <div className="rounded-lg bg-canvas p-4 ring-1 ring-inset ring-hairline">
+      <p className="text-xs uppercase tracking-wider text-ink-subtle">{label}</p>
+      <p className="mt-1 text-xl font-semibold text-ink">{value}</p>
     </div>
   );
 }
@@ -24,7 +24,7 @@ export default function MemberEngagementTab({ memberId }: { memberId: string }) 
         : 'Could not load engagement.'));
   }, [memberId, days]);
 
-  if (error) return <p className="py-6 text-sm text-slate-500">{error}</p>;
+  if (error) return <p className="py-6 text-sm text-ink-muted">{error}</p>;
   if (!data) return <div className="flex justify-center py-10"><span className="spinner" /></div>;
 
   const a = data.attendance;
@@ -32,7 +32,7 @@ export default function MemberEngagementTab({ memberId }: { memberId: string }) 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Engagement</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-subtle">Engagement</h2>
         <select className="select w-40" value={days} onChange={(e) => setDays(Number(e.target.value))}>
           {[30, 90, 180, 365].map((d) => <option key={d} value={d}>Last {d} days</option>)}
         </select>
@@ -43,22 +43,22 @@ export default function MemberEngagementTab({ memberId }: { memberId: string }) 
         <Stat label="Activities attended (all time)" value={a.activitiesAttended} />
         <Stat label="Last attended" value={a.lastAttendedAt ? new Date(a.lastAttendedAt).toLocaleDateString() : '—'} />
       </div>
-      <p className="-mt-3 text-xs text-slate-400">
+      <p className="-mt-3 text-xs text-ink-subtle">
         {a.scope === 'department' ? "Counts your department's activities only. " : ''}
         Only attendance recorded against this member is counted; attendance captured by name only (for example through the public
         attendance link) cannot be attributed to a member.
       </p>
 
       <section>
-        <h3 className="mb-2 text-sm font-semibold text-slate-900">Departments</h3>
+        <h3 className="mb-2 text-sm font-semibold text-ink">Departments</h3>
         {data.departments.length === 0 ? (
-          <p className="text-sm text-slate-500">Not in any department.</p>
+          <p className="text-sm text-ink-muted">Not in any department.</p>
         ) : (
-          <ul className="divide-y divide-border">
+          <ul className="divide-y divide-hairline">
             {data.departments.map((d: any) => (
               <li key={d.departmentId} className="flex justify-between py-2 text-sm">
                 <span className="text-slate-800">{d.name || d.departmentId}</span>
-                <span className="text-slate-400">since {new Date(d.joinedAt).toLocaleDateString()}</span>
+                <span className="text-ink-subtle">since {new Date(d.joinedAt).toLocaleDateString()}</span>
               </li>
             ))}
           </ul>
@@ -67,12 +67,12 @@ export default function MemberEngagementTab({ memberId }: { memberId: string }) 
 
       {data.leadership.length > 0 && (
         <section>
-          <h3 className="mb-2 text-sm font-semibold text-slate-900">Current leadership</h3>
-          <ul className="divide-y divide-border">
+          <h3 className="mb-2 text-sm font-semibold text-ink">Current leadership</h3>
+          <ul className="divide-y divide-hairline">
             {data.leadership.map((l: any, i: number) => (
               <li key={i} className="flex justify-between py-2 text-sm">
                 <span className="text-slate-800 capitalize">{l.role?.replace(/_/g, ' ')} · {l.name || l.departmentId}</span>
-                <span className="text-slate-400">since {new Date(l.since).toLocaleDateString()}</span>
+                <span className="text-ink-subtle">since {new Date(l.since).toLocaleDateString()}</span>
               </li>
             ))}
           </ul>
@@ -81,9 +81,9 @@ export default function MemberEngagementTab({ memberId }: { memberId: string }) 
 
       {data.groups && (
         <section>
-          <h3 className="mb-2 text-sm font-semibold text-slate-900">Groups</h3>
+          <h3 className="mb-2 text-sm font-semibold text-ink">Groups</h3>
           {data.groups.length === 0 ? (
-            <p className="text-sm text-slate-500">Not in any group.</p>
+            <p className="text-sm text-ink-muted">Not in any group.</p>
           ) : (
             <div className="flex flex-wrap gap-1.5">
               {data.groups.map((g: any) => (
@@ -96,10 +96,10 @@ export default function MemberEngagementTab({ memberId }: { memberId: string }) 
 
       {data.serviceInterests && data.serviceInterests.length > 0 && (
         <section>
-          <h3 className="mb-2 text-sm font-semibold text-slate-900">Service interests</h3>
+          <h3 className="mb-2 text-sm font-semibold text-ink">Service interests</h3>
           <div className="flex flex-wrap gap-1.5">
             {data.serviceInterests.map((t: string) => (
-              <span key={t} className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">{t}</span>
+              <span key={t} className="rounded-full bg-surface-sunken px-2.5 py-0.5 text-xs font-medium text-ink">{t}</span>
             ))}
           </div>
         </section>
@@ -107,8 +107,8 @@ export default function MemberEngagementTab({ memberId }: { memberId: string }) 
 
       {data.youth && (data.youth.guardianOfCount > 0 || data.youth.isYouthParticipant) && (
         <section>
-          <h3 className="mb-2 text-sm font-semibold text-slate-900">Youth &amp; children involvement</h3>
-          <p className="text-sm text-slate-600">
+          <h3 className="mb-2 text-sm font-semibold text-ink">Youth &amp; children involvement</h3>
+          <p className="text-sm text-ink-muted">
             {data.youth.guardianOfCount > 0 && `Guardian of ${data.youth.guardianOfCount} participant(s). `}
             {data.youth.isYouthParticipant && 'Also registered as a youth participant.'}
           </p>

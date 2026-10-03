@@ -5,7 +5,7 @@ import { UsersIcon, UserPlusIcon, ChartBarIcon } from '@heroicons/react/24/outli
 function Bar({ value, max, className = 'bg-primary' }: { value: number; max: number; className?: string }) {
   const pct = max > 0 ? Math.max(2, Math.round((value / max) * 100)) : 0;
   return (
-    <div className="h-2 flex-1 rounded-full bg-slate-100">
+    <div className="h-2 flex-1 rounded-full bg-surface-sunken">
       <div className={`h-2 rounded-full ${className}`} style={{ width: value > 0 ? `${pct}%` : 0 }} />
     </div>
   );
@@ -14,22 +14,22 @@ function Bar({ value, max, className = 'bg-primary' }: { value: number; max: num
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="card">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">{title}</h2>
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">{title}</h2>
       {children}
     </div>
   );
 }
 
 function TagList({ rows }: { rows: { tag: string; count: number }[] }) {
-  if (!rows.length) return <p className="text-sm text-slate-500">Nothing recorded yet.</p>;
+  if (!rows.length) return <p className="text-sm text-ink-muted">Nothing recorded yet.</p>;
   const max = rows[0].count;
   return (
     <ul className="space-y-2">
       {rows.map((r) => (
         <li key={r.tag} className="flex items-center gap-3 text-sm">
-          <span className="w-32 truncate text-slate-700">{r.tag}</span>
+          <span className="w-32 truncate text-ink">{r.tag}</span>
           <Bar value={r.count} max={max} />
-          <span className="w-8 text-right font-medium text-slate-900">{r.count}</span>
+          <span className="w-8 text-right font-medium text-ink">{r.count}</span>
         </li>
       ))}
     </ul>
@@ -83,15 +83,15 @@ export default function MemberInsights() {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
           { label: 'Members', value: data.totals.total, icon: UsersIcon, color: 'bg-indigo-50 text-indigo-600' },
-          { label: 'Active', value: data.totals.active, icon: UserPlusIcon, color: 'bg-emerald-50 text-emerald-600' },
+          { label: 'Active', value: data.totals.active, icon: UserPlusIcon, color: 'bg-emerald-50 text-success' },
           { label: 'Inactive', value: data.totals.inactive, icon: ChartBarIcon, color: 'bg-amber-50 text-amber-600' },
-          { label: 'Graduated', value: data.totals.graduated, icon: ChartBarIcon, color: 'bg-slate-100 text-slate-600' },
+          { label: 'Graduated', value: data.totals.graduated, icon: ChartBarIcon, color: 'bg-surface-sunken text-ink-muted' },
         ].map((c) => (
           <div key={c.label} className="card flex items-center gap-4">
             <div className={`stat-icon ${c.color}`}><c.icon className="h-6 w-6" /></div>
             <div>
-              <p className="text-sm text-slate-500">{c.label}</p>
-              <p className="text-2xl font-semibold text-slate-900">{c.value}</p>
+              <p className="text-sm text-ink-muted">{c.label}</p>
+              <p className="text-2xl font-semibold text-ink">{c.value}</p>
             </div>
           </div>
         ))}
@@ -102,7 +102,7 @@ export default function MemberInsights() {
           <ul className="space-y-2">
             {data.membershipGrowth.map((g: any) => (
               <li key={g.month} className="flex items-center gap-3 text-xs">
-                <span className="w-16 text-slate-500">{g.month}</span>
+                <span className="w-16 text-ink-muted">{g.month}</span>
                 <Bar value={g.registered} max={growthMax} className="bg-emerald-500" />
                 <span className="w-8 text-right text-emerald-700">+{g.registered}</span>
                 <Bar value={g.deactivated + g.graduated} max={growthMax} className="bg-rose-400" />
@@ -110,7 +110,7 @@ export default function MemberInsights() {
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-xs text-slate-400">
+          <p className="mt-3 text-xs text-ink-subtle">
             Green: newly registered. Red: became inactive or graduated. Figures come from the membership history; members that existed
             before history tracking began are placed at their registration date.
           </p>
@@ -118,20 +118,20 @@ export default function MemberInsights() {
 
         <Card title="Department distribution">
           {data.departmentDistribution.departments.length === 0 ? (
-            <p className="text-sm text-slate-500">No department memberships yet.</p>
+            <p className="text-sm text-ink-muted">No department memberships yet.</p>
           ) : (
             <ul className="space-y-2">
               {data.departmentDistribution.departments.map((d: any) => (
                 <li key={d.departmentId} className="flex items-center gap-3 text-sm">
-                  <span className="w-40 truncate text-slate-700">{d.name || d.departmentId}</span>
+                  <span className="w-40 truncate text-ink">{d.name || d.departmentId}</span>
                   <Bar value={d.count} max={deptMax} />
-                  <span className="w-8 text-right font-medium text-slate-900">{d.count}</span>
+                  <span className="w-8 text-right font-medium text-ink">{d.count}</span>
                 </li>
               ))}
             </ul>
           )}
           {data.scope !== 'department' && (
-            <p className="mt-3 text-xs text-slate-400">{data.departmentDistribution.noDepartment} member(s) are not in any department.</p>
+            <p className="mt-3 text-xs text-ink-subtle">{data.departmentDistribution.noDepartment} member(s) are not in any department.</p>
           )}
         </Card>
 
@@ -139,9 +139,9 @@ export default function MemberInsights() {
           <ul className="space-y-2">
             {data.participation.trend.map((t: any) => (
               <li key={t.month} className="flex items-center gap-3 text-xs">
-                <span className="w-16 text-slate-500">{t.month}</span>
+                <span className="w-16 text-ink-muted">{t.month}</span>
                 <Bar value={t.linkedRecords + t.nameOnlyRecords} max={trendMax} />
-                <span className="w-24 text-right text-slate-600">{t.linkedRecords} linked · {t.nameOnlyRecords} name-only</span>
+                <span className="w-24 text-right text-ink-muted">{t.linkedRecords} linked · {t.nameOnlyRecords} name-only</span>
               </li>
             ))}
           </ul>
@@ -155,9 +155,9 @@ export default function MemberInsights() {
               { label: '3 or more activities', v: dist.threeOrMore },
             ].map((r) => (
               <li key={r.label} className="flex items-center gap-3">
-                <span className="w-48 text-slate-700">{r.label}</span>
+                <span className="w-48 text-ink">{r.label}</span>
                 <Bar value={r.v} max={Math.max(1, distTotal)} />
-                <span className="w-8 text-right font-medium text-slate-900">{r.v}</span>
+                <span className="w-8 text-right font-medium text-ink">{r.v}</span>
               </li>
             ))}
           </ul>

@@ -117,16 +117,16 @@ export default function FellowshipForm({
       <div className="lg:col-span-3">
         {done ? (
           <div className="card p-8 text-center">
-            <CheckCircleIcon className="mx-auto h-12 w-12 text-emerald-600" />
-            <h2 className="mt-3 text-lg font-semibold text-slate-900">Thank you</h2>
-            <p className="mt-2 text-sm text-slate-600">{done}</p>
+            <CheckCircleIcon className="mx-auto h-12 w-12 text-success" />
+            <h2 className="mt-3 text-lg font-semibold text-ink">Thank you</h2>
+            <p className="mt-2 text-sm text-ink-muted">{done}</p>
             <button type="button" className="btn btn-secondary mt-6" onClick={() => setDone('')}>
               Send another
             </button>
           </div>
         ) : (
           <>
-            <p className="max-w-2xl text-sm leading-relaxed text-slate-600">{config.intro}</p>
+            <p className="max-w-2xl text-sm leading-relaxed text-ink-muted">{config.intro}</p>
 
             {error && (
               <div className="mt-6 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">
@@ -149,7 +149,7 @@ export default function FellowshipForm({
                   <div>
                     <label htmlFor="f-email" className="label">E-mail</label>
                     <input id="f-email" type="email" maxLength={254} className="input w-full" value={form.email} onChange={set('email')} />
-                    <p className="mt-1 text-xs text-slate-400">Optional, but it is how they reply.</p>
+                    <p className="mt-1 text-xs text-ink-subtle">Optional, but it is how they reply.</p>
                   </div>
 
                   {config.showAmount && (
@@ -180,7 +180,7 @@ export default function FellowshipForm({
                     {sending ? <><span className="spinner border-white" /> Sending…</> : <><HeartIcon className="h-5 w-5" /> Send</>}
                   </button>
 
-                  <p className="text-xs leading-relaxed text-slate-400">{config.privacy}</p>
+                  <p className="text-xs leading-relaxed text-ink-subtle">{config.privacy}</p>
                 </form>
               </>
             )}
@@ -189,29 +189,29 @@ export default function FellowshipForm({
         {!embedded && (
           <aside className="lg:col-span-2">
             <div className="card p-6">
-              <h2 className="text-base font-semibold text-slate-900">{site.fellowship.name}</h2>
-              <ul className="mt-4 space-y-3 text-sm text-slate-600">
+              <h2 className="text-base font-semibold text-ink">{site.fellowship.name}</h2>
+              <ul className="mt-4 space-y-3 text-sm text-ink-muted">
                 {site.profile?.address && (
-                  <li className="flex gap-2.5"><MapPinIcon className="h-4 w-4 shrink-0 text-slate-400" />{site.profile.address}</li>
+                  <li className="flex gap-2.5"><MapPinIcon className="h-4 w-4 shrink-0 text-ink-subtle" />{site.profile.address}</li>
                 )}
                 {site.profile?.phone && (
                   <li className="flex gap-2.5">
-                    <PhoneIcon className="h-4 w-4 shrink-0 text-slate-400" />
+                    <PhoneIcon className="h-4 w-4 shrink-0 text-ink-subtle" />
                     <a href={`tel:${site.profile.phone.replace(/[^\d+]/g, '')}`} className="hover:text-primary">{site.profile.phone}</a>
                   </li>
                 )}
                 {site.profile?.email && (
                   <li className="flex gap-2.5">
-                    <EnvelopeIcon className="h-4 w-4 shrink-0 text-slate-400" />
+                    <EnvelopeIcon className="h-4 w-4 shrink-0 text-ink-subtle" />
                     <a href={`mailto:${site.profile.email}`} className="break-all hover:text-primary">{site.profile.email}</a>
                   </li>
                 )}
                 {site.profile?.service_times && (
-                  <li className="flex gap-2.5"><ClockIcon className="h-4 w-4 shrink-0 text-slate-400" />{site.profile.service_times}</li>
+                  <li className="flex gap-2.5"><ClockIcon className="h-4 w-4 shrink-0 text-ink-subtle" />{site.profile.service_times}</li>
                 )}
               </ul>
               {(!site.profile?.address && !site.profile?.phone && !site.profile?.email) && (
-                <p className="mt-4 text-sm text-slate-500">
+                <p className="mt-4 text-sm text-ink-muted">
                   This fellowship has not published contact details yet. The form is the fastest way to reach them.
                 </p>
               )}
@@ -222,7 +222,7 @@ export default function FellowshipForm({
   );
 
   if (embedded) {
-    return <div className="mt-10 border-t border-border pt-10">{formPanel}</div>;
+    return <div className="mt-10 border-t border-hairline pt-10">{formPanel}</div>;
   }
 
   return (

@@ -121,7 +121,7 @@ export default function Reports() {
 
       {reports.length === 0 ? (
         <div className="empty-state">
-          <div className="stat-icon bg-slate-100 text-slate-400">
+          <div className="stat-icon bg-surface-sunken text-ink-subtle">
             <DocumentTextIcon className="h-6 w-6" />
           </div>
           <p className="empty-title">No reports found</p>
@@ -134,21 +134,21 @@ export default function Reports() {
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-3">
-                    <h3 className="text-base font-semibold text-slate-900">{r.title}</h3>
+                    <h3 className="text-base font-semibold text-ink">{r.title}</h3>
                     <span className={`status-badge ${statusClasses[r.status] || 'status-draft'}`}>
                       {r.status?.replace('_', ' ')}
                     </span>
                   </div>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="mt-1 text-sm text-ink-muted">
                     Submitted: {r.submitted_at ? new Date(r.submitted_at).toLocaleString() : '—'}
                   </p>
-                  <p className="mt-2 line-clamp-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
+                  <p className="mt-2 line-clamp-2 whitespace-pre-wrap text-sm leading-relaxed text-ink">
                     {String(r.content || '').replace(/<[^>]+>/g, '').substring(0, 200)}
                   </p>
                 </div>
               </div>
               {(canReview(r.status) || (isDeptLeader && r.status === 'REJECTED')) ? (
-                <div className="mt-4 flex gap-2 border-t border-border pt-4">
+                <div className="mt-4 flex gap-2 border-t border-hairline pt-4">
                   {canReview(r.status) && (
                     <>
                       <button onClick={() => handleReview(r.id, 'approved')} className="btn btn-success btn-sm">
@@ -180,8 +180,8 @@ export default function Reports() {
                   <DocumentTextIcon className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-slate-900">Submit Report</h3>
-                  <p className="text-xs text-slate-500">Goes through secretary then chairperson review.</p>
+                  <h3 className="text-base font-semibold text-ink">Submit Report</h3>
+                  <p className="text-xs text-ink-muted">Goes through secretary then chairperson review.</p>
                 </div>
               </div>
               <button type="button" onClick={() => setShowSubmit(false)} className="btn btn-icon">

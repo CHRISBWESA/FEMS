@@ -43,33 +43,33 @@ export default function YouthReports() {
                 <UsersIcon className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-sm text-slate-500">Total Participants</p>
-                <p className="text-2xl font-semibold text-slate-900">{summary?.totalParticipants ?? 0}</p>
+                <p className="text-sm text-ink-muted">Total Participants</p>
+                <p className="text-2xl font-semibold text-ink">{summary?.totalParticipants ?? 0}</p>
               </div>
             </div>
             <div className="card flex items-center gap-4">
-              <div className="stat-icon bg-emerald-50 text-emerald-600">
+              <div className="stat-icon bg-emerald-50 text-success">
                 <FaceSmileIcon className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-sm text-slate-500">Active Participants</p>
-                <p className="text-2xl font-semibold text-slate-900">{summary?.activeParticipants ?? 0}</p>
+                <p className="text-sm text-ink-muted">Active Participants</p>
+                <p className="text-2xl font-semibold text-ink">{summary?.activeParticipants ?? 0}</p>
               </div>
             </div>
           </div>
 
           <div className="mt-6 card">
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-slate-400">
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-ink-subtle">
               <ChartBarIcon className="h-4 w-4" /> By Age Group
             </h2>
             {!summary?.byAgeGroup?.length ? (
-              <p className="py-4 text-sm text-slate-500">No participants yet.</p>
+              <p className="py-4 text-sm text-ink-muted">No participants yet.</p>
             ) : (
-              <ul className="divide-y divide-border">
+              <ul className="divide-y divide-hairline">
                 {summary.byAgeGroup.map((row: any) => (
                   <li key={row.ageGroupId} className="flex items-center justify-between py-2 text-sm">
-                    <span className="text-slate-700">{row.ageGroupName}</span>
-                    <span className="font-medium text-slate-900">{row.count}</span>
+                    <span className="text-ink">{row.ageGroupName}</span>
+                    <span className="font-medium text-ink">{row.count}</span>
                   </li>
                 ))}
               </ul>
@@ -77,15 +77,15 @@ export default function YouthReports() {
           </div>
 
           <div className="mt-6 card">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">By Status</h2>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">By Status</h2>
             {!summary?.byStatus?.length ? (
-              <p className="py-4 text-sm text-slate-500">No participants yet.</p>
+              <p className="py-4 text-sm text-ink-muted">No participants yet.</p>
             ) : (
-              <ul className="divide-y divide-border">
+              <ul className="divide-y divide-hairline">
                 {summary.byStatus.map((row: any) => (
                   <li key={row.status} className="flex items-center justify-between py-2 text-sm">
-                    <span className="capitalize text-slate-700">{row.status}</span>
-                    <span className="font-medium text-slate-900">{row.count}</span>
+                    <span className="capitalize text-ink">{row.status}</span>
+                    <span className="font-medium text-ink">{row.count}</span>
                   </li>
                 ))}
               </ul>

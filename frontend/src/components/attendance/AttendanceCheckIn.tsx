@@ -78,43 +78,43 @@ export default function AttendanceCheckIn({ activityId }: { activityId: string }
 
   if (!userId) return null;
   return (
-    <div className="mt-6 rounded-xl bg-slate-50 p-4 ring-1 ring-inset ring-border sm:p-5">
+    <div className="mt-6 rounded-xl bg-canvas p-4 ring-1 ring-inset ring-hairline sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h2 className="text-sm font-semibold text-slate-900">Record attendance</h2>
-          <p className="mt-1 text-sm text-slate-500">Tap a name to mark them present. Works offline: check-ins are kept on this device and sent when you are back online.</p>
+          <h2 className="text-sm font-semibold text-ink">Record attendance</h2>
+          <p className="mt-1 text-sm text-ink-muted">Tap a name to mark them present. Works offline: check-ins are kept on this device and sent when you are back online.</p>
         </div>
         <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${online ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800'}`}><WifiIcon className="h-3.5 w-3.5" />{online ? 'Online' : 'Offline'}</span>
       </div>
 
       {!roster ? (
-        <div className="mt-4 rounded-lg bg-white p-4 text-sm text-slate-600 ring-1 ring-inset ring-border">
+        <div className="mt-4 rounded-lg bg-white p-4 text-sm text-ink-muted ring-1 ring-inset ring-hairline">
           {online ? 'Download the member list to start.' : 'The member list is not on this device yet. Connect once to download it, then you can work offline.'}
           <button className="btn btn-primary mt-3 min-h-11 w-full sm:w-auto" onClick={download} disabled={!online || busy}><CloudArrowDownIcon className="h-5 w-5" />{busy ? 'Downloading…' : 'Download member list'}</button>
         </div>
       ) : (
         <>
           <div className="relative mt-3">
-            <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+            <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-subtle" />
             <input type="search" inputMode="search" autoComplete="off" className="input min-h-11 pl-10" placeholder="Search by name or member code…" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <ul className="mt-3 max-h-[50vh] divide-y divide-border overflow-y-auto rounded-lg bg-white ring-1 ring-inset ring-border">
-            {visible.length === 0 && <li className="p-4 text-sm text-slate-500">No members match.</li>}
+          <ul className="mt-3 max-h-[50vh] divide-y divide-hairline overflow-y-auto rounded-lg bg-white ring-1 ring-inset ring-hairline">
+            {visible.length === 0 && <li className="p-4 text-sm text-ink-muted">No members match.</li>}
             {visible.map((m) => {
               const isRecorded = recorded.has(m.id);
               const isWaiting = waiting.has(m.id);
               return (
                 <li key={m.id}>
-                  <button type="button" disabled={isRecorded || isWaiting} onClick={() => mark(m.id)} className="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left text-sm transition-colors enabled:hover:bg-slate-50 enabled:active:bg-slate-100 disabled:cursor-default">
+                  <button type="button" disabled={isRecorded || isWaiting} onClick={() => mark(m.id)} className="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left text-sm transition-colors enabled:hover:bg-canvas enabled:active:bg-surface-sunken disabled:cursor-default">
                     <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ring-1 ring-inset ${isRecorded ? 'bg-emerald-500 text-white ring-emerald-500' : isWaiting ? 'bg-amber-100 text-amber-700 ring-amber-300' : 'bg-white text-transparent ring-slate-300'}`}><CheckCircleIcon className="h-5 w-5" /></span>
-                    <span className="min-w-0 flex-1"><span className="block truncate font-medium text-slate-900">{m.fullName}</span><span className="font-mono text-xs text-slate-400">{m.memberCode}</span></span>
-                    <span className="text-xs text-slate-500">{isRecorded ? 'Recorded' : isWaiting ? 'Waiting to sync' : ''}</span>
+                    <span className="min-w-0 flex-1"><span className="block truncate font-medium text-ink">{m.fullName}</span><span className="font-mono text-xs text-ink-subtle">{m.memberCode}</span></span>
+                    <span className="text-xs text-ink-muted">{isRecorded ? 'Recorded' : isWaiting ? 'Waiting to sync' : ''}</span>
                   </button>
                 </li>
               );
             })}
           </ul>
-          <p className="mt-2 text-xs text-slate-400">Showing {visible.length} of {roster.members.length}{roster.truncated ? '+' : ''} members. Member list saved {new Date(roster.savedAt).toLocaleTimeString()} · kept on this device for 24 hours and removed when you sign out.</p>
+          <p className="mt-2 text-xs text-ink-subtle">Showing {visible.length} of {roster.members.length}{roster.truncated ? '+' : ''} members. Member list saved {new Date(roster.savedAt).toLocaleTimeString()} · kept on this device for 24 hours and removed when you sign out.</p>
           <div className="mt-2 flex flex-wrap gap-2">
             <button className="btn btn-secondary min-h-11" onClick={download} disabled={!online || busy}><CloudArrowDownIcon className="h-4 w-4" />Refresh list</button>
           </div>
@@ -138,7 +138,7 @@ export default function AttendanceCheckIn({ activityId }: { activityId: string }
           <ul className="mt-1 space-y-1">{rejected.map((o) => <li key={o.opId} className="flex items-center justify-between gap-2"><span>{nameOf.get(o.memberId) ?? 'Member'}: {REASONS[o.reason ?? ''] ?? o.reason}</span><button className="rounded p-1.5 hover:bg-rose-100" aria-label="Dismiss" onClick={() => undo(o)}><XMarkIcon className="h-4 w-4" /></button></li>)}</ul>
         </div>
       )}
-      {message && <div className={`mt-3 rounded-lg px-4 py-2 text-sm ring-1 ring-inset ${message.kind === 'ok' ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' : message.kind === 'info' ? 'bg-slate-100 text-slate-700 ring-slate-500/20' : 'bg-rose-50 text-rose-700 ring-rose-600/20'}`}>{message.text}</div>}
+      {message && <div className={`mt-3 rounded-lg px-4 py-2 text-sm ring-1 ring-inset ${message.kind === 'ok' ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' : message.kind === 'info' ? 'bg-surface-sunken text-ink ring-slate-500/20' : 'bg-rose-50 text-rose-700 ring-rose-600/20'}`}>{message.text}</div>}
     </div>
   );
 }

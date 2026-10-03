@@ -21,14 +21,14 @@ function humanFileSize(bytes: number) {
 /** The heading block every page shows above its content, driven by the API's page copy. */
 export function PageHeader({ page }: { page: PublicPage | undefined }) {
   return (
-    <div className="border-b border-border bg-white">
+    <div className="border-b border-hairline bg-white">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+        <h1 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
           {page?.title || 'This fellowship'}
         </h1>
-        {page?.subtitle && <p className="mt-2 text-base text-slate-600">{page.subtitle}</p>}
+        {page?.subtitle && <p className="mt-2 text-base text-ink-muted">{page.subtitle}</p>}
         {page?.body && (
-          <p className="mt-4 max-w-3xl whitespace-pre-line text-sm leading-relaxed text-slate-600">{page.body}</p>
+          <p className="mt-4 max-w-3xl whitespace-pre-line text-sm leading-relaxed text-ink-muted">{page.body}</p>
         )}
       </div>
     </div>
@@ -42,16 +42,16 @@ export function PageBody({ children }: { children: React.ReactNode }) {
 /** One place for "there is nothing here yet", so twelve lists do not invent twelve versions of it. */
 function EmptyState({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-border bg-white px-6 py-14 text-center">
+    <div className="rounded-2xl border border-dashed border-hairline bg-white px-6 py-14 text-center">
       <InformationCircleIcon className="mx-auto h-8 w-8 text-slate-300" />
-      <p className="mt-3 text-sm font-medium text-slate-900">{title}</p>
-      <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">{body}</p>
+      <p className="mt-3 text-sm font-medium text-ink">{title}</p>
+      <p className="mx-auto mt-1 max-w-md text-sm text-ink-muted">{body}</p>
     </div>
   );
 }
 
 function Loading() {
-  return <p className="text-sm text-slate-500">Loading…</p>;
+  return <p className="text-sm text-ink-muted">Loading…</p>;
 }
 
 // ---------------------------------------------------------------- home
@@ -94,7 +94,7 @@ export function FellowshipHome({ site }: { site: FellowshipSite }) {
       <PageBody>
         <div className="grid gap-10 lg:grid-cols-2">
           <section>
-            <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-ink">
               <CalendarDaysIcon className="h-5 w-5 text-primary" /> What&rsquo;s coming up
             </h2>
             <div className="mt-4">
@@ -105,9 +105,9 @@ export function FellowshipHome({ site }: { site: FellowshipSite }) {
               {upcoming.map((e) => (
                 <div key={e.title + e.date} className="card mb-3 p-5">
                   <p className="text-xs font-semibold uppercase tracking-wide text-primary">{longDate(e.date)}</p>
-                  <h3 className="mt-1 text-base font-semibold text-slate-900">{e.title}</h3>
-                  {e.description && <p className="mt-1.5 text-sm text-slate-600">{e.description}</p>}
-                  {e.group && <p className="mt-1.5 text-xs text-slate-400">{e.group}</p>}
+                  <h3 className="mt-1 text-base font-semibold text-ink">{e.title}</h3>
+                  {e.description && <p className="mt-1.5 text-sm text-ink-muted">{e.description}</p>}
+                  {e.group && <p className="mt-1.5 text-xs text-ink-subtle">{e.group}</p>}
                 </div>
               ))}
             </div>
@@ -119,7 +119,7 @@ export function FellowshipHome({ site }: { site: FellowshipSite }) {
           </section>
 
           <section>
-            <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-ink">
               <SparklesIcon className="h-5 w-5 text-primary" /> Latest news
             </h2>
             <div className="mt-4">
@@ -129,9 +129,9 @@ export function FellowshipHome({ site }: { site: FellowshipSite }) {
               )}
               {latestNews.map((n) => (
                 <div key={n.id} className="card mb-3 p-5">
-                  <h3 className="text-base font-semibold text-slate-900">{n.title}</h3>
-                  <p className="mt-1.5 line-clamp-3 text-sm text-slate-600">{n.content}</p>
-                  <p className="mt-2 text-xs text-slate-400">{longDate(n.publishedAt)}</p>
+                  <h3 className="text-base font-semibold text-ink">{n.title}</h3>
+                  <p className="mt-1.5 line-clamp-3 text-sm text-ink-muted">{n.content}</p>
+                  <p className="mt-2 text-xs text-ink-subtle">{longDate(n.publishedAt)}</p>
                 </div>
               ))}
             </div>
@@ -149,8 +149,8 @@ export function FellowshipHome({ site }: { site: FellowshipSite }) {
             .slice(0, 8)
             .map((p) => (
               <a key={p.key} href={`/f/${subdomain}${p.path}`} className="card card-hover p-5">
-                <p className="text-sm font-semibold text-slate-900">{p.label}</p>
-                <p className="mt-1 line-clamp-2 text-xs text-slate-500">{p.subtitle || ''}</p>
+                <p className="text-sm font-semibold text-ink">{p.label}</p>
+                <p className="mt-1 line-clamp-2 text-xs text-ink-muted">{p.subtitle || ''}</p>
               </a>
             ))}
         </div>
@@ -170,7 +170,7 @@ export function FellowshipAbout({ site, page }: { site: FellowshipSite; page: Pu
         <div className="grid gap-10 lg:grid-cols-3">
           <div className="lg:col-span-2">
             {profile?.story ? (
-              <p className="whitespace-pre-line text-base leading-relaxed text-slate-700">{profile.story}</p>
+              <p className="whitespace-pre-line text-base leading-relaxed text-ink">{profile.story}</p>
             ) : (
               <EmptyState
                 title="This fellowship has not written its story yet"
@@ -182,19 +182,19 @@ export function FellowshipAbout({ site, page }: { site: FellowshipSite; page: Pu
             {profile?.mission && (
               <div className="card p-5">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">Our mission</h2>
-                <p className="mt-2 text-sm leading-relaxed text-slate-700">{profile.mission}</p>
+                <p className="mt-2 text-sm leading-relaxed text-ink">{profile.mission}</p>
               </div>
             )}
             {profile?.vision && (
               <div className="card p-5">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">Our vision</h2>
-                <p className="mt-2 text-sm leading-relaxed text-slate-700">{profile.vision}</p>
+                <p className="mt-2 text-sm leading-relaxed text-ink">{profile.vision}</p>
               </div>
             )}
             {profile?.service_times && (
               <div className="card p-5">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">Service times</h2>
-                <p className="mt-2 whitespace-pre-line text-sm text-slate-700">{profile.service_times}</p>
+                <p className="mt-2 whitespace-pre-line text-sm text-ink">{profile.service_times}</p>
               </div>
             )}
           </aside>
@@ -244,7 +244,7 @@ export function LeadershipPage({ page }: { page: PublicPage | undefined }) {
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary-light text-lg font-semibold text-primary">
                 {person.name.charAt(0).toUpperCase()}
               </div>
-              <p className="mt-3 text-base font-semibold text-slate-900">{person.name}</p>
+              <p className="mt-3 text-base font-semibold text-ink">{person.name}</p>
               <p className="mt-1 text-sm text-primary">{person.offices.join(' · ')}</p>
             </div>
           ))}
@@ -268,9 +268,9 @@ export function DepartmentsPage({ page }: { page: PublicPage | undefined }) {
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {(data ?? []).map((d) => (
             <div key={d.name} className="card p-6">
-              <h2 className="text-base font-semibold text-slate-900">{d.name}</h2>
-              {d.description && <p className="mt-2 text-sm leading-relaxed text-slate-600">{d.description}</p>}
-              <p className="mt-3 text-xs text-slate-400">
+              <h2 className="text-base font-semibold text-ink">{d.name}</h2>
+              {d.description && <p className="mt-2 text-sm leading-relaxed text-ink-muted">{d.description}</p>}
+              <p className="mt-3 text-xs text-ink-subtle">
                 {d.memberCount} member{d.memberCount === 1 ? '' : 's'} · {d.leaderCount} leader{d.leaderCount === 1 ? '' : 's'}
               </p>
             </div>
@@ -295,8 +295,8 @@ export function MinistriesPage({ page }: { page: PublicPage | undefined }) {
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {(data ?? []).map((m) => (
             <div key={m.name} className="card p-6">
-              <h2 className="text-base font-semibold text-slate-900">{m.name}</h2>
-              {m.description && <p className="mt-2 text-sm leading-relaxed text-slate-600">{m.description}</p>}
+              <h2 className="text-base font-semibold text-ink">{m.name}</h2>
+              {m.description && <p className="mt-2 text-sm leading-relaxed text-ink-muted">{m.description}</p>}
             </div>
           ))}
         </div>
@@ -321,12 +321,12 @@ export function EventsPage({ page }: { page: PublicPage | undefined }) {
             <div key={e.title + e.date} className="card flex flex-col gap-3 p-6 sm:flex-row sm:items-center">
               <div className="w-full shrink-0 sm:w-36">
                 <p className="text-sm font-semibold text-primary">{longDate(e.date)}</p>
-                <p className="text-xs text-slate-400">{new Date(e.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</p>
+                <p className="text-xs text-ink-subtle">{new Date(e.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</p>
               </div>
               <div className="min-w-0 flex-1">
-                <h2 className="text-base font-semibold text-slate-900">{e.title}</h2>
-                {e.description && <p className="mt-1 text-sm text-slate-600">{e.description}</p>}
-                {e.group && <p className="mt-1 text-xs text-slate-400">{e.group}</p>}
+                <h2 className="text-base font-semibold text-ink">{e.title}</h2>
+                {e.description && <p className="mt-1 text-sm text-ink-muted">{e.description}</p>}
+                {e.group && <p className="mt-1 text-xs text-ink-subtle">{e.group}</p>}
               </div>
             </div>
           ))}
@@ -350,9 +350,9 @@ export function NewsPage({ page }: { page: PublicPage | undefined }) {
         <div className="mx-auto max-w-3xl space-y-5">
           {(data ?? []).map((n) => (
             <article key={n.id} className="card p-6">
-              <h2 className="text-lg font-semibold text-slate-900">{n.title}</h2>
-              <p className="mt-1 text-xs text-slate-400">{longDate(n.publishedAt)}</p>
-              <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-slate-700">{n.content}</p>
+              <h2 className="text-lg font-semibold text-ink">{n.title}</h2>
+              <p className="mt-1 text-xs text-ink-subtle">{longDate(n.publishedAt)}</p>
+              <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink">{n.content}</p>
             </article>
           ))}
         </div>
@@ -381,10 +381,10 @@ export function PublicationsPage({ page }: { page: PublicPage | undefined }) {
         <div className="space-y-3">
           {(data ?? []).map((d) => (
             <div key={d.id} className="card flex items-center gap-4 p-5">
-              <DocumentTextIcon className="h-6 w-6 shrink-0 text-slate-400" />
+              <DocumentTextIcon className="h-6 w-6 shrink-0 text-ink-subtle" />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-slate-900">{d.title}</p>
-                <p className="mt-0.5 text-xs text-slate-400">
+                <p className="truncate text-sm font-semibold text-ink">{d.title}</p>
+                <p className="mt-0.5 text-xs text-ink-subtle">
                   {d.contentType}
                   {humanFileSize(d.sizeBytes) && ` · ${humanFileSize(d.sizeBytes)}`}
                   {` · ${longDate(d.uploadedAt)}`}
@@ -439,11 +439,11 @@ export function GalleryPage({ page }: { page: PublicPage | undefined }) {
                   src={img.src}
                   alt={img.title}
                   loading="lazy"
-                  className="h-40 w-full bg-slate-100 object-cover"
+                  className="h-40 w-full bg-surface-sunken object-cover"
                   // A dead image URL must not leave a broken-image icon on a public page.
                   onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
                 />
-                <figcaption className="truncate px-3 py-2 text-xs text-slate-600">{img.title}</figcaption>
+                <figcaption className="truncate px-3 py-2 text-xs text-ink-muted">{img.title}</figcaption>
               </figure>
             ))}
           </div>
@@ -469,10 +469,10 @@ function PostsPage({ page, path, empty }: { page: PublicPage | undefined; path: 
               {p.happensAt && (
                 <p className="text-xs font-semibold uppercase tracking-wide text-primary">{longDate(p.happensAt)}</p>
               )}
-              <h2 className="mt-1 text-base font-semibold text-slate-900">{p.title}</h2>
+              <h2 className="mt-1 text-base font-semibold text-ink">{p.title}</h2>
               {p.reference && <p className="mt-1 text-sm text-primary">{p.reference}</p>}
-              {p.attribution && <p className="mt-1 text-sm text-slate-500">— {p.attribution}</p>}
-              {p.body && <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-slate-600">{p.body}</p>}
+              {p.attribution && <p className="mt-1 text-sm text-ink-muted">— {p.attribution}</p>}
+              {p.body && <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink-muted">{p.body}</p>}
             </article>
           ))}
         </div>
@@ -509,8 +509,8 @@ export function ProjectsPage({ page }: { page: PublicPage | undefined }) {
             {list.map((p) => (
               <article key={p.id} className="card p-6">
                 {p.happensAt && <p className="text-xs font-semibold uppercase tracking-wide text-primary">{longDate(p.happensAt)}</p>}
-                <h2 className="mt-1 text-base font-semibold text-slate-900">{p.title}</h2>
-                {p.body && <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-600">{p.body}</p>}
+                <h2 className="mt-1 text-base font-semibold text-ink">{p.title}</h2>
+                {p.body && <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-ink-muted">{p.body}</p>}
               </article>
             ))}
           </div>
@@ -518,15 +518,15 @@ export function ProjectsPage({ page }: { page: PublicPage | undefined }) {
 
         {(opportunities.data ?? []).length > 0 && (
           <div className="mt-10">
-            <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-ink">
               <HandRaisedIcon className="h-5 w-5 text-primary" /> Ways to serve
             </h2>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               {(opportunities.data ?? []).map((o) => (
                 <div key={o.title} className="card p-5">
-                  <h3 className="text-sm font-semibold text-slate-900">{o.title}</h3>
-                  {o.description && <p className="mt-1.5 text-sm text-slate-600">{o.description}</p>}
-                  <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-400">
+                  <h3 className="text-sm font-semibold text-ink">{o.title}</h3>
+                  {o.description && <p className="mt-1.5 text-sm text-ink-muted">{o.description}</p>}
+                  <p className="mt-2 flex items-center gap-1.5 text-xs text-ink-subtle">
                     {o.location && <><MapPinIcon className="h-3.5 w-3.5" />{o.location}</>}
                     {o.nextShiftAt && <>· next {longDate(o.nextShiftAt)}</>}
                   </p>
@@ -557,16 +557,16 @@ export function GetInvolvedPage({ page }: { page: PublicPage | undefined }) {
         <div className="grid gap-5 sm:grid-cols-2">
           {(data ?? []).map((o) => (
             <div key={o.title} className="card p-6">
-              <h2 className="text-base font-semibold text-slate-900">{o.title}</h2>
-              {o.description && <p className="mt-2 text-sm leading-relaxed text-slate-600">{o.description}</p>}
-              <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400">
+              <h2 className="text-base font-semibold text-ink">{o.title}</h2>
+              {o.description && <p className="mt-2 text-sm leading-relaxed text-ink-muted">{o.description}</p>}
+              <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-subtle">
                 {o.location && <span className="flex items-center gap-1"><MapPinIcon className="h-3.5 w-3.5" />{o.location}</span>}
                 {o.nextShiftAt && <span className="flex items-center gap-1"><CalendarDaysIcon className="h-3.5 w-3.5" />Next: {longDate(o.nextShiftAt)}</span>}
               </p>
             </div>
           ))}
         </div>
-        <div className="mt-8 rounded-xl bg-slate-50 p-5 text-sm text-slate-600">
+        <div className="mt-8 rounded-xl bg-canvas p-5 text-sm text-ink-muted">
           To join one of these, <a href={`/f/${subdomain}/contact`} className="font-medium text-primary hover:text-primary-dark">contact the fellowship</a> and say which one you are interested in.
         </div>
       </PageBody>
@@ -600,28 +600,28 @@ export function GivingPage({ page, extra }: { page: PublicPage | undefined; extr
             const pct = target === null ? null : Math.min(100, Math.round((c.raised / target) * 100));
             return (
               <div key={c.name} className="card p-6">
-                <h2 className="text-base font-semibold text-slate-900">{c.name}</h2>
-                {c.description && <p className="mt-2 text-sm text-slate-600">{c.description}</p>}
+                <h2 className="text-base font-semibold text-ink">{c.name}</h2>
+                {c.description && <p className="mt-2 text-sm text-ink-muted">{c.description}</p>}
                 {pct !== null && target !== null && (
                   <div className="mt-4">
-                    <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                    <div className="h-2 overflow-hidden rounded-full bg-surface-sunken">
                       <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
                     </div>
-                    <p className="mt-2 text-xs text-slate-500">
+                    <p className="mt-2 text-xs text-ink-muted">
                       {c.raised.toLocaleString()} raised of {target.toLocaleString()} ({pct}%)
                     </p>
                   </div>
                 )}
                 {pct === null && (
-                  <p className="mt-4 text-xs text-slate-500">{c.raised.toLocaleString()} recorded so far</p>
+                  <p className="mt-4 text-xs text-ink-muted">{c.raised.toLocaleString()} recorded so far</p>
                 )}
-                {c.endsAt && <p className="mt-1 text-xs text-slate-400">Closes {longDate(c.endsAt)}</p>}
+                {c.endsAt && <p className="mt-1 text-xs text-ink-subtle">Closes {longDate(c.endsAt)}</p>}
               </div>
             );
           })}
         </div>
-        <div className="mt-8 flex items-start gap-3 rounded-xl bg-slate-50 p-5 text-sm text-slate-600">
-          <BanknotesIcon className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
+        <div className="mt-8 flex items-start gap-3 rounded-xl bg-canvas p-5 text-sm text-ink-muted">
+          <BanknotesIcon className="mt-0.5 h-5 w-5 shrink-0 text-ink-subtle" />
           <p>
             There is no online payment on this site. To give, use the form below and the fellowship will contact
             you with the details — nothing is charged here.

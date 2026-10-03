@@ -4,98 +4,301 @@
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-hairline;
   }
-  body {
-    @apply bg-background text-foreground antialiased;
-    /* Stop iOS from resizing text after rotation, and avoid the tap-highlight flash on touch screens. */
+
+  html {
     -webkit-text-size-adjust: 100%;
-    -webkit-tap-highlight-color: transparent;
   }
+
+  body {
+    @apply bg-canvas text-ink antialiased;
+    /* iOS resizing text after rotation and the tap-highlight flash both look broken on a real device. */
+    -webkit-tap-highlight-color: transparent;
+    font-synthesis-weight: none;
+  }
+
   /* Form controls under 16px make iOS Safari zoom the whole page on focus. */
   @media (max-width: 767px) {
-    input, select, textarea { font-size: 16px; }
+    input,
+    select,
+    textarea {
+      font-size: 16px;
+    }
   }
+
   /* Comfortable touch targets on touch devices (dense table actions keep .btn-sm). */
   @media (pointer: coarse) {
-    .btn:not(.btn-sm), .input, .select { min-height: 44px; }
-    .tab { min-height: 44px; }
+    .btn:not(.btn-sm),
+    .input,
+    .select,
+    .textarea {
+      min-height: 44px;
+    }
+    .tab {
+      min-height: 44px;
+    }
+  }
+
+  /* One focus treatment everywhere. Keyboard only, so it never fires on mouse click. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary/35 ring-offset-2 ring-offset-canvas;
+  }
+
+  /* Anything that animates opts out when the reader has asked for less motion. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
 @layer components {
-  /* ---------- Status badges ---------- */
-  .status-badge {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize;
+  /* ---------- Layout rhythm ---------- */
+  .section {
+    @apply mx-auto w-full max-w-7xl px-5 sm:px-8 lg:px-10;
   }
-  .status-active { @apply bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20; }
-  .status-inactive { @apply bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20; }
-  .status-graduated { @apply bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-600/20; }
-  .status-draft { @apply bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20; }
-  .status-submitted { @apply bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20; }
-  .status-approved { @apply bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20; }
-  .status-rejected { @apply bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20; }
-  .status-final { @apply bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-600/20; }
+  .section-narrow {
+    @apply mx-auto w-full max-w-3xl px-5 sm:px-8;
+  }
 
-  /* ---------- Cards ---------- */
+  /* ---------- Surfaces ---------- */
   .card {
-    @apply rounded-xl bg-card p-5 shadow-card ring-1 ring-border/60;
+    @apply rounded-card border border-hairline bg-surface shadow-card;
+  }
+  .card-pad {
+    @apply p-5 sm:p-6;
   }
   .card-hover {
-    @apply transition-shadow hover:shadow-elevated;
+    @apply transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-primary-muted hover:shadow-elevated;
+  }
+  .card-interactive {
+    @apply cursor-pointer transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-primary-muted hover:shadow-elevated;
+  }
+  .card-sunken {
+    @apply rounded-card border border-hairline bg-surface-sunken;
   }
 
   /* ---------- Buttons ---------- */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-control px-4 py-2
+           text-sm font-medium leading-5 transition-all duration-150 ease-out
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2
+           active:translate-y-px disabled:pointer-events-none disabled:opacity-50;
   }
-  .btn-primary { @apply bg-primary text-white hover:bg-primary-dark; }
-  .btn-secondary { @apply bg-white text-slate-700 ring-1 ring-inset ring-border hover:bg-slate-50; }
-  .btn-ghost { @apply text-slate-600 hover:bg-slate-100 hover:text-slate-900; }
-  .btn-danger { @apply bg-rose-600 text-white hover:bg-rose-700; }
-  .btn-success { @apply bg-emerald-600 text-white hover:bg-emerald-700; }
-  .btn-sm { @apply px-2.5 py-1.5 text-xs; }
+  .btn-primary {
+    @apply bg-primary text-white shadow-card hover:bg-primary-dark hover:shadow-elevated active:bg-primary-dark;
+  }
+  .btn-secondary {
+    @apply border border-hairline bg-surface text-ink shadow-card hover:border-ink-subtle hover:bg-canvas;
+  }
+  .btn-ghost {
+    @apply text-ink-muted hover:bg-surface-sunken hover:text-ink;
+  }
+  .btn-quiet {
+    @apply text-ink-muted hover:text-primary;
+  }
+  .btn-danger {
+    @apply bg-danger text-white shadow-card hover:brightness-95 active:translate-y-px;
+  }
+  .btn-danger-quiet {
+    @apply text-danger hover:bg-danger-light;
+  }
+  .btn-success {
+    @apply bg-success text-white shadow-card hover:brightness-95 active:translate-y-px;
+  }
+  .btn-sm {
+    @apply px-2.5 py-1.5 text-xs;
+  }
+  .btn-lg {
+    @apply px-6 py-3 text-base;
+  }
+  .btn-block {
+    @apply w-full;
+  }
 
   /* ---------- Form controls ---------- */
-  .label { @apply mb-1.5 block text-sm font-medium text-slate-700; }
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-ink;
+  }
+  /* Hints sit at 12px, so they use a darker step than `ink-subtle` and clear AA rather than the 3.6:1 that
+     de-emphasised grey usually settles for. */
+  .hint {
+    @apply mt-1.5 text-xs leading-relaxed text-[#5f6b7a];
+  }
+  .field-error {
+    @apply mt-1.5 flex items-start gap-1.5 text-xs font-medium text-danger;
+  }
   .input {
-    @apply block w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary;
+    @apply block w-full rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink
+           shadow-card transition-colors duration-150 placeholder:text-ink-subtle
+           hover:border-ink-subtle focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25;
+  }
+  .textarea {
+    @apply input min-h-24 resize-y leading-relaxed;
   }
   .select {
-    @apply block rounded-lg border border-border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm transition-colors focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary;
+    @apply block rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink shadow-card
+           transition-colors duration-150 hover:border-ink-subtle
+           focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25;
+  }
+  .input-invalid {
+    @apply border-danger focus:border-danger focus:ring-danger/25;
+  }
+  .checkbox {
+    @apply h-4 w-4 shrink-0 cursor-pointer rounded border-hairline text-primary transition-colors
+           focus:ring-2 focus:ring-primary/30 focus:ring-offset-0;
   }
 
   /* ---------- Page headers ---------- */
-  .page-header { @apply mb-6 flex flex-wrap items-start justify-between gap-4; }
-  .page-title { @apply text-xl font-semibold tracking-tight text-slate-900; }
-  .page-desc { @apply mt-1 text-sm text-slate-500; }
+  .page-header {
+    @apply mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between;
+  }
+  .page-title {
+    @apply text-2xl font-semibold tracking-tight text-ink;
+  }
+  .page-desc {
+    @apply mt-1.5 max-w-prose text-sm leading-relaxed text-ink-muted;
+  }
+  .section-title {
+    @apply text-lg font-semibold tracking-tight text-ink;
+  }
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-wider text-primary;
+  }
 
   /* ---------- Tables ---------- */
-  .table-wrap { @apply overflow-hidden rounded-xl bg-white shadow-card ring-1 ring-border/60; }
-  .table { @apply min-w-full divide-y divide-border; }
-  .table thead th {
-    @apply bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500;
+  .table-wrap {
+    @apply overflow-hidden rounded-card border border-hairline bg-surface shadow-card;
   }
-  .table tbody td { @apply px-4 py-3 text-sm text-slate-700; }
-  .table tbody tr { @apply transition-colors hover:bg-slate-50; }
-  .table tbody tr:not(:last-child) { @apply border-b border-border; }
+  .table {
+    @apply min-w-full divide-y divide-hairline;
+  }
+  .table thead th {
+    @apply bg-canvas px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-ink-muted;
+  }
+  .table tbody td {
+    @apply px-4 py-3 text-sm text-ink;
+  }
+  .table tbody tr {
+    @apply transition-colors duration-100 hover:bg-canvas;
+  }
+  .table tbody tr:not(:last-child) {
+    @apply border-b border-hairline;
+  }
+  /* A numeric column should line up on the decimal, so tabular figures are the default in cells. */
+  .table .tabular {
+    @apply tabular-nums;
+  }
 
   /* ---------- Tabs ---------- */
-  .tabs { @apply flex space-x-1 rounded-lg bg-slate-100 p-1; }
-  .tab {
-    @apply flex-1 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900;
+  .tabs {
+    @apply flex gap-1 overflow-x-auto rounded-control border border-hairline bg-surface p-1 shadow-card;
   }
-  .tab-active { @apply bg-white text-primary shadow-sm; }
+  .tab {
+    @apply flex-1 whitespace-nowrap rounded-[0.375rem] px-3 py-1.5 text-sm font-medium text-ink-muted
+           transition-colors duration-150 hover:text-ink;
+  }
+  .tab-active {
+    @apply bg-primary text-white shadow-card hover:text-white;
+  }
+
+  /* ---------- Status badges ---------- */
+  .status-badge {
+    @apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium capitalize;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .badge-neutral { @apply bg-surface-sunken text-ink-muted ring-1 ring-inset ring-hairline; }
+  .badge-info { @apply bg-info-light text-info ring-1 ring-inset ring-info/15; }
+  .badge-success { @apply bg-success-light text-success ring-1 ring-inset ring-success/15; }
+  .badge-warning { @apply bg-warning-light text-warning ring-1 ring-inset ring-warning/20; }
+  .badge-danger { @apply bg-danger-light text-danger ring-1 ring-inset ring-danger/15; }
+  .badge-accent { @apply bg-accent-light text-accent ring-1 ring-inset ring-accent/20; }
+
+  /* Retained legacy status classes: existing pages still reference these names. */
+  .status-active,
+  .status-approved { @apply badge-success; }
+  .status-inactive,
+  .status-draft { @apply badge-neutral; }
+  .status-graduated { @apply bg-info-light text-info ring-1 ring-inset ring-info/15; }
+  .status-submitted { @apply badge-warning; }
+  .status-rejected { @apply badge-danger; }
+  .status-final { @apply bg-accent-light text-accent ring-1 ring-inset ring-accent/20; }
+
+  /* ---------- Empty and loading states ---------- */
+  .empty-state {
+    @apply flex flex-col items-center justify-center rounded-card border border-dashed border-hairline
+           bg-surface px-6 py-14 text-center;
+  }
+  .empty-title {
+    @apply mt-4 text-base font-semibold text-ink;
+  }
+  .empty-desc {
+    @apply mt-1.5 max-w-sm text-sm leading-relaxed text-ink-muted;
+  }
+
+  /* Skeletons stand in for content, so the layout never jumps and the page never looks frozen. */
+  .skeleton {
+    @apply animate-pulse rounded bg-surface-sunken;
+  }
+  .skeleton-text { @apply skeleton h-3.5 w-full; }
+  .skeleton-title { @apply skeleton h-4 w-2/5; }
+  .skeleton-block { @apply skeleton h-24 w-full; }
+
+  /* ---------- Feedback ---------- */
+  .alert {
+    @apply flex items-start gap-3 rounded-control border p-4 text-sm leading-relaxed;
+  }
+  .alert-info { @apply border-info/20 bg-info-light text-info; }
+  .alert-success { @apply border-success/20 bg-success-light text-success; }
+  .alert-warning { @apply border-warning/20 bg-warning-light text-warning; }
+  .alert-danger { @apply border-danger/20 bg-danger-light text-danger; }
+  .spinner {
+    @apply inline-block h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-primary border-t-transparent;
+  }
+
+  /* ---------- Overlays ---------- */
+  .modal-backdrop {
+    @apply fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/50 p-4 backdrop-blur-[2px]
+           sm:items-center;
+  }
+  .modal {
+    @apply w-full max-w-lg animate-fade-rise rounded-card border border-hairline bg-surface p-6 shadow-overlay;
+  }
+  .modal-title {
+    @apply text-lg font-semibold tracking-tight text-ink;
+  }
+  .drawer {
+    @apply fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-surface shadow-overlay;
+  }
 
   /* ---------- Misc ---------- */
-  .empty-state { @apply flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-white py-16 px-6 text-center; }
-  .empty-title { @apply mt-4 text-sm font-medium text-slate-900; }
-  .empty-desc { @apply mt-1 text-sm text-slate-500; }
-  .avatar { @apply flex h-9 w-9 items-center justify-center rounded-full bg-primary-light text-sm font-semibold text-primary; }
-  .modal-backdrop { @apply fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4; }
-  .modal { @apply w-full max-w-md rounded-xl bg-white p-6 shadow-elevated; }
-  .spinner {
-    @apply inline-block h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent;
+  .avatar {
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-light text-sm font-semibold text-primary;
   }
-  .stat-icon { @apply flex h-11 w-11 items-center justify-center rounded-xl; }
+  .avatar-sm { @apply h-7 w-7 text-xs; }
+  .avatar-lg { @apply h-12 w-12 text-base; }
+  .stat-icon {
+    @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-control;
+  }
+  .divider {
+    @apply my-6 h-px w-full bg-hairline;
+  }
+  /* A short, quiet label above a group of controls. */
+  .field-group {
+    @apply space-y-1.5;
+  }
+  .kbd {
+    @apply inline-flex h-5 items-center rounded border border-hairline bg-surface-sunken px-1.5 font-mono text-xs text-ink-muted;
+  }
+  .prose-narrow {
+    @apply max-w-prose leading-relaxed text-ink-muted;
+  }
 }

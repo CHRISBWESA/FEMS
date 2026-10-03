@@ -216,7 +216,7 @@ export default function Members() {
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+          <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-subtle" />
           <input
             type="text"
             placeholder="Search members..."
@@ -308,7 +308,7 @@ export default function Members() {
         </div>
       ) : members.length === 0 ? (
         <div className="empty-state">
-          <div className="stat-icon bg-slate-100 text-slate-400">
+          <div className="stat-icon bg-surface-sunken text-ink-subtle">
             <UsersIcon className="h-6 w-6" />
           </div>
           <p className="empty-title">No members found</p>
@@ -329,18 +329,18 @@ export default function Members() {
             <tbody>
               {members.map((m: any) => (
                 <tr key={m.id} className="cursor-pointer" onClick={() => navigate(`/members/${m.id}`)}>
-                  <td className="font-medium text-slate-900">{m.full_name}</td>
+                  <td className="font-medium text-ink">{m.full_name}</td>
                   <td className="font-mono text-xs">{m.member_code}</td>
                   <td>
                     <span className={`status-badge ${getStatusClass(m.membership_status)}`}>
                       {m.membership_status}
                     </span>
                   </td>
-                  <td className="text-slate-500">
+                  <td className="text-ink-muted">
                     {m.departments?.filter((d: any) => !d.removed).map((d: any) => d.department_id || '').join(', ') || '—'}
                   </td>
                   {canFilterProfile && (
-                    <td className="text-slate-500">
+                    <td className="text-ink-muted">
                       {m.profile?.skills?.length ? m.profile.skills.slice(0, 3).join(', ') : '—'}
                     </td>
                   )}
@@ -353,7 +353,7 @@ export default function Members() {
 
       {total > 0 && (
         <div className="mt-4 flex items-center justify-between">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-ink-muted">
             Showing {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, total)} of {total}
           </p>
           <div className="flex items-center gap-2">
@@ -365,7 +365,7 @@ export default function Members() {
               <ChevronLeftIcon className="h-4 w-4" />
               Prev
             </button>
-            <span className="text-sm text-slate-500">Page {page} of {totalPages || 1}</span>
+            <span className="text-sm text-ink-muted">Page {page} of {totalPages || 1}</span>
             <button
               onClick={() => setPage((p) => p + 1)}
               disabled={page >= totalPages}
@@ -391,8 +391,8 @@ export default function Members() {
                   <UserPlusIcon className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-slate-900">Register Member</h3>
-                  <p className="text-xs text-slate-500">A new member record with a generated code.</p>
+                  <h3 className="text-base font-semibold text-ink">Register Member</h3>
+                  <p className="text-xs text-ink-muted">A new member record with a generated code.</p>
                 </div>
               </div>
               <button type="button" onClick={() => setShowCreate(false)} className="btn btn-icon">
@@ -532,8 +532,8 @@ export default function Members() {
                   <CloudArrowUpIcon className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-slate-900">Bulk Upload Members</h3>
-                  <p className="text-xs text-slate-500">Import members from a CSV file.</p>
+                  <h3 className="text-base font-semibold text-ink">Bulk Upload Members</h3>
+                  <p className="text-xs text-ink-muted">Import members from a CSV file.</p>
                 </div>
               </div>
               <button type="button" onClick={() => setShowUpload(false)} className="btn btn-icon">
@@ -541,10 +541,10 @@ export default function Members() {
               </button>
             </div>
 
-            <div className="mb-4 rounded-lg bg-primary-light px-4 py-3 text-sm text-slate-600">
+            <div className="mb-4 rounded-lg bg-primary-light px-4 py-3 text-sm text-ink-muted">
               Columns: <span className="font-mono text-xs">{CSV_HEADERS.join(', ')}</span>
               <br />
-              <span className="text-xs text-slate-500">Only <span className="font-mono">full_name</span> is required. Gender: male / female / other.</span>
+              <span className="text-xs text-ink-muted">Only <span className="font-mono">full_name</span> is required. Gender: male / female / other.</span>
             </div>
 
             <button type="button" onClick={downloadTemplate} className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary-dark">
@@ -568,8 +568,8 @@ export default function Members() {
             />
 
             {uploadResult && (
-              <div className="mt-4 rounded-lg border border-border bg-white p-4">
-                <p className="text-sm font-semibold text-slate-900">
+              <div className="mt-4 rounded-lg border border-hairline bg-white p-4">
+                <p className="text-sm font-semibold text-ink">
                   Import complete: {uploadResult.created} created, {uploadResult.failed} failed
                 </p>
                 {uploadResult.failures?.length > 0 && (

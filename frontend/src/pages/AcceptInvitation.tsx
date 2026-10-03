@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { CheckCircleIcon, ExclamationTriangleIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 import { PASSWORD_HINT, storeSessionTokens } from '../lib/session';
+import { Alert, Button } from '../components/ui';
 
 /**
  * Accepting an invitation.
@@ -121,68 +122,74 @@ export default function AcceptInvitation() {
 
   return (
     <Shell>
-      <div className="card p-8">
-        <p className="text-xs font-semibold uppercase tracking-wider text-primary">Invitation</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">{peek.fellowshipName}</h1>
-        <p className="mt-2 text-sm text-slate-600">
+      <div className="card card-pad">
+        <p className="eyebrow">Invitation</p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-ink">{peek.fellowshipName}</h1>
+        <p className="mt-2 text-sm leading-relaxed text-ink-muted">
           {peek.invitedBy} has invited you to join as{' '}
-          <span className="font-medium text-slate-900">{peek.roles.map(roleLabel).join(', ')}</span>.
+          <span className="font-medium text-ink">{peek.roles.map(roleLabel).join(', ')}</span>.
         </p>
-        <p className="mt-1 text-xs text-slate-400">
+        <p className="mt-1.5 text-xs text-ink-subtle">
           Invitation for {peek.emailHint} · expires{' '}
           {new Date(peek.expiresAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
         </p>
 
         {!peek.usable ? (
-          <div className="mt-6 flex items-start gap-3 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800 ring-1 ring-inset ring-amber-600/20">
-            <ExclamationTriangleIcon className="mt-0.5 h-5 w-5 shrink-0" />
-            <p>{peek.reason}</p>
-          </div>
+          <Alert tone="warning" className="mt-6">
+            <div className="flex items-start gap-3">
+              <ExclamationTriangleIcon className="mt-0.5 h-5 w-5 shrink-0" />
+              <p>{peek.reason}</p>
+            </div>
+          </Alert>
         ) : (
           <>
             <form className="mt-6 space-y-4" onSubmit={submit}>
-              {error && (
-                <div className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">
-                  {error}
-                </div>
-              )}
+              {error && <Alert tone="danger">{error}</Alert>}
 
-              <div>
-                <label htmlFor="pw" className="label">Choose a password *</label>
+              <div className="field-group">
+                <label htmlFor="pw" className="label">
+                  Choose a password
+                  <span className="ml-0.5 text-danger">*</span>
+                </label>
                 <input
                   id="pw"
                   type="password"
                   required
                   autoComplete="new-password"
-                  className="input w-full"
+                  className="input"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
-                <p className="mt-1 text-xs text-slate-400">{PASSWORD_HINT}</p>
+                <p className="hint">{PASSWORD_HINT}</p>
               </div>
 
-              <div>
-                <label htmlFor="pw2" className="label">Type it again *</label>
+              <div className="field-group">
+                <label htmlFor="pw2" className="label">
+                  Type it again
+                  <span className="ml-0.5 text-danger">*</span>
+                </label>
                 <input
                   id="pw2"
                   type="password"
                   required
                   autoComplete="new-password"
-                  className="input w-full"
+                  className="input"
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                 />
               </div>
 
-              <button className="btn btn-primary w-full py-2.5" disabled={busy}>
-                {busy ? <><span className="spinner border-white" /> Creating your account…</> : 'Accept and create my account'}
-              </button>
+              <Button type="submit" variant="primary" size="lg" className="btn-block" loading={busy}>
+                {busy ? 'Creating your account…' : 'Accept and create my account'}
+              </Button>
             </form>
 
-            <p className="mt-5 flex items-start gap-2 text-xs leading-relaxed text-slate-400">
-              <ShieldCheckIcon className="mt-0.5 h-4 w-4 shrink-0" />
-              This link works once. If somebody sends you another invitation to the same address, it will be refused,
-              because an account already exists.
+            <p className="mt-6 flex items-start gap-2.5 border-t border-hairline pt-5 text-xs leading-relaxed text-ink-subtle">
+              <ShieldCheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+              <span>
+                This link works once. If somebody sends you another invitation to the same address, it will be refused,
+                because an account already exists.
+              </span>
             </p>
           </>
         )}
@@ -193,13 +200,13 @@ export default function AcceptInvitation() {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
+    <div className="flex min-h-dvh items-center justify-center bg-canvas px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-6 flex items-center justify-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-base font-bold text-white">
+          <span className="flex h-9 w-9 items-center justify-center rounded-control bg-primary text-base font-bold text-white">
             F
           </span>
-          <span className="text-sm font-semibold text-slate-900">Fellowship Manager</span>
+          <span className="text-sm font-semibold tracking-tight text-ink">Fellowship Manager</span>
         </div>
         {children}
       </div>

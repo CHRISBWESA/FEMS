@@ -7,11 +7,11 @@ const CHANNELS = ['email', 'sms', 'phone', 'whatsapp', 'in_app'];
 const csv = (v: string) => v.split(',').map((s) => s.trim()).filter(Boolean);
 
 function Tags({ items }: { items: string[] }) {
-  if (!items?.length) return <span className="text-slate-400">—</span>;
+  if (!items?.length) return <span className="text-ink-subtle">—</span>;
   return (
     <div className="flex flex-wrap gap-1.5">
       {items.map((t) => (
-        <span key={t} className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">{t}</span>
+        <span key={t} className="rounded-full bg-surface-sunken px-2.5 py-0.5 text-xs font-medium text-ink">{t}</span>
       ))}
     </div>
   );
@@ -85,19 +85,19 @@ export default function MemberProfileTab({ memberId }: { memberId: string }) {
   };
 
   if (loading) return <div className="flex justify-center py-10"><span className="spinner" /></div>;
-  if (error && !profile) return <p className="py-6 text-sm text-slate-500">{error}</p>;
+  if (error && !profile) return <p className="py-6 text-sm text-ink-muted">{error}</p>;
 
   const row = (label: string, value: React.ReactNode) => (
     <div className="flex justify-between gap-4">
-      <dt className="shrink-0 text-sm text-slate-500">{label}</dt>
-      <dd className="text-right text-sm font-medium text-slate-900">{value}</dd>
+      <dt className="shrink-0 text-sm text-ink-muted">{label}</dt>
+      <dd className="text-right text-sm font-medium text-ink">{value}</dd>
     </div>
   );
 
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Engagement profile</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-subtle">Engagement profile</h2>
         {canEdit && !editing && (
           <button onClick={startEdit} className="btn btn-secondary btn-sm">
             <PencilSquareIcon className="h-4 w-4" /> Edit
@@ -137,7 +137,7 @@ export default function MemberProfileTab({ memberId }: { memberId: string }) {
               <label className="label">Preferred communication channels</label>
               <div className="flex flex-wrap gap-4 pt-1">
                 {CHANNELS.map((c) => (
-                  <label key={c} className="flex items-center gap-2 text-sm text-slate-700">
+                  <label key={c} className="flex items-center gap-2 text-sm text-ink">
                     <input
                       type="checkbox"
                       checked={form.preferredChannels.includes(c)}
@@ -152,7 +152,7 @@ export default function MemberProfileTab({ memberId }: { memberId: string }) {
                   </label>
                 ))}
               </div>
-              <p className="mt-1 text-xs text-slate-400">Recorded as the member's preference. FEMS currently delivers in-app notifications only.</p>
+              <p className="mt-1 text-xs text-ink-subtle">Recorded as the member's preference. FEMS currently delivers in-app notifications only.</p>
             </div>
           </div>
 

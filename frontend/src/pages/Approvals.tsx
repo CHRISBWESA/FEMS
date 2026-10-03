@@ -84,7 +84,7 @@ export default function Approvals() {
         </div>
       ) : approvals.length === 0 ? (
         <div className="empty-state">
-          <div className="stat-icon bg-slate-100 text-slate-400">
+          <div className="stat-icon bg-surface-sunken text-ink-subtle">
             <ClipboardDocumentCheckIcon className="h-6 w-6" />
           </div>
           <p className="empty-title">Nothing pending</p>
@@ -99,16 +99,16 @@ export default function Approvals() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-base font-semibold text-slate-900">
+                      <h3 className="text-base font-semibold text-ink">
                         {WORKFLOW_LABELS[a.workflow_type] || a.workflow_type}
                       </h3>
                       <span className={`status-badge ${STATUS_CLASS[a.status] || 'status-draft'}`}>
                         {(a.status || '').toLowerCase().replace('_', ' ')}
                       </span>
                     </div>
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="mt-1 text-sm text-ink-muted">
                       Stage {a.current_stage + 1} of {a.steps?.length}
-                      {currentStep && <> · awaiting <span className="capitalize font-medium text-slate-700">{currentStep.approver_role.replace(/_/g, ' ')}</span></>}
+                      {currentStep && <> · awaiting <span className="capitalize font-medium text-ink">{currentStep.approver_role.replace(/_/g, ' ')}</span></>}
                       {' · '}entity <span className="font-mono text-xs">{a.entity_id}</span>
                     </p>
                   </div>

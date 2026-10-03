@@ -113,13 +113,13 @@ export default function PublicSiteAdmin() {
   if (error) {
     return (
       <div className="card p-8">
-        <h1 className="text-lg font-semibold text-slate-900">My Website</h1>
-        <p className="mt-2 text-sm text-slate-600">{error}</p>
+        <h1 className="text-lg font-semibold text-ink">My Website</h1>
+        <p className="mt-2 text-sm text-ink-muted">{error}</p>
       </div>
     );
   }
 
-  if (!data) return <p className="text-sm text-slate-500">Loading…</p>;
+  if (!data) return <p className="text-sm text-ink-muted">Loading…</p>;
 
   const tabs: { key: Tab; label: string; badge?: number }[] = [
     { key: 'profile', label: 'Identity & contact' },
@@ -132,8 +132,8 @@ export default function PublicSiteAdmin() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">My Website</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="text-2xl font-semibold tracking-tight text-ink">My Website</h1>
+          <p className="mt-1 text-sm text-ink-muted">
             Your fellowship&rsquo;s public site. Nothing here is visible to the public until you publish it.
           </p>
         </div>
@@ -146,7 +146,7 @@ export default function PublicSiteAdmin() {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-1 border-b border-border">
+      <div className="flex flex-wrap gap-1 border-b border-hairline">
         {tabs.map((t) => (
           <button
             key={t.key}
@@ -155,7 +155,7 @@ export default function PublicSiteAdmin() {
             className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
               tab === t.key
                 ? 'border-primary text-primary'
-                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                : 'border-transparent text-ink-muted hover:border-slate-300 hover:text-ink'
             }`}
           >
             {t.label}
@@ -222,8 +222,8 @@ function PublishControl({
   if (!fellowship.subdomain) {
     return (
       <div className="card w-full max-w-md p-5">
-        <p className="text-sm font-semibold text-slate-900">Your site has no address yet</p>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="text-sm font-semibold text-ink">Your site has no address yet</p>
+        <p className="mt-1 text-sm text-ink-muted">
           Choose the web address your fellowship will be published at. We can suggest one from its name.
         </p>
         {showSubdomain ? (
@@ -249,7 +249,7 @@ function PublishControl({
   return (
     <div className="card w-full max-w-md p-5">
       <div className="flex items-center gap-2">
-        <GlobeAltIcon className="h-5 w-5 text-slate-400" />
+        <GlobeAltIcon className="h-5 w-5 text-ink-subtle" />
         <p className="min-w-0 flex-1 truncate text-sm font-medium text-slate-800">{fellowship.host}</p>
       </div>
       <div className="mt-4 flex items-center gap-3">
@@ -265,7 +265,7 @@ function PublishControl({
             <><EyeIcon className="h-4 w-4" /> Publish site</>
           )}
         </button>
-        <span className="text-xs text-slate-500">
+        <span className="text-xs text-ink-muted">
           {fellowship.status !== 'active'
             ? 'Suspended fellowship'
             : fellowship.public_site_enabled
@@ -301,8 +301,8 @@ function ProfileTab({ data, onSaved, flash }: { data: Overview; onSaved: () => v
 
   return (
     <div className="card p-6">
-      <h2 className="text-base font-semibold text-slate-900">Identity and contact</h2>
-      <p className="mt-1 text-sm text-slate-500">
+      <h2 className="text-base font-semibold text-ink">Identity and contact</h2>
+      <p className="mt-1 text-sm text-ink-muted">
         The name and story on your landing page, and the ways a visitor can reach you.
       </p>
 
@@ -366,7 +366,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
     <div>
       <label className="label">{label}</label>
       {children}
-      {hint && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
+      {hint && <p className="mt-1 text-xs text-ink-subtle">{hint}</p>}
     </div>
   );
 }
@@ -427,7 +427,7 @@ function PagesTab({ data, onSaved, flash }: { data: Overview; onSaved: () => voi
   return (
     <div className="space-y-3">
       <div className="card p-5">
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-ink-muted">
           Sixteen pages make up your site. Each one shows an introduction above the content the system already
           holds — your events come from the calendar, your news from approved announcements. Hiding a page removes
           it from the menu but keeps the address working, so any link somebody already shared still opens.
@@ -450,7 +450,7 @@ function PagesTab({ data, onSaved, flash }: { data: Overview; onSaved: () => voi
                 <textarea className="input w-full" rows={4} maxLength={8000} value={draft.body}
                   onChange={(e) => setDraft({ ...draft, body: e.target.value })} />
               </Field>
-              <label className="flex items-center gap-2 text-sm text-slate-700">
+              <label className="flex items-center gap-2 text-sm text-ink">
                 <input type="checkbox" checked={draft.isVisible}
                   onChange={(e) => setDraft({ ...draft, isVisible: e.target.checked })} />
                 Show this page in the menu
@@ -466,12 +466,12 @@ function PagesTab({ data, onSaved, flash }: { data: Overview; onSaved: () => voi
             <div className="flex flex-wrap items-center gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="truncate text-sm font-semibold text-slate-900">{p.title || p.suggestedTitle}</p>
+                  <p className="truncate text-sm font-semibold text-ink">{p.title || p.suggestedTitle}</p>
                   {!p.isVisible && (
-                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">hidden</span>
+                    <span className="rounded-full bg-surface-sunken px-2 py-0.5 text-xs text-ink-muted">hidden</span>
                   )}
                 </div>
-                <p className="mt-0.5 truncate text-xs text-slate-500">{p.subtitle || p.blurb}</p>
+                <p className="mt-0.5 truncate text-xs text-ink-muted">{p.subtitle || p.blurb}</p>
               </div>
               <button className="btn btn-secondary btn-sm" onClick={() => toggleVisible(p)}>
                 {p.isVisible ? <><EyeSlashIcon className="h-4 w-4" /> Hide</> : <><EyeIcon className="h-4 w-4" /> Show</>}
@@ -572,7 +572,7 @@ function PostsTab({ data, onSaved, flash }: { data: Overview; onSaved: () => voi
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-ink-muted">
           Sermons, testimonies and projects. Anything you add stays a draft until you publish it.
         </p>
         {!composing && (
@@ -628,9 +628,9 @@ function PostsTab({ data, onSaved, flash }: { data: Overview; onSaved: () => voi
       )}
 
       {data.posts.length === 0 && !composing && (
-        <div className="rounded-2xl border border-dashed border-border bg-white px-6 py-12 text-center">
-          <p className="text-sm font-medium text-slate-900">Nothing here yet</p>
-          <p className="mt-1 text-sm text-slate-500">Add a sermon, a testimony or a project to get started.</p>
+        <div className="rounded-2xl border border-dashed border-hairline bg-white px-6 py-12 text-center">
+          <p className="text-sm font-medium text-ink">Nothing here yet</p>
+          <p className="mt-1 text-sm text-ink-muted">Add a sermon, a testimony or a project to get started.</p>
         </div>
       )}
 
@@ -639,14 +639,14 @@ function PostsTab({ data, onSaved, flash }: { data: Overview; onSaved: () => voi
           <div className="flex flex-wrap items-center gap-3">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <p className="truncate text-sm font-semibold text-slate-900">{p.title}</p>
+                <p className="truncate text-sm font-semibold text-ink">{p.title}</p>
                 <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${
-                  p.is_published ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                  p.is_published ? 'bg-emerald-50 text-emerald-700' : 'bg-surface-sunken text-ink-muted'
                 }`}>
                   {p.is_published ? 'published' : 'draft'}
                 </span>
               </div>
-              <p className="mt-0.5 truncate text-xs text-slate-500">
+              <p className="mt-0.5 truncate text-xs text-ink-muted">
                 {KIND_LABEL[p.kind]}
                 {p.reference && ` · ${p.reference}`}
                 {p.attribution && ` · ${p.attribution}`}
@@ -723,18 +723,18 @@ function MessagesTab({ data, onSaved, flash }: { data: Overview; onSaved: () => 
             </button>
           ))}
         </div>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-ink-muted">
           {data.enquiries.outstanding} waiting
         </p>
       </div>
 
-      {loading && <p className="text-sm text-slate-500">Loading…</p>}
+      {loading && <p className="text-sm text-ink-muted">Loading…</p>}
 
       {items && items.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-border bg-white px-6 py-12 text-center">
+        <div className="rounded-2xl border border-dashed border-hairline bg-white px-6 py-12 text-center">
           <InboxIcon className="mx-auto h-8 w-8 text-slate-300" />
-          <p className="mt-3 text-sm font-medium text-slate-900">Nothing here</p>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-3 text-sm font-medium text-ink">Nothing here</p>
+          <p className="mt-1 text-sm text-ink-muted">
             Prayer requests, messages and intentions to give will appear here.
           </p>
         </div>
@@ -743,25 +743,25 @@ function MessagesTab({ data, onSaved, flash }: { data: Overview; onSaved: () => 
       {items?.map((m) => (
         <div key={m.id} className={`card p-5 ${m.is_handled ? 'opacity-70' : ''}`}>
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm font-semibold text-slate-900">{m.name}</p>
+            <p className="text-sm font-semibold text-ink">{m.name}</p>
             <span className="rounded-full bg-primary-light px-2 py-0.5 text-xs text-primary">
               {ENQUIRY_LABEL[m.kind]}
             </span>
             {m.is_handled && (
-              <span className="flex items-center gap-1 text-xs text-emerald-600"><CheckIcon className="h-3.5 w-3.5" /> handled</span>
+              <span className="flex items-center gap-1 text-xs text-success"><CheckIcon className="h-3.5 w-3.5" /> handled</span>
             )}
-            <span className="ml-auto text-xs text-slate-400">{new Date(m.created_at).toLocaleString()}</span>
+            <span className="ml-auto text-xs text-ink-subtle">{new Date(m.created_at).toLocaleString()}</span>
           </div>
 
           {m.amount && (
-            <p className="mt-2 text-sm font-medium text-slate-700">
+            <p className="mt-2 text-sm font-medium text-ink">
               {m.currency} {Number(m.amount).toLocaleString()}
             </p>
           )}
 
-          <p className="mt-2 whitespace-pre-line text-sm text-slate-700">{m.message}</p>
+          <p className="mt-2 whitespace-pre-line text-sm text-ink">{m.message}</p>
 
-          <p className="mt-2 text-xs text-slate-400">
+          <p className="mt-2 text-xs text-ink-subtle">
             {[m.email, m.phone].filter(Boolean).join(' · ') || 'No contact details given'}
           </p>
 

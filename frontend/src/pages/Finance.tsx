@@ -295,7 +295,7 @@ export default function Finance() {
         </div>
       ) : Array.isArray(data) && data.length === 0 ? (
         <div className="empty-state">
-          <div className="stat-icon bg-slate-100 text-slate-400">
+          <div className="stat-icon bg-surface-sunken text-ink-subtle">
             <CurrencyDollarIcon className="h-6 w-6" />
           </div>
           <p className="empty-title">No records found</p>
@@ -314,7 +314,7 @@ export default function Finance() {
               {data.map((item: any) => (
                 <tr key={item.id}>
                   {columns.map(col => (
-                    <td key={col.key} className={col.key === 'amount' ? 'font-medium text-slate-900' : ''}>
+                    <td key={col.key} className={col.key === 'amount' ? 'font-medium text-ink' : ''}>
                       {col.render ? col.render(item) : item[col.key] ?? '—'}
                     </td>
                   ))}
@@ -373,7 +373,7 @@ export default function Finance() {
                 <div className="stat-icon bg-primary-light text-primary">
                   <CurrencyDollarIcon className="h-5 w-5" />
                 </div>
-                <h3 className="text-base font-semibold text-slate-900">
+                <h3 className="text-base font-semibold text-ink">
                   New {tabs.find(t => t.id === activeTab)?.label.replace(/s$/, '')}
                 </h3>
               </div>
@@ -436,7 +436,7 @@ export default function Finance() {
                       <option value="">No receipt attached</option>
                       {documents.map((d) => <option key={d.id} value={d.id}>{d.title}</option>)}
                     </select>
-                    <p className="mt-1 text-xs text-slate-400">Receipts are documents uploaded under IT Content.</p>
+                    <p className="mt-1 text-xs text-ink-subtle">Receipts are documents uploaded under IT Content.</p>
                   </div>
                   <div>
                     <label className="label">Notes</label>
@@ -546,7 +546,7 @@ export default function Finance() {
                     </div>
                   </div>
                   {isDeptLeader ? (
-                    <p className="text-xs text-slate-500">This request is raised for your own department.</p>
+                    <p className="text-xs text-ink-muted">This request is raised for your own department.</p>
                   ) : (
                     <div>
                       <label className="label">Department</label>
@@ -576,7 +576,7 @@ export default function Finance() {
         <Modal title="Release funds" onClose={() => setReleasing(null)}>
           <form onSubmit={submitRelease} className="space-y-4">
             <ErrorBox text={error} />
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-ink-muted">
               Record that <span className="font-medium">${Number(releasing.amount).toLocaleString()}</span> for "{releasing.title}" has been paid out.
               This can be done only once and cannot be undone here.
             </p>

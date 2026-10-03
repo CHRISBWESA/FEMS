@@ -29,48 +29,48 @@ export default function Backups() {  const [stats, setStats] = useState<any>(nul
         <div className="flex items-start gap-3">
           <div className="stat-icon bg-amber-50 text-amber-600"><ExclamationTriangleIcon className="h-5 w-5" /></div>
           <div>
-            <h2 className="text-base font-semibold text-slate-900">Not managed by FEMS</h2>
-            <p className="mt-1 text-sm text-slate-600">The in-application endpoints do not run pg_dump, copy files, or restore data. They never create a successful backup record without a real dump.</p>
+            <h2 className="text-base font-semibold text-ink">Not managed by FEMS</h2>
+            <p className="mt-1 text-sm text-ink-muted">The in-application endpoints do not run pg_dump, copy files, or restore data. They never create a successful backup record without a real dump.</p>
           </div>
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
           {/* Every value here is read from GET /backups/stats. The API is the single source of truth for these
               flags, so the screen cannot claim a capability the backend does not report. */}
-          <div className="rounded-lg bg-slate-50 p-3">
-            <p className="text-xs uppercase tracking-wider text-slate-400">Application backup</p>
+          <div className="rounded-lg bg-canvas p-3">
+            <p className="text-xs uppercase tracking-wider text-ink-subtle">Application backup</p>
             <p className="mt-1 text-sm font-semibold text-slate-800">{stats ? flag(stats.applicationBackup, 'Available', 'Not available') : '—'}</p>
           </div>
-          <div className="rounded-lg bg-slate-50 p-3">
-            <p className="text-xs uppercase tracking-wider text-slate-400">Scheduled backup</p>
+          <div className="rounded-lg bg-canvas p-3">
+            <p className="text-xs uppercase tracking-wider text-ink-subtle">Scheduled backup</p>
             <p className="mt-1 text-sm font-semibold text-slate-800">{stats ? flag(stats.scheduledBackup, 'Scheduled in-app', 'External / unverified') : '—'}</p>
           </div>
-          <div className="rounded-lg bg-slate-50 p-3">
-            <p className="text-xs uppercase tracking-wider text-slate-400">Verified restore</p>
+          <div className="rounded-lg bg-canvas p-3">
+            <p className="text-xs uppercase tracking-wider text-ink-subtle">Verified restore</p>
             <p className="mt-1 text-sm font-semibold text-slate-800">{stats ? flag(stats.verifiedRestore, 'Verified', 'Not recorded here') : '—'}</p>
           </div>
         </div>
         {stats?.externalProcedure && (
-          <p className="text-sm text-slate-500">The authoritative procedure is <span className="font-mono">{stats.externalProcedure}</span>.</p>
+          <p className="text-sm text-ink-muted">The authoritative procedure is <span className="font-mono">{stats.externalProcedure}</span>.</p>
         )}
       </div>
 
       <div className="card flex items-start gap-3">
-        <div className="stat-icon bg-emerald-50 text-emerald-600"><ShieldCheckIcon className="h-5 w-5" /></div>
+        <div className="stat-icon bg-emerald-50 text-success"><ShieldCheckIcon className="h-5 w-5" /></div>
         <div>
-          <h2 className="text-base font-semibold text-slate-900">Required operator procedure</h2>
-          <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-slate-600">
+          <h2 className="text-base font-semibold text-ink">Required operator procedure</h2>
+          <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-ink-muted">
             <li>Schedule pg_dump or enable the hosting platform backup service.</li>
             <li>Store encrypted dumps off-host and alert on backup age or failure.</li>
             <li>Restore into a new empty database and verify before switching traffic.</li>
           </ol>
-          <p className="mt-3 text-sm text-slate-500">The exact commands and verification steps are in BACKUP_RESTORE_GUIDE.md.</p>
+          <p className="mt-3 text-sm text-ink-muted">The exact commands and verification steps are in BACKUP_RESTORE_GUIDE.md.</p>
         </div>
       </div>
 
       {stats && (
         <div className="card">
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-slate-400">Recorded metadata rows</h2>
-          <p className="text-sm text-slate-600">
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Recorded metadata rows</h2>
+          <p className="text-sm text-ink-muted">
             {stats.total} row{stats.total === 1 ? '' : 's'}. These are metadata only and are not evidence of a dump or a restore.
           </p>
           {Array.isArray(stats.recent) && stats.recent.length > 0 && (

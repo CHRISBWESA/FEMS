@@ -58,7 +58,7 @@ export default function AdminAccounts({ embedded = false }: { embedded?: boolean
         </div>
       )}
 
-      <div className="mb-4 rounded-lg bg-slate-50 p-4 text-sm text-slate-600 ring-1 ring-inset ring-border">
+      <div className="mb-4 rounded-lg bg-canvas p-4 text-sm text-ink-muted ring-1 ring-inset ring-hairline">
         <p>
           <span className="font-semibold text-slate-800">Platform administrator</span> accounts are provisioned outside
           the application on purpose: they hold the most powerful role in the system, so no in-app button can mint one.
@@ -83,7 +83,7 @@ export default function AdminAccounts({ embedded = false }: { embedded?: boolean
             <tbody>
               {filtered.map((s) => (
                 <tr key={s.id}>
-                  <td className="font-medium text-slate-900">{s.firstName} {s.lastName}</td>
+                  <td className="font-medium text-ink">{s.firstName} {s.lastName}</td>
                   <td>{s.email}</td>
                   <td>
                     <span className={`status-badge ${s.roles.includes('admin') ? 'status-active' : 'status-submitted'}`}>
@@ -91,7 +91,7 @@ export default function AdminAccounts({ embedded = false }: { embedded?: boolean
                     </span>
                   </td>
                   <td><span className={`status-badge ${s.isActive ? 'status-active' : 'status-inactive'}`}>{s.isActive ? 'Active' : 'Inactive'}</span></td>
-                  <td className="whitespace-nowrap text-xs text-slate-500">{s.createdAt ? new Date(s.createdAt).toLocaleDateString() : '—'}</td>
+                  <td className="whitespace-nowrap text-xs text-ink-muted">{s.createdAt ? new Date(s.createdAt).toLocaleDateString() : '—'}</td>
                   <td className="text-right">
                     {/* Deactivating a support account also revokes every support grant it requested. */}
                     {s.roles.includes('platform_support') && !s.roles.includes('admin') && (
@@ -99,7 +99,7 @@ export default function AdminAccounts({ embedded = false }: { embedded?: boolean
                         {s.isActive ? 'Deactivate' : 'Activate'}
                       </button>
                     )}
-                    {s.roles.includes('admin') && <span className="text-xs text-slate-400">Cannot be changed here</span>}
+                    {s.roles.includes('admin') && <span className="text-xs text-ink-subtle">Cannot be changed here</span>}
                   </td>
                 </tr>
               ))}

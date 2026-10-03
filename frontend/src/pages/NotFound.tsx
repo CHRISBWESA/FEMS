@@ -7,8 +7,8 @@ export default function NotFound() {
   return (
     <div className="mx-auto max-w-2xl">
       <div className="card text-center">
-        <p className="text-3xl font-semibold tracking-tight text-slate-900">Page not found</p>
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="text-3xl font-semibold tracking-tight text-ink">Page not found</p>
+        <p className="mt-2 text-sm text-ink-muted">
           That address does not match any page in the application. It may have been renamed, or the link may be incomplete.
         </p>
         <div className="mt-4 flex justify-center gap-2">

@@ -35,25 +35,25 @@ export default function MemberHistoryTab({ memberId }: { memberId: string }) {
         : 'Could not load membership history.'));
   }, [memberId]);
 
-  if (error) return <p className="py-6 text-sm text-slate-500">{error}</p>;
+  if (error) return <p className="py-6 text-sm text-ink-muted">{error}</p>;
   if (!events) return <div className="flex justify-center py-10"><span className="spinner" /></div>;
-  if (events.length === 0) return <p className="py-6 text-sm text-slate-500">No history recorded yet.</p>;
+  if (events.length === 0) return <p className="py-6 text-sm text-ink-muted">No history recorded yet.</p>;
 
   return (
     <div>
-      <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400">Membership history</h2>
-      <ol className="relative space-y-5 border-l border-border pl-6">
+      <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Membership history</h2>
+      <ol className="relative space-y-5 border-l border-hairline pl-6">
         {events.map((e) => (
           <li key={e.id} className="relative">
             <span className="absolute -left-[31px] top-1.5 h-2.5 w-2.5 rounded-full bg-primary ring-4 ring-white" />
-            <p className="text-sm font-medium text-slate-900">
+            <p className="text-sm font-medium text-ink">
               {LABELS[e.eventType] || e.eventType}
-              <span className="ml-2 font-normal capitalize text-slate-600">{describe(e)}</span>
+              <span className="ml-2 font-normal capitalize text-ink-muted">{describe(e)}</span>
             </p>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-ink-subtle">
               {new Date(e.occurredAt).toLocaleString()} · {e.recordedBy ? `by ${e.recordedBy.name || 'a user'}` : 'system'}
             </p>
-            {e.reason && <p className="mt-1 text-sm text-slate-600">“{e.reason}”</p>}
+            {e.reason && <p className="mt-1 text-sm text-ink-muted">“{e.reason}”</p>}
           </li>
         ))}
       </ol>

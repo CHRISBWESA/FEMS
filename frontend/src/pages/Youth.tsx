@@ -95,7 +95,7 @@ export default function Youth() {
         </div>
       ) : participants.length === 0 ? (
         <div className="empty-state">
-          <div className="stat-icon bg-slate-100 text-slate-400">
+          <div className="stat-icon bg-surface-sunken text-ink-subtle">
             <FaceSmileIcon className="h-6 w-6" />
           </div>
           <p className="empty-title">No participants found</p>
@@ -115,12 +115,12 @@ export default function Youth() {
                 </div>
                 <ArrowRightIcon className="h-4 w-4 text-slate-300 transition-colors group-hover:text-primary" />
               </div>
-              <h3 className="mt-4 text-base font-semibold text-slate-900">{p.fullName}</h3>
-              <p className="mt-1 text-sm text-slate-500">
+              <h3 className="mt-4 text-base font-semibold text-ink">{p.fullName}</h3>
+              <p className="mt-1 text-sm text-ink-muted">
                 {p.ageGroup?.name || 'No age group assigned'}
                 {canSeeDetails && p.age !== undefined ? ` · ${p.age} yrs` : ''}
               </p>
-              <div className="mt-4 flex items-center gap-2 text-sm text-slate-500">
+              <div className="mt-4 flex items-center gap-2 text-sm text-ink-muted">
                 <span className={`status-badge ${p.status === 'active' ? 'status-active' : 'status-inactive'}`}>
                   {p.status}
                 </span>
@@ -139,8 +139,8 @@ export default function Youth() {
                   <FaceSmileIcon className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-slate-900">Add Participant</h3>
-                  <p className="text-xs text-slate-500">Register a youth or child participant.</p>
+                  <h3 className="text-base font-semibold text-ink">Add Participant</h3>
+                  <p className="text-xs text-ink-muted">Register a youth or child participant.</p>
                 </div>
               </div>
               <button type="button" onClick={() => setShowCreate(false)} className="btn btn-icon">

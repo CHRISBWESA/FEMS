@@ -12,7 +12,7 @@ export default function SecretModal({ title, email, password, note, onClose }: {
     <Modal title={title} onClose={onClose}>
       <div className="space-y-4">
         <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">{note || 'Copy this temporary password now. It is shown only once and must be changed at first sign-in.'}</p>
-        <div><label className="label">Account</label><p className="text-sm text-slate-900">{email}</p></div>
+        <div><label className="label">Account</label><p className="text-sm text-ink">{email}</p></div>
         <div>
           <label className="label">Temporary password</label>
           <div className="flex gap-2">

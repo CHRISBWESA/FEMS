@@ -76,7 +76,7 @@ export default function Notifications() {
         </div>
       ) : notifications.length === 0 ? (
         <div className="empty-state">
-          <div className="stat-icon bg-slate-100 text-slate-400">
+          <div className="stat-icon bg-surface-sunken text-ink-subtle">
             <BellIcon className="h-6 w-6" />
           </div>
           <p className="empty-title">No notifications</p>
@@ -92,20 +92,20 @@ export default function Notifications() {
               }`}
             >
               <div className="flex items-start gap-3">
-                <div className={`stat-icon ${n.is_read ? 'bg-slate-100 text-slate-400' : 'bg-indigo-50 text-indigo-600'}`}>
+                <div className={`stat-icon ${n.is_read ? 'bg-surface-sunken text-ink-subtle' : 'bg-indigo-50 text-indigo-600'}`}>
                   <BellIcon className="h-5 w-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-medium text-slate-900">{n.title}</h3>
+                    <h3 className="text-sm font-medium text-ink">{n.title}</h3>
                     {!n.is_read && (
                       <span className="rounded-full bg-indigo-600 px-2 py-0.5 text-xxs font-semibold text-white">
                         New
                       </span>
                     )}
                   </div>
-                  <p className="mt-1 text-sm text-slate-600">{n.message}</p>
-                  <p className="mt-2 text-xs text-slate-400">
+                  <p className="mt-1 text-sm text-ink-muted">{n.message}</p>
+                  <p className="mt-2 text-xs text-ink-subtle">
                     {n.created_at ? new Date(n.created_at).toLocaleString() : ''}
                   </p>
                 </div>

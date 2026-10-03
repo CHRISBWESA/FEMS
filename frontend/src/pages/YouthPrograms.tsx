@@ -61,7 +61,7 @@ export default function YouthPrograms() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="empty-state">
-          <div className="stat-icon bg-slate-100 text-slate-400">
+          <div className="stat-icon bg-surface-sunken text-ink-subtle">
             <CalendarIcon className="h-6 w-6" />
           </div>
           <p className="empty-title">No programs found</p>
@@ -78,8 +78,8 @@ export default function YouthPrograms() {
               className="card card-hover flex w-full items-center justify-between text-left"
             >
               <div>
-                <p className="text-sm font-semibold text-slate-900">{a.title}</p>
-                <p className="text-xs text-slate-500">{new Date(a.date).toLocaleDateString()}</p>
+                <p className="text-sm font-semibold text-ink">{a.title}</p>
+                <p className="text-xs text-ink-muted">{new Date(a.date).toLocaleDateString()}</p>
               </div>
               <ArrowRightIcon className="h-4 w-4 text-slate-300" />
             </button>
