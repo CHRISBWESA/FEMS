@@ -8,6 +8,8 @@ import SecretModal from '../components/platform/SecretModal';
 import CredentialsModal from '../components/platform/CredentialsModal';
 import Impersonation from '../components/platform/Impersonation';
 import { Empty, Modal, Spinner, errMsg } from '../components/finance/common';
+import { PageHeader, Card, StatCard, StatGrid, Badge, Button, EmptyState, Alert } from '../components/ui';
+import { DataTable, SearchInput, type Column } from '../components/DataTable';
 
 const MODULES: [string, string][] = [
   ['finance', 'Finance & contributions'], ['youth', 'Youth & children'], ['resources', 'Resources & assets'],
@@ -16,49 +18,114 @@ const MODULES: [string, string][] = [
 type Tab = 'dashboard' | 'registrations' | 'impersonation' | 'tenants' | 'plans' | 'billing' | 'invoices' | 'webhooks' | 'support' | 'audit' | 'health';
 const badge = (s: string) => (s === 'active' || s === 'approved' ? 'status-active' : s === 'suspended' || s === 'denied' || s === 'revoked' ? 'status-rejected' : s === 'requested' ? 'status-submitted' : 'status-inactive');
 
+const statusTone = (s: string): 'success' | 'danger' | 'warning' | 'neutral' =>
+  s === 'active' || s === 'approved' || s === 'paid' ? 'success'
+    : s === 'suspended' || s === 'denied' || s === 'revoked' || s === 'past_due' || s === 'void' ? 'danger'
+      : s === 'requested' || s === 'trialing' || s === 'pending' ? 'warning'
+        : 'neutral';
+
+/**
+ * Eleven tabs in one row overflowed on anything narrower than a large desktop and gave no hint of what belonged
+ * together. They are grouped by what an operator is actually doing: looking at the estate, acting on a request,
+ * or checking the machine.
+ */
+const TAB_GROUPS: { title: string; tabs: [Tab, string, string][] }[] = [
+  {
+    title: 'Estate',
+    tabs: [
+      ['dashboard', 'Dashboard', 'platform.analytics_view'],
+      ['tenants', 'Fellowships', 'platform.tenants_view'],
+      ['plans', 'Plans', 'platform.billing_view'],
+      ['billing', 'Subscriptions', 'platform.billing_view'],
+      ['invoices', 'Invoices', 'platform.billing_view'],
+    ],
+  },
+  {
+    title: 'Requests',
+    tabs: [
+      ['registrations', 'Signup requests', 'platform.tenants_view'],
+      ['support', 'Support access', 'platform.support_request'],
+    ],
+  },
+  {
+    title: 'System',
+    tabs: [
+      ['impersonation', 'Impersonation', 'admin.impersonate'],
+      ['webhooks', 'Webhooks', 'platform.billing_view'],
+      ['audit', 'Audit', 'platform.audit_view'],
+      ['health', 'Health', 'platform.analytics_view'],
+    ],
+  },
+];
+
 export default function Platform() {
   const { hasPermission } = useAuth();
-  const [tab, setTab] = useState<Tab>(hasPermission('platform.analytics_view') ? 'dashboard' : 'registrations');
-  const tabs: [Tab, string, boolean][] = [
-    ['dashboard', 'Dashboard', hasPermission('platform.analytics_view')],
-    ['registrations', 'Signup requests', hasPermission('platform.tenants_view')],
-    ['impersonation', 'Impersonation', hasPermission('admin.impersonate')],
-    ['tenants', 'Fellowships', hasPermission('platform.tenants_view')],
-    ['plans', 'Plans', hasPermission('platform.billing_view')],
-    ['billing', 'Subscriptions', hasPermission('platform.billing_view')],
-    ['invoices', 'Invoices', hasPermission('platform.billing_view')],
-    ['webhooks', 'Webhooks', hasPermission('platform.billing_view')],
-    ['support', 'Support access', hasPermission('platform.support_request')],
-    ['audit', 'Platform audit', hasPermission('platform.audit_view')],
-    ['health', 'System health', hasPermission('platform.analytics_view')],
-  ];
+  const groups = TAB_GROUPS
+    .map((g) => ({ ...g, tabs: g.tabs.filter(([, , perm]) => hasPermission(perm)) }))
+    .filter((g) => g.tabs.length > 0);
+
+  const available = groups.flatMap((g) => g.tabs.map(([id]) => id));
+  const [tab, setTab] = useState<Tab>(available[0] ?? 'registrations');
+
+  // A permission change can leave the current tab unreachable; fall back rather than render nothing.
+  const active = available.includes(tab) ? tab : available[0];
+
   return (
     <div className="mx-auto max-w-7xl">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Platform</h1>
-          <p className="page-desc">Manage fellowships on the platform. Platform accounts never see a fellowship's members, finances or other operational data.</p>
+      <PageHeader
+        eyebrow="Platform administration"
+        title="Fellowships on the platform"
+        description="Manage the estates, requests and billing behind FEMS. Platform accounts never see a fellowship's members, finances or other operational data."
+        actions={
+          hasPermission('platform.staff_manage') ? (
+            // System accounts live with the other account management, in Users > System accounts, so there is one
+            // place to administer accounts rather than two that can disagree.
+            <Link to="/users?view=admin" className="btn btn-secondary">System accounts</Link>
+          ) : undefined
+        }
+      />
+
+      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:gap-6">
+        {/* Grouped navigation. On a phone it becomes a horizontal scroller rather than eleven squeezed tabs. */}
+        <nav className="lg:w-56 lg:shrink-0" aria-label="Platform sections">
+          <div className="flex gap-2 overflow-x-auto pb-2 lg:flex-col lg:gap-5 lg:overflow-visible lg:pb-0">
+            {groups.map((g) => (
+              <div key={g.title} className="shrink-0 lg:shrink">
+                <p className="mb-1.5 px-3 text-xxs font-semibold uppercase tracking-wider text-ink-subtle">{g.title}</p>
+                <div className="flex gap-1 lg:flex-col lg:gap-0.5">
+                  {g.tabs.map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      aria-current={id === active ? 'page' : undefined}
+                      onClick={() => setTab(id)}
+                      className={`whitespace-nowrap rounded-control px-3 py-2 text-left text-sm font-medium transition-colors duration-150 ${
+                        id === active ? 'bg-primary text-white shadow-card' : 'text-ink-muted hover:bg-surface-sunken hover:text-ink'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </nav>
+
+        <div className="min-w-0 flex-1">
+          {active === 'dashboard' && <DashboardTab />}
+          {active === 'registrations' && <RegistrationsTab />}
+          {active === 'impersonation' && <Impersonation />}
+          {active === 'tenants' && <TenantsTab />}
+          {active === 'plans' && <PlansTab />}
+          {active === 'billing' && <SubscriptionsTab />}
+          {active === 'invoices' && <InvoicesTab />}
+          {active === 'webhooks' && <WebhooksTab />}
+          {active === 'support' && <SupportTab />}
+          {active === 'audit' && <AuditTab />}
+          {active === 'health' && <HealthTab />}
         </div>
-        {hasPermission('platform.staff_manage') && (
-          // System accounts live with the other account management, in Users > System accounts, so there is one
-          // place to administer accounts rather than two that can disagree.
-          <Link to="/users?view=admin" className="btn btn-secondary">System accounts</Link>
-        )}
       </div>
-      <div className="tabs mb-4">
-        {tabs.filter(([, , show]) => show).map(([id, label]) => <button key={id} onClick={() => setTab(id)} className={`tab ${tab === id ? 'tab-active' : ''}`}>{label}</button>)}
-      </div>
-      {tab === 'dashboard' && <DashboardTab />}
-      {tab === 'registrations' && <RegistrationsTab />}
-      {tab === 'impersonation' && <Impersonation />}
-      {tab === 'tenants' && <TenantsTab />}
-      {tab === 'plans' && <PlansTab />}
-      {tab === 'billing' && <SubscriptionsTab />}
-      {tab === 'invoices' && <InvoicesTab />}
-      {tab === 'webhooks' && <WebhooksTab />}
-      {tab === 'support' && <SupportTab />}
-      {tab === 'audit' && <AuditTab />}
-      {tab === 'health' && <HealthTab />}
     </div>
   );
 }
@@ -251,109 +318,164 @@ function RegistrationsTab() {
 function DashboardTab() {
   const [d, setD] = useState<any>(null);
   const [error, setError] = useState('');
-  useEffect(() => { axios.get('/platform/dashboard', { withCredentials: true }).then((r) => setD(r.data)).catch((e) => setError(errMsg(e, 'Could not load the dashboard'))); }, []);
-  if (error) return <Empty text={error} />;
+  const [reloadKey, setReloadKey] = useState(0);
+  useEffect(() => {
+    axios.get('/platform/dashboard', { withCredentials: true }).then((r) => setD(r.data)).catch((e) => setError(errMsg(e, 'Could not load the dashboard')));
+  }, [reloadKey]);
+
+  if (error) {
+    return (
+      <Card className="card-pad">
+        <EmptyState
+          title="Could not load the platform dashboard"
+          description={error}
+          action={<Button variant="secondary" onClick={() => { setError(''); setReloadKey((k) => k + 1); }}>Try again</Button>}
+        />
+      </Card>
+    );
+  }
   if (!d) return <Spinner />;
-  const stat = (l: string, v: any, h?: string) => <div key={l} className="card"><p className="text-sm text-ink-muted">{l}</p><p className="text-2xl font-semibold text-ink">{v}</p>{h && <p className="mt-1 text-xs text-ink-subtle">{h}</p>}</div>;
+
   const s = d.subscriptions;
   const b = d.billing;
+
+  const revenueColumns: Column<any>[] = [
+    { key: 'currency', header: 'Currency', priority: 'primary' },
+    { key: 'invoiced', header: 'Invoiced', align: 'right', tabular: true, priority: 'meta', render: (r) => r.invoiced.toFixed(2) },
+    { key: 'collected', header: 'Collected', align: 'right', tabular: true, priority: 'meta', render: (r) => <span className="text-success">{r.collected.toFixed(2)}</span> },
+    { key: 'outstanding', header: 'Outstanding', align: 'right', tabular: true, priority: 'meta', render: (r) => <span className="text-warning">{r.outstanding.toFixed(2)}</span> },
+  ];
+
+  const planColumns: Column<any>[] = [
+    { key: 'name', header: 'Plan', priority: 'primary' },
+    { key: 'price', header: 'Price', align: 'right', tabular: true, priority: 'meta', render: (p) => `${p.price} ${p.currency}/${p.billingInterval === 'year' ? 'yr' : 'mo'}` },
+    { key: 'subscribers', header: 'Fellowships', align: 'right', tabular: true, priority: 'meta' },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {stat('Fellowships', d.tenants.total, `${d.tenants.active} active Â· ${d.tenants.suspended} suspended`)}
-        {stat('Fellowship accounts', d.users.active, `${d.users.inactive} inactive`)}
-        {stat('Platform accounts', d.users.platformAccounts)}
-        {stat('Without an active secretary', d.tenantsWithoutActiveSecretary, 'active fellowships nobody can administer')}
-        {stat('Support requests waiting', d.support.pendingRequests)}
-        {stat('Support access in use', d.support.activeGrants)}
-      </div>
+      <StatGrid>
+        <StatCard label="Fellowships" value={d.tenants.total} hint={`${d.tenants.active} active · ${d.tenants.suspended} suspended`} />
+        <StatCard label="Fellowship accounts" value={d.users.active} hint={`${d.users.inactive} inactive`} />
+        <StatCard label="Platform accounts" value={d.users.platformAccounts} />
+        <StatCard
+          label="Without an active secretary"
+          value={d.tenantsWithoutActiveSecretary}
+          hint="Active fellowships nobody can administer"
+          tone={d.tenantsWithoutActiveSecretary > 0 ? 'warning' : 'neutral'}
+        />
+      </StatGrid>
 
-      <div>
-        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Subscriptions</h3>
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {stat('Subscribed fellowships', `${s.total} / ${d.tenants.total}`, `${s.tenantsWithoutSubscription} on no plan`)}
-          {stat('On a free trial', s.trialing, 'trial not yet ended')}
-          {stat('Ending within 30 days', s.expiringSoon, 'trial or paid period')}
-          {stat('Overdue', s.byStatus.find((x: any) => x.status === 'past_due')?.count ?? 0, 'payment not recorded')}
+      {/* Anything an operator must act on is lifted to the top rather than left in a grid of equal figures. */}
+      {d.support.pendingRequests > 0 || d.subscriptions.byStatus.find((x: any) => x.status === 'past_due')?.count > 0 ? (
+        <div className="space-y-2">
+          {d.support.pendingRequests > 0 ? (
+            <Alert tone="warning" title={`${d.support.pendingRequests} support request${d.support.pendingRequests === 1 ? '' : 's'} waiting`}>
+              Somebody has asked for access to a fellowship's data and is waiting for a decision.
+            </Alert>
+          ) : null}
+          {s.byStatus.find((x: any) => x.status === 'past_due')?.count > 0 ? (
+            <Alert tone="danger" title={`${s.byStatus.find((x: any) => x.status === 'past_due').count} subscription${s.byStatus.find((x: any) => x.status === 'past_due').count === 1 ? '' : 's'} past due`}>
+              Payment has not been recorded for these fellowships.
+            </Alert>
+          ) : null}
         </div>
-        <div className="card mt-4">
-          <ul className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-5">
-            {s.byStatus.map((x: any) => (
-              <li key={x.status} className="flex justify-between border-b border-hairline py-1.5">
-                <span className="capitalize text-ink-muted">{x.status.replace('_', ' ')}</span>
-                <span className="font-semibold text-ink">{x.count}</span>
-              </li>
-            ))}
-          </ul>
+      ) : null}
+
+      <Card className="card-pad">
+        <h3 className="section-title">Subscriptions</h3>
+        <div className="mt-4">
+          <StatGrid>
+            <StatCard label="Subscribed" value={`${s.total} / ${d.tenants.total}`} hint={`${s.tenantsWithoutSubscription} on no plan`} />
+            <StatCard label="On a free trial" value={s.trialing} hint="Trial not yet ended" />
+            <StatCard label="Ending within 30 days" value={s.expiringSoon} hint="Trial or paid period" tone={s.expiringSoon > 0 ? 'warning' : 'neutral'} />
+            <StatCard label="Overdue" value={s.byStatus.find((x: any) => x.status === 'past_due')?.count ?? 0} hint="Payment not recorded" tone="danger" />
+          </StatGrid>
         </div>
+        <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-1 border-t border-hairline pt-4 text-sm sm:grid-cols-5">
+          {s.byStatus.map((x: any) => (
+            <div key={x.status} className="flex items-baseline justify-between gap-2 py-1">
+              <dt className="capitalize text-ink-muted">{x.status.replace(/_/g, ' ')}</dt>
+              <dd className="font-semibold tabular-nums text-ink">{x.count}</dd>
+            </div>
+          ))}
+        </dl>
+      </Card>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="card-pad">
+          <h3 className="section-title">Billing</h3>
+          <p className="mt-1 text-sm text-ink-muted">
+            {b.invoices.total} invoice{b.invoices.total === 1 ? '' : 's'} · {b.invoices.open} open · {b.invoices.paid} paid · {b.invoices.void} void
+          </p>
+          <div className="mt-4">
+            {b.revenue.length === 0 ? (
+              <EmptyState compact title="Nothing invoiced yet" description="Invoices you raise against a fellowship's subscription will total here, by currency." />
+            ) : (
+              <DataTable columns={revenueColumns} rows={b.revenue} rowKey={(r) => r.currency} caption="Revenue by currency" mobile="scroll" />
+            )}
+          </div>
+          <p className="mt-4 border-t border-hairline pt-3 text-xs leading-relaxed text-ink-subtle">
+            Amounts are never added across currencies. Payments are recorded by an administrator; no payment provider is connected.
+          </p>
+        </Card>
+
+        <Card className="card-pad">
+          <h3 className="section-title">Plans in use</h3>
+          <div className="mt-4">
+            {d.plans.length === 0 ? (
+              <EmptyState compact title="No active plans defined" description="Define a plan before a fellowship can be subscribed to one." />
+            ) : (
+              <DataTable columns={planColumns} rows={d.plans} rowKey={(p) => p.id} caption="Plans and their subscribers" mobile="scroll" />
+            )}
+          </div>
+          <p className="mt-4 border-t border-hairline pt-3 text-sm text-ink-muted">
+            Inbound payment notifications: {b.webhooks.processed} processed · {b.webhooks.received} waiting ·{' '}
+            <span className={b.webhooks.failed > 0 ? 'font-medium text-danger' : undefined}>{b.webhooks.failed} failed</span>
+          </p>
+        </Card>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="card">
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Billing</h3>
-          <p className="mb-2 text-sm text-ink-muted">
-            {b.invoices.total} invoice{b.invoices.total === 1 ? '' : 's'} Â· {b.invoices.open} open Â· {b.invoices.paid} paid Â· {b.invoices.void} void
-          </p>
-          {b.revenue.length === 0 ? (
-            <p className="text-sm text-ink-subtle">Nothing invoiced yet.</p>
+        <Card className="card-pad">
+          <h3 className="section-title">Modules switched off</h3>
+          {d.modules.length === 0 ? (
+            <p className="mt-3 text-sm text-ink-subtle">Every module is switched on for every fellowship.</p>
           ) : (
-            <table className="table">
-              <thead><tr><th>Currency</th><th className="text-right">Invoiced</th><th className="text-right">Collected</th><th className="text-right">Outstanding</th></tr></thead>
-              <tbody>
-                {b.revenue.map((r: any) => (
-                  <tr key={r.currency}>
-                    <td>{r.currency}</td>
-                    <td className="text-right">{r.invoiced.toFixed(2)}</td>
-                    <td className="text-right text-emerald-700">{r.collected.toFixed(2)}</td>
-                    <td className="text-right text-amber-700">{r.outstanding.toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <ul className="mt-3 divide-y divide-hairline">
+              {d.modules.map((m: any) => (
+                <li key={m.key} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+                  <span className="text-ink">{m.label}</span>
+                  <Badge tone={m.tenantsWithModuleOff > 0 ? 'warning' : 'neutral'}>
+                    {m.tenantsWithModuleOff} fellowship{m.tenantsWithModuleOff === 1 ? '' : 's'}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
           )}
-          <p className="mt-2 text-xs text-ink-subtle">Amounts are never added across currencies. Payments are recorded by an administrator; no payment provider is connected.</p>
-        </div>
+        </Card>
 
-        <div className="card">
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Plans in use</h3>
-          {d.plans.length === 0 ? <p className="text-sm text-ink-subtle">No active plans defined.</p> : (
-            <table className="table">
-              <thead><tr><th>Plan</th><th className="text-right">Price</th><th className="text-right">Fellowships</th></tr></thead>
-              <tbody>
-                {d.plans.map((p: any) => (
-                  <tr key={p.id}>
-                    <td>{p.name}</td>
-                    <td className="text-right">{p.price} {p.currency}/{p.billingInterval === 'year' ? 'yr' : 'mo'}</td>
-                    <td className="text-right">{p.subscribers}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <Card className="card-pad">
+          <h3 className="section-title">Newest fellowships</h3>
+          {d.recentTenants.length === 0 ? (
+            <EmptyState compact title="No fellowships yet" description="Onboard a fellowship, or approve a signup request, and it will appear here." />
+          ) : (
+            <ul className="mt-3 divide-y divide-hairline">
+              {d.recentTenants.map((t: any) => (
+                <li key={t.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+                  <span className="min-w-0 truncate font-medium text-ink">{t.name}</span>
+                  <span className="shrink-0 text-ink-subtle">{new Date(t.createdAt).toLocaleDateString()}</span>
+                </li>
+              ))}
+            </ul>
           )}
-          <p className="mt-3 border-t border-hairline pt-3 text-sm text-ink-muted">
-            Inbound payment notifications: {b.webhooks.processed} processed Â· {b.webhooks.received} waiting Â· {b.webhooks.failed} failed
-          </p>
-        </div>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="card">
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Modules switched off</h3>
-          <ul className="space-y-1 text-sm">{d.modules.map((m: any) => <li key={m.key} className="flex justify-between"><span>{m.label}</span><span className="font-medium">{m.tenantsWithModuleOff} fellowship{m.tenantsWithModuleOff === 1 ? '' : 's'}</span></li>)}</ul>
-        </div>
-        <div className="card">
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Newest fellowships</h3>
-          {d.recentTenants.length === 0 ? <p className="text-sm text-ink-subtle">No fellowships yet.</p> : (
-            <ul className="space-y-1 text-sm">{d.recentTenants.map((t: any) => <li key={t.id} className="flex justify-between"><span>{t.name}</span><span className="text-ink-muted">{new Date(t.createdAt).toLocaleDateString()}</span></li>)}</ul>
-          )}
-        </div>
+        </Card>
       </div>
     </div>
   );
 }
 
 function TenantsTab() {
-  const navigate = useNavigate();
   const { hasPermission } = useAuth();
   const [rows, setRows] = useState<any[] | null>(null);
   const [q, setQ] = useState('');
@@ -380,49 +502,94 @@ function TenantsTab() {
     }).catch((e) => setError(errMsg(e, 'Could not load fellowships')));
   };
   useEffect(load, [status, staffed]);
+
+  const columns: Column<any>[] = [
+    {
+      key: 'name',
+      header: 'Fellowship',
+      priority: 'primary',
+      render: (t) => (
+        <div className="min-w-0">
+          <p className="font-medium text-ink">{t.name}</p>
+          {t.location ? <p className="text-xs text-ink-subtle">{t.location}</p> : null}
+          {t.users === 0 ? <p className="mt-1 text-xs font-medium text-danger">No administrator — nobody can sign in</p> : null}
+        </div>
+      ),
+    },
+    { key: 'status', header: 'Status', priority: 'meta', render: (t) => <Badge tone={statusTone(t.status)}>{t.status}</Badge> },
+    {
+      key: 'users',
+      header: 'Accounts',
+      align: 'right',
+      tabular: true,
+      priority: 'meta',
+      render: (t) => (t.users === 0 ? <Badge tone="danger">0</Badge> : t.users),
+    },
+    { key: 'members', header: 'Members', align: 'right', tabular: true, priority: 'secondary' },
+    { key: 'modulesDisabled', header: 'Modules off', align: 'right', tabular: true, priority: 'secondary', render: (t) => t.modulesDisabled || '—' },
+    {
+      key: 'createdAt',
+      header: 'Created',
+      priority: 'secondary',
+      render: (t) => new Date(t.createdAt).toLocaleDateString(),
+    },
+  ];
+
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <form onSubmit={(e) => { e.preventDefault(); load(); }} className="flex flex-1 gap-2">
-          <input className="input max-w-xs" placeholder="Search fellowships…" value={q} onChange={(e) => setQ(e.target.value)} />
-          <select className="select w-40" value={status} onChange={(e) => setStatus(e.target.value)}><option value="">All</option><option value="active">Active</option><option value="suspended">Suspended</option></select>
-          <select className="select w-48" value={staffed} onChange={(e) => setStaffed(e.target.value)}>
+        <form onSubmit={(e) => { e.preventDefault(); load(); }} className="flex flex-1 flex-wrap gap-2">
+          <SearchInput value={q} onChange={setQ} placeholder="Search fellowships" className="w-full sm:w-64" />
+          <select className="select w-40" aria-label="Filter by status" value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="">Any status</option>
+            <option value="active">Active</option>
+            <option value="suspended">Suspended</option>
+          </select>
+          <select className="select w-48" aria-label="Filter by staffing" value={staffed} onChange={(e) => setStaffed(e.target.value)}>
             <option value="">Any staffing</option>
             <option value="staffed">Has an administrator</option>
             <option value="unstaffed">No administrator</option>
           </select>
-          <button className="btn btn-secondary" type="submit">Search</button>
+          <Button type="submit" variant="secondary">Search</Button>
         </form>
-        {hasPermission('platform.onboard') && <button className="btn btn-primary" onClick={() => setOnboarding(true)}><PlusIcon className="h-4 w-4" /> Onboard fellowship</button>}
+        {hasPermission('platform.onboard') && (
+          <Button variant="primary" onClick={() => setOnboarding(true)}>
+            <PlusIcon className="h-4 w-4" />
+            Onboard fellowship
+          </Button>
+        )}
       </div>
       <p className="mb-4 text-sm text-ink-muted">
         A fellowship with no accounts cannot be signed in to. It is flagged rather than hidden, so a subscribed
         congregation is never quietly forgotten.
       </p>
-      {error ? <Empty text={error} /> : !rows ? <Spinner /> : rows.length === 0 ? <Empty text="No fellowships found" /> : (
-        <div className="table-wrap overflow-x-auto">
-          <table className="table">
-            <thead><tr><th>Fellowship</th><th>Status</th><th>Accounts</th><th>Members</th><th>Modules off</th><th>Created</th></tr></thead>
-            <tbody>{rows.map((t) => (
-              <tr key={t.id} className={`cursor-pointer hover:bg-canvas ${t.users === 0 ? 'bg-rose-50/40' : ''}`} onClick={() => navigate(`/platform/tenants/${t.id}`)}>
-                <td className="font-medium text-ink">
-                  {t.name}{t.location && <span className="ml-2 text-xs text-ink-subtle">{t.location}</span>}
-                  {t.users === 0 && (
-                    <p className="mt-1 text-xs font-medium text-rose-700">No administrator — nobody can sign in</p>
-                  )}
-                </td>
-                <td><span className={`status-badge ${badge(t.status)} capitalize`}>{t.status}</span></td>
-                <td>
-                  {t.users === 0
-                    ? <span className="status-badge status-rejected">0</span>
-                    : <span>{t.users}</span>}
-                </td>
-                <td>{t.members}</td><td>{t.modulesDisabled || '—'}</td><td>{new Date(t.createdAt).toLocaleDateString()}</td>
-              </tr>
-            ))}</tbody>
-          </table>
-        </div>
-      )}
+      <DataTable
+        caption="Fellowships on the platform"
+        columns={columns}
+        rows={rows}
+        rowKey={(t) => t.id}
+        loading={!rows}
+        error={error || null}
+        onRetry={load}
+        empty={{
+          title: 'No fellowships found',
+          description: q || status || staffed
+            ? 'No fellowship matches these filters. Clear them to see the whole list.'
+            : 'Onboard a fellowship, or approve a signup request, and it will appear here.',
+          action: hasPermission('platform.onboard') ? (
+            <Button variant="primary" onClick={() => setOnboarding(true)}>
+              <PlusIcon className="h-4 w-4" />
+              Onboard fellowship
+            </Button>
+          ) : undefined,
+        }}
+        boundedNotice={{ total: rows?.length ?? 0, noun: 'fellowships' }}
+        rowActions={(t) => (
+          <Link to={`/platform/tenants/${t.id}`} className="btn btn-secondary btn-sm" onClick={(e) => e.stopPropagation()}>
+            Open
+          </Link>
+        )}
+      />
       {onboarding && (
         <FormModal
           title="Onboard a fellowship" submitLabel="Create fellowship"
