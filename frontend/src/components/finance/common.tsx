@@ -1,4 +1,12 @@
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import { Alert, EmptyState, PageLoader, Modal as BaseModal } from '../ui';
+
+/**
+ * Finance-specific shared pieces.
+ *
+ * These existed before `components/ui.tsx` and duplicated it. They now delegate instead, so a change to a button,
+ * a modal or a loading state lands in every finance tab at once rather than drifting apart.
+ */
 
 export const money = (v: string | number | null | undefined) =>
   `$${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
@@ -14,41 +22,48 @@ export function errMsg(err: any, fallback: string): string {
 export function ErrorBox({ text }: { text: string }) {
   if (!text) return null;
   return (
-    <div className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">{text}</div>
+    <div className="mb-4">
+      <Alert tone="danger">{text}</Alert>
+    </div>
   );
 }
 
+/** `open` is implied: the parent only mounts this while the dialog is showing. */
 export function Modal({ title, onClose, children, max = 'max-w-md' }: { title: string; onClose: () => void; children: React.ReactNode; max?: string }) {
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className={`modal ${max}`} onClick={(e) => e.stopPropagation()}>
-        <div className="mb-5 flex items-center justify-between">
-          <h3 className="text-base font-semibold text-ink">{title}</h3>
-          <button type="button" onClick={onClose} className="btn btn-icon"><XMarkIcon className="h-5 w-5" /></button>
-        </div>
-        {children}
+    <BaseModal open onClose={onClose} title={title} width={max === 'max-w-md' ? 'md' : max === 'max-w-sm' ? 'sm' : 'lg'}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1" />
+        <button type="button" onClick={onClose} aria-label="Close" className="btn btn-ghost btn-sm -mr-1 -mt-1 shrink-0 px-2">
+          <XMarkIcon className="h-5 w-5" />
+        </button>
       </div>
-    </div>
+      {children}
+    </BaseModal>
   );
 }
 
-export function Empty({ text }: { text: string }) {
-  return (
-    <div className="empty-state">
-      <p className="empty-title">{text}</p>
-    </div>
-  );
+/**
+ * An empty result. `text` is the existing one-line wording used across the finance tabs; a title and a description
+ * are accepted so a caller can say what belongs here rather than only that nothing does.
+ */
+export function Empty({ text, title, description }: { text?: string; title?: string; description?: string }) {
+  return <EmptyState compact title={title ?? text ?? 'Nothing here yet'} description={description} />;
 }
 
+/** Now a skeleton that holds the page's shape, rather than a spinner that only says "wait". */
 export function Spinner() {
-  return <div className="flex items-center justify-center py-16"><span className="spinner" /></div>;
+  return <PageLoader rows={3} label="Loading" />;
 }
 
 export function Bar({ value, max, className = 'bg-primary' }: { value: number; max: number; className?: string }) {
   const pct = max > 0 ? Math.max(2, Math.round((value / max) * 100)) : 0;
   return (
-    <div className="h-2 flex-1 rounded-full bg-surface-sunken">
-      <div className={`h-2 rounded-full ${className}`} style={{ width: value > 0 ? `${Math.min(100, pct)}%` : 0 }} />
+    <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-sunken">
+      <div
+        className={`h-2 rounded-full transition-all duration-500 ease-out ${className}`}
+        style={{ width: value > 0 ? `${Math.min(100, pct)}%` : 0 }}
+      />
     </div>
   );
 }

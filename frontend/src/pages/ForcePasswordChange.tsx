@@ -45,7 +45,7 @@ export default function ForcePasswordChange({ onDone }: { onDone: () => void }) 
           {visible[id] ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
         </button>
       </div>
-      {opts.hint && <p className="mt-1 text-xs text-slate-400">{opts.hint}</p>}
+      {opts.hint && <p className="mt-1 text-xs text-ink-subtle">{opts.hint}</p>}
     </div>
   );
 

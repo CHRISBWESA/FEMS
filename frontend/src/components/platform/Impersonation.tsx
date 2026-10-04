@@ -106,7 +106,7 @@ export default function Impersonation() {
         </p>
       </div>
 
-      {error && <p className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">{error}</p>}
+      {error && <p className="alert alert-danger" role="alert">{error}</p>}
 
       <div className="card">
         <h2 className="mb-1 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Choose an account</h2>

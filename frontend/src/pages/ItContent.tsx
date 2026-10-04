@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../App';
+import { PageLoader } from '../components/ui';
 import {
   DocumentTextIcon, MegaphoneIcon, PhotoIcon,
   PlusIcon, XMarkIcon, CloudArrowUpIcon, CheckIcon,
@@ -164,7 +165,7 @@ export default function ItContent() {
       </div>
 
       {error && (
-        <div className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">
+        <div className="alert alert-danger mb-4" role="alert">
           {error}
         </div>
       )}
@@ -183,9 +184,7 @@ export default function ItContent() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <span className="spinner" />
-        </div>
+        <PageLoader rows={2} />
       ) : activeTab === 'documents' ? (
         documents.length === 0 ? (
           <div className="empty-state">
@@ -201,7 +200,7 @@ export default function ItContent() {
             {documents.map((d: any) => (
               <div key={d.id} className="card">
                 <div className="flex items-start justify-between">
-                  <div className="stat-icon bg-indigo-50 text-indigo-600">
+                  <div className="stat-icon bg-primary-light text-primary">
                     <DocumentTextIcon className="h-5 w-5" />
                   </div>
                   <span className={`status-badge ${statusClass(d.approval_status)}`}>
@@ -296,7 +295,7 @@ export default function ItContent() {
           <form onSubmit={submitUpload} onClick={(e) => e.stopPropagation()} className="modal max-w-md">
             <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="stat-icon bg-indigo-50 text-indigo-600">
+                <div className="stat-icon bg-primary-light text-primary">
                   <CloudArrowUpIcon className="h-5 w-5" />
                 </div>
                 <div>

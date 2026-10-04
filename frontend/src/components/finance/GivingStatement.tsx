@@ -60,7 +60,7 @@ export default function GivingStatement({ url }: { url: string }) {
           <ul className="divide-y divide-hairline">
             {data.pledges.map((p: any) => (
               <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
-                <span className="text-slate-800">{money(p.amount)} <span className="text-ink-muted">{p.frequency.replace('_', ' ')}{p.campaign ? ` · ${p.campaign.name}` : ''}</span></span>
+                <span className="text-ink">{money(p.amount)} <span className="text-ink-muted">{p.frequency.replace('_', ' ')}{p.campaign ? ` · ${p.campaign.name}` : ''}</span></span>
                 <span className={Number(p.fulfillment.balance) > 0 ? 'text-amber-700' : 'text-emerald-700'}>
                   {money(p.fulfillment.receivedAmount)} of {money(p.fulfillment.expectedAmount)}
                 </span>

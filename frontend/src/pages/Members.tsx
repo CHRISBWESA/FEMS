@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
+import { PageLoader } from '../components/ui';
 import {
   UsersIcon, MagnifyingGlassIcon, ChevronLeftIcon, ChevronRightIcon, FunnelIcon,
   PlusIcon, XMarkIcon, UserPlusIcon, CloudArrowUpIcon, DocumentArrowDownIcon,
@@ -209,7 +210,7 @@ export default function Members() {
       </div>
 
       {error && !showCreate && (
-        <div className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">
+        <div className="alert alert-danger mb-4" role="alert">
           {error}
         </div>
       )}
@@ -303,9 +304,7 @@ export default function Members() {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <span className="spinner" />
-        </div>
+        <PageLoader rows={2} />
       ) : members.length === 0 ? (
         <div className="empty-state">
           <div className="stat-icon bg-surface-sunken text-ink-subtle">
@@ -401,7 +400,7 @@ export default function Members() {
             </div>
 
             {error && (
-              <div className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">
+              <div className="alert alert-danger mb-4" role="alert">
                 {error}
               </div>
             )}
@@ -553,7 +552,7 @@ export default function Members() {
             </button>
 
             {error && (
-              <div className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">
+              <div className="alert alert-danger mb-4" role="alert">
                 {error}
               </div>
             )}

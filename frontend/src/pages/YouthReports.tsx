@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { ChartBarIcon, UsersIcon, FaceSmileIcon } from '@heroicons/react/24/outline';
+import { PageLoader } from '../components/ui';
 
 export default function YouthReports() {
   const [summary, setSummary] = useState<any>(null);
@@ -16,9 +17,7 @@ export default function YouthReports() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <span className="spinner" />
-      </div>
+      <PageLoader rows={2} />
     );
   }
 
@@ -39,7 +38,7 @@ export default function YouthReports() {
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="card flex items-center gap-4">
-              <div className="stat-icon bg-indigo-50 text-indigo-600">
+              <div className="stat-icon bg-primary-light text-primary">
                 <UsersIcon className="h-6 w-6" />
               </div>
               <div>

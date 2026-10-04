@@ -67,7 +67,7 @@ export default function PlatformContact() {
               <div className="mt-6 rounded-lg bg-canvas p-4">
                 <div className="flex items-center gap-3">
                   <EnvelopeIcon className="h-5 w-5 shrink-0 text-ink-subtle" />
-                  <span className="min-w-0 flex-1 break-all font-mono text-sm text-slate-800">{CONTACT_EMAIL}</span>
+                  <span className="min-w-0 flex-1 break-all font-mono text-sm text-ink">{CONTACT_EMAIL}</span>
                 </div>
                 <button type="button" onClick={copy} className="btn btn-secondary btn-sm mt-3 w-full">
                   {copied ? 'Copied' : 'Copy address'}

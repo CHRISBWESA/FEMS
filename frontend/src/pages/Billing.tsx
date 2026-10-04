@@ -39,7 +39,7 @@ export default function Billing() {
 
           <div className="card mb-6">
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Included modules</h2>
-            <ul className="grid gap-1 text-sm sm:grid-cols-2">{Object.keys(MODULE_LABELS).map((k) => <li key={k} className={s.plan.modules.includes(k) ? 'text-slate-800' : 'text-ink-subtle line-through'}>{MODULE_LABELS[k]}</li>)}</ul>
+            <ul className="grid gap-1 text-sm sm:grid-cols-2">{Object.keys(MODULE_LABELS).map((k) => <li key={k} className={s.plan.modules.includes(k) ? 'text-ink' : 'text-ink-subtle line-through'}>{MODULE_LABELS[k]}</li>)}</ul>
           </div>
 
           <div className="card mb-6">

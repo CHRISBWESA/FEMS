@@ -90,9 +90,9 @@ export default function AcceptInvitation() {
     return (
       <Shell>
         <div className="card p-8 text-center">
-          <ExclamationTriangleIcon className="mx-auto h-10 w-10 text-slate-300" />
-          <h1 className="mt-3 text-lg font-semibold text-slate-900">This invitation cannot be used</h1>
-          <p className="mt-2 text-sm text-slate-600">{loadError}</p>
+          <ExclamationTriangleIcon className="mx-auto h-10 w-10 text-ink-subtle" />
+          <h1 className="mt-3 text-lg font-semibold text-ink">This invitation cannot be used</h1>
+          <p className="mt-2 text-sm text-ink-muted">{loadError}</p>
           <Link to="/login" className="btn btn-secondary mt-6">Go to sign in</Link>
         </div>
       </Shell>
@@ -102,7 +102,7 @@ export default function AcceptInvitation() {
   if (!peek) {
     return (
       <Shell>
-        <p className="text-sm text-slate-500">Checking this invitation…</p>
+        <p className="text-sm text-ink-muted">Checking this invitation…</p>
       </Shell>
     );
   }
@@ -112,9 +112,9 @@ export default function AcceptInvitation() {
       <Shell>
         <div className="card p-8 text-center">
           <CheckCircleIcon className="mx-auto h-12 w-12 text-emerald-600" />
-          <h1 className="mt-3 text-lg font-semibold text-slate-900">Your account is ready</h1>
-          <p className="mt-2 text-sm text-slate-600">{done}</p>
-          <p className="mt-4 text-xs text-slate-400">Taking you to your dashboard…</p>
+          <h1 className="mt-3 text-lg font-semibold text-ink">Your account is ready</h1>
+          <p className="mt-2 text-sm text-ink-muted">{done}</p>
+          <p className="mt-4 text-xs text-ink-subtle">Taking you to your dashboard…</p>
         </div>
       </Shell>
     );

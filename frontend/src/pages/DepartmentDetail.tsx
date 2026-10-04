@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
+import { PageLoader } from '../components/ui';
 import {
   ArrowLeftIcon, BuildingOfficeIcon, UsersIcon, PlusIcon, XMarkIcon,
   UserMinusIcon, ArrowRightCircleIcon, UserPlusIcon,
@@ -132,9 +133,7 @@ export default function DepartmentDetail() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <span className="spinner" />
-      </div>
+      <PageLoader rows={2} />
     );
   }
   if (!dept) {
@@ -247,7 +246,7 @@ export default function DepartmentDetail() {
       )}
 
       {error && (
-        <div className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">
+        <div className="alert alert-danger mb-4" role="alert">
           {error}
         </div>
       )}

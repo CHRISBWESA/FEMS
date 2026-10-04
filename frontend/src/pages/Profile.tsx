@@ -3,6 +3,7 @@ import axios from 'axios';
 import { storeSessionTokens } from '../lib/session';
 import { useAuth } from '../App';
 import { KeyIcon, XMarkIcon, IdentificationIcon } from '@heroicons/react/24/outline';
+import { PageLoader } from '../components/ui';
 
 export default function Profile() {
   const { user } = useAuth();
@@ -41,9 +42,7 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <span className="spinner" />
-      </div>
+      <PageLoader rows={2} />
     );
   }
 
@@ -125,7 +124,7 @@ export default function Profile() {
             </div>
 
             {error && (
-              <div className="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">
+              <div className="alert alert-danger mb-3 py-2.5" role="alert">
                 {error}
               </div>
             )}

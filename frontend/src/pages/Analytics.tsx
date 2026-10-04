@@ -17,7 +17,7 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : `${v}%`);
 function Bars({ rows, label, value, fmt = (n: number) => String(n) }: { rows: any[]; label: (r: any) => string; value: (r: any) => number; fmt?: (n: number) => string }) {
   if (!rows?.length) return <p className="text-sm text-ink-muted">Nothing to show for this period.</p>;
   const max = Math.max(...rows.map(value), 1);
-  return <ul className="space-y-2">{rows.map((r, i) => <li key={i} className="flex items-center gap-3 text-sm"><span className="w-40 shrink-0 truncate text-ink">{label(r)}</span><Bar value={value(r)} max={max} /><span className="w-24 text-right font-medium text-slate-800">{fmt(value(r))}</span></li>)}</ul>;
+  return <ul className="space-y-2">{rows.map((r, i) => <li key={i} className="flex items-center gap-3 text-sm"><span className="w-40 shrink-0 truncate text-ink">{label(r)}</span><Bar value={value(r)} max={max} /><span className="w-24 text-right font-medium text-ink">{fmt(value(r))}</span></li>)}</ul>;
 }
 
 export default function Analytics() {

@@ -70,7 +70,7 @@ export default function PlatformTenant() {
         <ul className="divide-y divide-hairline">
           {t.modules.map((m: any) => (
             <li key={m.key} className="flex items-center justify-between py-2 text-sm">
-              <span className="text-slate-800">{m.label}</span>
+              <span className="text-ink">{m.label}</span>
               {manage ? <button disabled={busy === m.key} className={`btn btn-sm ${m.enabled ? 'btn-secondary' : 'btn-primary'}`} onClick={() => toggleModule(m.key, !m.enabled)}>{m.enabled ? 'Switch off' : 'Switch on'}</button>
                 : <span className={m.enabled ? 'text-emerald-700' : 'text-ink-subtle'}>{m.enabled ? 'On' : 'Off'}</span>}
             </li>

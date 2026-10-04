@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import ListLimitNotice from '../components/ListLimitNotice';
 import { totalFromHeaders } from '../lib/list-total';
+import { PageLoader } from '../components/ui';
 import {
   FaceSmileIcon, ArrowRightIcon, PlusIcon, XMarkIcon,
 } from '@heroicons/react/24/outline';
@@ -90,9 +91,7 @@ export default function Youth() {
 
       <ListLimitNotice shown={participants.length} total={listTotal} noun="participants" />
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <span className="spinner" />
-        </div>
+        <PageLoader rows={2} />
       ) : participants.length === 0 ? (
         <div className="empty-state">
           <div className="stat-icon bg-surface-sunken text-ink-subtle">
@@ -113,7 +112,7 @@ export default function Youth() {
                 <div className="stat-icon bg-primary-light text-primary">
                   <FaceSmileIcon className="h-6 w-6" />
                 </div>
-                <ArrowRightIcon className="h-4 w-4 text-slate-300 transition-colors group-hover:text-primary" />
+                <ArrowRightIcon className="h-4 w-4 text-ink-subtle transition-colors group-hover:text-primary" />
               </div>
               <h3 className="mt-4 text-base font-semibold text-ink">{p.fullName}</h3>
               <p className="mt-1 text-sm text-ink-muted">
@@ -149,7 +148,7 @@ export default function Youth() {
             </div>
 
             {error && (
-              <div className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">
+              <div className="alert alert-danger mb-4" role="alert">
                 {error}
               </div>
             )}

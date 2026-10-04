@@ -46,7 +46,7 @@ export default function AttendancePublic() {
               </div>
             )}
             {error && (
-              <div className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">
+              <div className="alert alert-danger mb-4" role="alert">
                 {error}
               </div>
             )}

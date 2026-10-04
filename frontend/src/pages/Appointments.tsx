@@ -127,7 +127,7 @@ export default function Appointments() {
 
         {invitations.length === 0 && (
           <div className="rounded-2xl border border-dashed border-hairline bg-white px-6 py-12 text-center">
-            <IdentificationIcon className="mx-auto h-8 w-8 text-slate-300" />
+            <IdentificationIcon className="mx-auto h-8 w-8 text-ink-subtle" />
             <p className="mt-3 text-sm font-medium text-ink">Nobody has been invited yet</p>
             <p className="mx-auto mt-1 max-w-md text-sm text-ink-muted">
               Invite the people who will hold each office above. A Treasurer and a Secretary are marked required
@@ -320,7 +320,7 @@ function InviteForm({
           </p>
           <div className="mt-3 flex items-center gap-2 rounded-lg bg-white p-2 ring-1 ring-inset ring-amber-600/20">
             <LinkIcon className="h-4 w-4 shrink-0 text-amber-600" />
-            <code className="min-w-0 flex-1 truncate text-xs text-slate-800">{issued.url}</code>
+            <code className="min-w-0 flex-1 truncate text-xs text-ink">{issued.url}</code>
             <button
               className="btn btn-secondary btn-sm shrink-0"
               onClick={() => {
@@ -338,7 +338,7 @@ function InviteForm({
       )}
 
       {error && (
-        <div className="mt-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">
+        <div className="alert alert-danger mt-4" role="alert">
           {error}
         </div>
       )}

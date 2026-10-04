@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { ShieldCheckIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { PageLoader } from '../components/ui';
 
 export default function Audit() {
   const [logs, setLogs] = useState([]);
@@ -33,9 +34,7 @@ export default function Audit() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <span className="spinner" />
-        </div>
+        <PageLoader rows={2} />
       ) : logs.length === 0 ? (
         <div className="empty-state">
           <div className="stat-icon bg-surface-sunken text-ink-subtle">

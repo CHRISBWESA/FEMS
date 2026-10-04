@@ -106,7 +106,7 @@ export default function AttendanceCheckIn({ activityId }: { activityId: string }
               return (
                 <li key={m.id}>
                   <button type="button" disabled={isRecorded || isWaiting} onClick={() => mark(m.id)} className="flex min-h-14 w-full items-center gap-3 px-4 py-2 text-left text-sm transition-colors enabled:hover:bg-canvas enabled:active:bg-surface-sunken disabled:cursor-default">
-                    <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ring-1 ring-inset ${isRecorded ? 'bg-emerald-500 text-white ring-emerald-500' : isWaiting ? 'bg-amber-100 text-amber-700 ring-amber-300' : 'bg-white text-transparent ring-slate-300'}`}><CheckCircleIcon className="h-5 w-5" /></span>
+                    <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ring-1 ring-inset ${isRecorded ? 'bg-emerald-500 text-white ring-emerald-500' : isWaiting ? 'bg-amber-100 text-amber-700 ring-amber-300' : 'bg-white text-transparent ring-hairline'}`}><CheckCircleIcon className="h-5 w-5" /></span>
                     <span className="min-w-0 flex-1"><span className="block truncate font-medium text-ink">{m.fullName}</span><span className="font-mono text-xs text-ink-subtle">{m.memberCode}</span></span>
                     <span className="text-xs text-ink-muted">{isRecorded ? 'Recorded' : isWaiting ? 'Waiting to sync' : ''}</span>
                   </button>
@@ -133,7 +133,7 @@ export default function AttendanceCheckIn({ activityId }: { activityId: string }
         </div>
       )}
       {rejected.length > 0 && (
-        <div className="mt-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-800 ring-1 ring-inset ring-rose-600/20">
+        <div className="alert alert-danger mt-3" role="alert">
           <p className="font-medium">{rejected.length} check-in{rejected.length === 1 ? ' was' : 's were'} not accepted</p>
           <ul className="mt-1 space-y-1">{rejected.map((o) => <li key={o.opId} className="flex items-center justify-between gap-2"><span>{nameOf.get(o.memberId) ?? 'Member'}: {REASONS[o.reason ?? ''] ?? o.reason}</span><button className="rounded p-1.5 hover:bg-rose-100" aria-label="Dismiss" onClick={() => undo(o)}><XMarkIcon className="h-4 w-4" /></button></li>)}</ul>
         </div>

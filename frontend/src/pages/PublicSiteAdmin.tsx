@@ -155,7 +155,7 @@ export default function PublicSiteAdmin() {
             className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
               tab === t.key
                 ? 'border-primary text-primary'
-                : 'border-transparent text-ink-muted hover:border-slate-300 hover:text-ink'
+                : 'border-transparent text-ink-muted hover:border-hairline hover:text-ink'
             }`}
           >
             {t.label}
@@ -250,7 +250,7 @@ function PublishControl({
     <div className="card w-full max-w-md p-5">
       <div className="flex items-center gap-2">
         <GlobeAltIcon className="h-5 w-5 text-ink-subtle" />
-        <p className="min-w-0 flex-1 truncate text-sm font-medium text-slate-800">{fellowship.host}</p>
+        <p className="min-w-0 flex-1 truncate text-sm font-medium text-ink">{fellowship.host}</p>
       </div>
       <div className="mt-4 flex items-center gap-3">
         <button
@@ -732,7 +732,7 @@ function MessagesTab({ data, onSaved, flash }: { data: Overview; onSaved: () => 
 
       {items && items.length === 0 && (
         <div className="rounded-2xl border border-dashed border-hairline bg-white px-6 py-12 text-center">
-          <InboxIcon className="mx-auto h-8 w-8 text-slate-300" />
+          <InboxIcon className="mx-auto h-8 w-8 text-ink-subtle" />
           <p className="mt-3 text-sm font-medium text-ink">Nothing here</p>
           <p className="mt-1 text-sm text-ink-muted">
             Prayer requests, messages and intentions to give will appear here.

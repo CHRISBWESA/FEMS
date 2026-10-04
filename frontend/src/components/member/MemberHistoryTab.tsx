@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { PageLoader } from '../ui';
 
 const LABELS: Record<string, string> = {
   registered: 'Registered',
@@ -36,7 +37,7 @@ export default function MemberHistoryTab({ memberId }: { memberId: string }) {
   }, [memberId]);
 
   if (error) return <p className="py-6 text-sm text-ink-muted">{error}</p>;
-  if (!events) return <div className="flex justify-center py-10"><span className="spinner" /></div>;
+  if (!events) return <PageLoader rows={2} />;
   if (events.length === 0) return <p className="py-6 text-sm text-ink-muted">No history recorded yet.</p>;
 
   return (

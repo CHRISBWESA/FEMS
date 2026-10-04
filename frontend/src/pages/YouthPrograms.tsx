@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { CalendarIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+import { PageLoader } from '../components/ui';
 
 // Youth "programs" intentionally reuse the existing Activities/Attendance module rather than a
 // separate entity - this page is just a department-filtered view over /activities that links
@@ -56,9 +57,7 @@ export default function YouthPrograms() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <span className="spinner" />
-        </div>
+        <PageLoader rows={2} />
       ) : filtered.length === 0 ? (
         <div className="empty-state">
           <div className="stat-icon bg-surface-sunken text-ink-subtle">
@@ -81,7 +80,7 @@ export default function YouthPrograms() {
                 <p className="text-sm font-semibold text-ink">{a.title}</p>
                 <p className="text-xs text-ink-muted">{new Date(a.date).toLocaleDateString()}</p>
               </div>
-              <ArrowRightIcon className="h-4 w-4 text-slate-300" />
+              <ArrowRightIcon className="h-4 w-4 text-ink-subtle" />
             </button>
           ))}
         </div>

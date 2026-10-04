@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon, CalendarIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../App';
 import AttendanceCheckIn from '../components/attendance/AttendanceCheckIn';
+import { PageLoader } from '../components/ui';
 
 export default function ActivityDetail() {
   const { id } = useParams();
@@ -41,9 +42,7 @@ export default function ActivityDetail() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <span className="spinner" />
-      </div>
+      <PageLoader rows={2} />
     );
   }
   if (!activity) {
@@ -68,7 +67,7 @@ export default function ActivityDetail() {
 
       <div className="card">
         <div className="flex items-start gap-4 border-b border-hairline pb-5">
-          <div className="stat-icon bg-indigo-50 text-indigo-600">
+          <div className="stat-icon bg-primary-light text-primary">
             <CalendarIcon className="h-6 w-6" />
           </div>
           <div className="min-w-0">

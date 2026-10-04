@@ -160,7 +160,7 @@ export default function AssetDetail() {
       <div className="card mb-6">
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-hairline pb-5">
           <div className="flex items-center gap-4">
-            <div className="stat-icon bg-indigo-50 text-indigo-600"><CubeIcon className="h-6 w-6" /></div>
+            <div className="stat-icon bg-primary-light text-primary"><CubeIcon className="h-6 w-6" /></div>
             <div>
               <h1 className="text-2xl font-semibold tracking-tight text-ink">{asset.name}</h1>
               <p className="mt-1 font-mono text-xs text-ink-muted">{asset.asset_tag}{asset.serial_number ? ` · SN ${asset.serial_number}` : ''}</p>

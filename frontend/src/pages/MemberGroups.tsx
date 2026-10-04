@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../App';
 import { RectangleGroupIcon, PlusIcon, XMarkIcon, UserPlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PageLoader } from '../components/ui';
 
 export default function MemberGroups() {
   const { hasPermission } = useAuth();
@@ -100,11 +101,11 @@ export default function MemberGroups() {
       </div>
 
       {error && !showCreate && (
-        <div className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">{error}</div>
+        <div className="alert alert-danger mb-4" role="alert">{error}</div>
       )}
 
       {loading ? (
-        <div className="flex justify-center py-20"><span className="spinner" /></div>
+        <PageLoader rows={2} />
       ) : groups.length === 0 && !error ? (
         <div className="empty-state">
           <div className="stat-icon bg-surface-sunken text-ink-subtle"><RectangleGroupIcon className="h-6 w-6" /></div>
@@ -115,7 +116,7 @@ export default function MemberGroups() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {groups.map((g) => (
             <button key={g.id} onClick={() => openGroup(g.id)} className="card card-hover block w-full text-left">
-              <div className="stat-icon bg-indigo-50 text-indigo-600"><RectangleGroupIcon className="h-6 w-6" /></div>
+              <div className="stat-icon bg-primary-light text-primary"><RectangleGroupIcon className="h-6 w-6" /></div>
               <h3 className={`mt-4 text-base font-semibold ${g.isActive ? 'text-ink' : 'text-ink-subtle'}`}>{g.name}</h3>
               <p className="mt-1 line-clamp-2 text-sm text-ink-muted">{g.description || 'No description'}</p>
               <p className="mt-3 text-sm text-ink-muted">{g.memberCount} member(s)</p>
@@ -131,7 +132,7 @@ export default function MemberGroups() {
               <h3 className="text-base font-semibold text-ink">New group</h3>
               <button type="button" onClick={() => setShowCreate(false)} className="btn btn-icon"><XMarkIcon className="h-5 w-5" /></button>
             </div>
-            {error && <div className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">{error}</div>}
+            {error && <div className="alert alert-danger mb-4" role="alert">{error}</div>}
             <div className="space-y-4">
               <div>
                 <label className="label">Name *</label>
@@ -185,7 +186,7 @@ export default function MemberGroups() {
               <ul className="max-h-72 divide-y divide-hairline overflow-y-auto">
                 {open.members.map((m: any) => (
                   <li key={m.memberId} className="flex items-center justify-between py-2 text-sm">
-                    <span className="text-slate-800">{m.fullName} <span className="font-mono text-xs text-ink-subtle">{m.memberCode}</span></span>
+                    <span className="text-ink">{m.fullName} <span className="font-mono text-xs text-ink-subtle">{m.memberCode}</span></span>
                     {canManage && (
                       <button onClick={() => removeMember(m.memberId)} className="btn btn-icon" title="Remove from group">
                         <TrashIcon className="h-4 w-4 text-rose-500" />

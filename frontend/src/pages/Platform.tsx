@@ -152,7 +152,7 @@ function RegistrationsTab() {
       {outcome && !secret && !credentials && (
         <p className="mb-3 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800 ring-1 ring-inset ring-emerald-600/20">{outcome}</p>
       )}
-      {error && <p className="mb-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">{error}</p>}
+      {error && <p className="alert alert-danger mb-3 py-2.5" role="alert">{error}</p>}
 
       {!data ? <Spinner /> : data.data.length === 0 ? <Empty text="No signup requests" /> : (
         <div className="table-wrap overflow-x-auto">

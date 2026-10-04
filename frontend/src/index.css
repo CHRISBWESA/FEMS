@@ -173,8 +173,11 @@
   }
 
   /* ---------- Tables ---------- */
+  /* Scrolls sideways rather than clipping: a wide table used to be silently cut off on a phone, with the
+     right-hand columns unreachable and no scrollbar to suggest they existed. */
   .table-wrap {
-    @apply overflow-hidden rounded-card border border-hairline bg-surface shadow-card;
+    @apply overflow-x-auto rounded-card border border-hairline bg-surface shadow-card;
+    -webkit-overflow-scrolling: touch;
   }
   .table {
     @apply min-w-full divide-y divide-hairline;

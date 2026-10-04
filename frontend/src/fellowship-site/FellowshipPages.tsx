@@ -43,7 +43,7 @@ export function PageBody({ children }: { children: React.ReactNode }) {
 function EmptyState({ title, body }: { title: string; body: string }) {
   return (
     <div className="rounded-2xl border border-dashed border-hairline bg-white px-6 py-14 text-center">
-      <InformationCircleIcon className="mx-auto h-8 w-8 text-slate-300" />
+      <InformationCircleIcon className="mx-auto h-8 w-8 text-white/70" />
       <p className="mt-3 text-sm font-medium text-ink">{title}</p>
       <p className="mx-auto mt-1 max-w-md text-sm text-ink-muted">{body}</p>
     </div>
@@ -71,15 +71,15 @@ export function FellowshipHome({ site }: { site: FellowshipSite }) {
 
   return (
     <>
-      <div className="relative overflow-hidden bg-slate-900">
-        <div className="absolute -left-24 -top-24 h-80 w-80 rounded-full bg-indigo-600/25 blur-3xl" />
+      <div className="relative overflow-hidden bg-ink">
+        <div className="absolute -left-24 -top-24 h-80 w-80 rounded-full bg-primary/25 blur-3xl" />
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <div className="relative max-w-3xl">
             <h1 className="text-4xl font-semibold leading-tight tracking-tight text-white sm:text-5xl">
               {profile?.tagline || site.fellowship.name}
             </h1>
             {(home?.body || profile?.story) && (
-              <p className="mt-5 whitespace-pre-line text-base leading-relaxed text-slate-300">
+              <p className="mt-5 whitespace-pre-line text-base leading-relaxed text-white/70">
                 {home?.body || profile?.story}
               </p>
             )}

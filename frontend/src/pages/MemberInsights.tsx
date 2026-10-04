@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { UsersIcon, UserPlusIcon, ChartBarIcon } from '@heroicons/react/24/outline';
+import { PageLoader } from '../components/ui';
 
 function Bar({ value, max, className = 'bg-primary' }: { value: number; max: number; className?: string }) {
   const pct = max > 0 ? Math.max(2, Math.round((value / max) * 100)) : 0;
@@ -52,7 +53,7 @@ export default function MemberInsights() {
   }, [months, days]);
 
   if (error) return <div className="empty-state"><p className="empty-title">{error}</p></div>;
-  if (!data) return <div className="flex justify-center py-20"><span className="spinner" /></div>;
+  if (!data) return <PageLoader rows={2} />;
 
   const growthMax = Math.max(1, ...data.membershipGrowth.map((g: any) => Math.max(g.registered, g.deactivated + g.graduated)));
   const trendMax = Math.max(1, ...data.participation.trend.map((t: any) => t.linkedRecords + t.nameOnlyRecords));
@@ -82,7 +83,7 @@ export default function MemberInsights() {
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
-          { label: 'Members', value: data.totals.total, icon: UsersIcon, color: 'bg-indigo-50 text-indigo-600' },
+          { label: 'Members', value: data.totals.total, icon: UsersIcon, color: 'bg-primary-light text-primary' },
           { label: 'Active', value: data.totals.active, icon: UserPlusIcon, color: 'bg-emerald-50 text-success' },
           { label: 'Inactive', value: data.totals.inactive, icon: ChartBarIcon, color: 'bg-amber-50 text-amber-600' },
           { label: 'Graduated', value: data.totals.graduated, icon: ChartBarIcon, color: 'bg-surface-sunken text-ink-muted' },

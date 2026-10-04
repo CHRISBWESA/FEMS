@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import ListLimitNotice from '../components/ListLimitNotice';
 import { totalFromHeaders } from '../lib/list-total';
+import { PageLoader } from '../components/ui';
 import {
   CalendarIcon, MapPinIcon, ClockIcon, PlusIcon, XMarkIcon,
   LinkIcon, NoSymbolIcon, PencilSquareIcon,
@@ -147,9 +148,7 @@ export default function Activities() {
 
       <ListLimitNotice shown={activities.length} total={listTotal} noun="activities" />
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <span className="spinner" />
-        </div>
+        <PageLoader rows={2} />
       ) : activities.length === 0 ? (
         <div className="empty-state">
           <div className="stat-icon bg-surface-sunken text-ink-subtle">
@@ -165,7 +164,7 @@ export default function Activities() {
               <button onClick={() => navigate(`/activities/${a.id}`)} className="block w-full text-left">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="flex items-start gap-4">
-                    <div className="stat-icon bg-indigo-50 text-indigo-600">
+                    <div className="stat-icon bg-primary-light text-primary">
                       <CalendarIcon className="h-6 w-6" />
                     </div>
                     <div>
@@ -222,7 +221,7 @@ export default function Activities() {
           <form onSubmit={submitForm} onClick={(e) => e.stopPropagation()} className="modal max-w-lg">
             <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="stat-icon bg-indigo-50 text-indigo-600">
+                <div className="stat-icon bg-primary-light text-primary">
                   <CalendarIcon className="h-5 w-5" />
                 </div>
                 <div>
@@ -238,7 +237,7 @@ export default function Activities() {
             </div>
 
             {error && (
-              <div className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">
+              <div className="alert alert-danger mb-4" role="alert">
                 {error}
               </div>
             )}

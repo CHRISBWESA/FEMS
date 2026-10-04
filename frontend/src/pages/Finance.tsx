@@ -8,6 +8,7 @@ import FinancePeriodsTab from '../components/finance/FinancePeriodsTab';
 import FinancePledgesTab from '../components/finance/FinancePledgesTab';
 import FinanceReportsTab from '../components/finance/FinanceReportsTab';
 import { ErrorBox, Modal, errMsg } from '../components/finance/common';
+import { PageLoader } from '../components/ui';
 
 const CONTRIBUTION_TYPES = ['tithe', 'offering', 'thanksgiving', 'pledge', 'project', 'other'];
 const RELEASE_METHODS = ['cash', 'bank_transfer', 'mobile_money', 'cheque', 'other'];
@@ -290,9 +291,7 @@ export default function Finance() {
       {activeTab === 'reports' && <FinanceReportsTab />}
 
       {!LIST_TABS.includes(activeTab) ? null : loading ? (
-        <div className="flex items-center justify-center py-20">
-          <span className="spinner" />
-        </div>
+        <PageLoader rows={2} />
       ) : Array.isArray(data) && data.length === 0 ? (
         <div className="empty-state">
           <div className="stat-icon bg-surface-sunken text-ink-subtle">
@@ -383,7 +382,7 @@ export default function Finance() {
             </div>
 
             {error && (
-              <div className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">
+              <div className="alert alert-danger mb-4" role="alert">
                 {error}
               </div>
             )}

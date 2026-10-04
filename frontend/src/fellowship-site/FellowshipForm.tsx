@@ -129,7 +129,7 @@ export default function FellowshipForm({
             <p className="max-w-2xl text-sm leading-relaxed text-ink-muted">{config.intro}</p>
 
             {error && (
-              <div className="mt-6 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">
+              <div className="alert alert-danger mt-6" role="alert">
                 {error}
               </div>
             )}

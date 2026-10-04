@@ -5,6 +5,7 @@ import { useAuth } from '../App';
 import AdminAccounts from '../components/platform/AdminAccounts';
 import SecretModal from '../components/platform/SecretModal';
 import { Modal } from '../components/finance/common';
+import { PageLoader } from '../components/ui';
 import {
   UsersIcon, PlusIcon, XMarkIcon, PauseIcon, PlayIcon, UserPlusIcon,
   KeyIcon, PencilSquareIcon, ArrowPathIcon, TrashIcon,
@@ -478,9 +479,7 @@ export default function Users() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <span className="spinner" />
-        </div>
+        <PageLoader rows={2} />
       ) : filtered.length === 0 ? (
         <div className="empty-state">
           <div className="stat-icon bg-surface-sunken text-ink-subtle">
@@ -564,7 +563,7 @@ export default function Users() {
                         {isAdmin() ? (
                           <span
                             title="A fellowship's roles are assigned by that fellowship's own Secretary"
-                            className="cursor-not-allowed text-slate-300"
+                            className="cursor-not-allowed text-ink-subtle"
                           >
                             <ShieldCheckIcon className="h-4 w-4" />
                           </span>
@@ -674,7 +673,7 @@ export default function Users() {
                           whole block is replaced by an explanation instead of a control that can only fail. */}
                       {isAdmin() ? (
                         <div className="rounded-lg bg-canvas p-4 ring-1 ring-inset ring-hairline">
-                          <p className="text-sm font-medium text-slate-800">Read-only for a platform administrator</p>
+                          <p className="text-sm font-medium text-ink">Read-only for a platform administrator</p>
                           <p className="mt-1 text-sm text-ink-muted">
                             A fellowship&rsquo;s roles are assigned by that fellowship&rsquo;s own Secretary. To help
                             with something inside a fellowship, use <span className="font-medium">Platform &rsaquo; Impersonation</span>{' '}
@@ -804,7 +803,7 @@ export default function Users() {
             />
 
             {error && showCreate && (
-              <div className="mb-4 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">
+              <div className="alert alert-danger mb-4 py-2.5" role="alert">
                 {error}
               </div>
             )}

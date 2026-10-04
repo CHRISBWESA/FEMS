@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { TrashIcon, ArchiveBoxXMarkIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../App';
+import { PageLoader } from '../components/ui';
 
 export default function RecycleBin() {
   const { hasRole } = useAuth();
@@ -25,7 +26,7 @@ export default function RecycleBin() {
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center py-20"><span className="spinner" /></div>;
+  if (loading) return <PageLoader rows={2} />;
 
   return (
     <div className="mx-auto max-w-5xl space-y-5">

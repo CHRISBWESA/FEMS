@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BellIcon, CheckBadgeIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { PageLoader } from '../components/ui';
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -71,9 +72,7 @@ export default function Notifications() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <span className="spinner" />
-        </div>
+        <PageLoader rows={2} />
       ) : notifications.length === 0 ? (
         <div className="empty-state">
           <div className="stat-icon bg-surface-sunken text-ink-subtle">
@@ -92,14 +91,14 @@ export default function Notifications() {
               }`}
             >
               <div className="flex items-start gap-3">
-                <div className={`stat-icon ${n.is_read ? 'bg-surface-sunken text-ink-subtle' : 'bg-indigo-50 text-indigo-600'}`}>
+                <div className={`stat-icon ${n.is_read ? 'bg-surface-sunken text-ink-subtle' : 'bg-primary-light text-primary'}`}>
                   <BellIcon className="h-5 w-5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-medium text-ink">{n.title}</h3>
                     {!n.is_read && (
-                      <span className="rounded-full bg-indigo-600 px-2 py-0.5 text-xxs font-semibold text-white">
+                      <span className="rounded-full bg-primary px-2 py-0.5 text-xxs font-semibold text-white">
                         New
                       </span>
                     )}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
+import { PageLoader } from '../components/ui';
 import {
   BuildingOfficeIcon, UserGroupIcon, ArrowRightIcon,
   PlusIcon, XMarkIcon, PencilSquareIcon, PlayCircleIcon, PauseCircleIcon,
@@ -103,9 +104,7 @@ export default function Departments() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <span className="spinner" />
-        </div>
+        <PageLoader rows={2} />
       ) : visibleDepartments.length === 0 ? (
         <div className="empty-state">
           <div className="stat-icon bg-surface-sunken text-ink-subtle">
@@ -123,7 +122,7 @@ export default function Departments() {
                   <div className={`stat-icon ${dept.is_active === false ? 'bg-surface-sunken text-ink-subtle' : 'bg-emerald-50 text-success'}`}>
                     <BuildingOfficeIcon className="h-6 w-6" />
                   </div>
-                  <ArrowRightIcon className="h-4 w-4 text-slate-300 transition-colors group-hover:text-primary" />
+                  <ArrowRightIcon className="h-4 w-4 text-ink-subtle transition-colors group-hover:text-primary" />
                 </div>
                 <h3 className={`mt-4 text-base font-semibold ${dept.is_active === false ? 'text-ink-subtle' : 'text-ink'}`}>{dept.name}</h3>
                 <p className="mt-1 line-clamp-2 text-sm text-ink-muted">
@@ -192,7 +191,7 @@ export default function Departments() {
             </div>
 
             {error && (
-              <div className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">
+              <div className="alert alert-danger mb-4" role="alert">
                 {error}
               </div>
             )}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { PencilSquareIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../../App';
+import { PageLoader } from '../ui';
 
 const CHANNELS = ['email', 'sms', 'phone', 'whatsapp', 'in_app'];
 const csv = (v: string) => v.split(',').map((s) => s.trim()).filter(Boolean);
@@ -84,7 +85,7 @@ export default function MemberProfileTab({ memberId }: { memberId: string }) {
     }
   };
 
-  if (loading) return <div className="flex justify-center py-10"><span className="spinner" /></div>;
+  if (loading) return <PageLoader rows={2} />;
   if (error && !profile) return <p className="py-6 text-sm text-ink-muted">{error}</p>;
 
   const row = (label: string, value: React.ReactNode) => (
@@ -106,7 +107,7 @@ export default function MemberProfileTab({ memberId }: { memberId: string }) {
       </div>
 
       {error && (
-        <div className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">{error}</div>
+        <div className="alert alert-danger mb-4" role="alert">{error}</div>
       )}
 
       {editing ? (

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
+import { PageLoader } from '../components/ui';
 import {
   ArrowLeftIcon, FaceSmileIcon, UserPlusIcon, XMarkIcon, TrashIcon,
   ShieldExclamationIcon, DocumentTextIcon,
@@ -115,9 +116,7 @@ export default function YouthDetail() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <span className="spinner" />
-      </div>
+      <PageLoader rows={2} />
     );
   }
   if (!participant) {

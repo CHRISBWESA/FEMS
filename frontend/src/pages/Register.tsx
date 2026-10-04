@@ -126,17 +126,17 @@ export default function Register() {
           <div className="mb-8 flex items-center gap-3 lg:hidden">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-lg font-bold text-white">F</div>
             <div>
-              <p className="text-sm font-semibold text-slate-900">Fellowship Manager</p>
-              <p className="text-xs text-slate-400">Church Administration System</p>
+              <p className="text-sm font-semibold text-ink">Fellowship Manager</p>
+              <p className="text-xs text-ink-subtle">Church Administration System</p>
             </div>
           </div>
 
           {done ? (
             <div className="card">
               <CheckCircleIcon className="h-10 w-10 text-emerald-600" />
-              <h2 className="mt-3 text-xl font-semibold tracking-tight text-slate-900">Request received</h2>
-              <p className="mt-2 text-sm text-slate-600">{done}</p>
-              <p className="mt-4 text-sm text-slate-500">
+              <h2 className="mt-3 text-xl font-semibold tracking-tight text-ink">Request received</h2>
+              <p className="mt-2 text-sm text-ink-muted">{done}</p>
+              <p className="mt-4 text-sm text-ink-muted">
                 Keep the e-mail address you used. If the request is approved, your administrator credentials are
                 sent to it.
               </p>
@@ -147,14 +147,14 @@ export default function Register() {
             </div>
           ) : (
             <>
-              <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Request access</h2>
-              <p className="mt-1 text-sm text-slate-500">
+              <h2 className="text-2xl font-semibold tracking-tight text-ink">Request access</h2>
+              <p className="mt-1 text-sm text-ink-muted">
                 No account yet? Fill this in and an administrator will review it. Fields marked * are required.
               </p>
 
               <form className="mt-8 space-y-4" onSubmit={submit}>
                 {error && (
-                  <div className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">{error}</div>
+                  <div className="alert alert-danger" role="alert">{error}</div>
                 )}
 
                 <div>
@@ -178,7 +178,7 @@ export default function Register() {
                   <label htmlFor="email" className="label">Your e-mail address *</label>
                   <input id="email" type="email" required autoComplete="email" className={field}
                     placeholder="you@yourfellowship.org" value={form.email} onChange={set('email')} />
-                  <p className="mt-1 text-xs text-slate-400">Administrator credentials are sent to this address.</p>
+                  <p className="mt-1 text-xs text-ink-subtle">Administrator credentials are sent to this address.</p>
 
                   {/* Advice, not a block: a personal mailbox still works, it is just a poor long-term home for a
                       fellowship's official account. */}
@@ -217,7 +217,7 @@ export default function Register() {
                         </option>
                       ))}
                     </select>
-                    <p className="mt-1 text-xs text-slate-400">Optional. The final plan is set by the administrator.</p>
+                    <p className="mt-1 text-xs text-ink-subtle">Optional. The final plan is set by the administrator.</p>
                   </div>
                 )}
 
@@ -236,7 +236,7 @@ export default function Register() {
                   {loading ? <><span className="spinner border-white" /> Sending...</> : <><BuildingOfficeIcon className="h-5 w-5" /> Send request</>}
                 </button>
 
-                <p className="text-center text-sm text-slate-500">
+                <p className="text-center text-sm text-ink-muted">
                   Already have access? <Link to="/login" className="font-medium text-primary hover:text-primary-dark">Sign in</Link>
                 </p>
               </form>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { PageLoader } from '../ui';
 
 function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -25,7 +26,7 @@ export default function MemberEngagementTab({ memberId }: { memberId: string }) 
   }, [memberId, days]);
 
   if (error) return <p className="py-6 text-sm text-ink-muted">{error}</p>;
-  if (!data) return <div className="flex justify-center py-10"><span className="spinner" /></div>;
+  if (!data) return <PageLoader rows={2} />;
 
   const a = data.attendance;
 
@@ -57,7 +58,7 @@ export default function MemberEngagementTab({ memberId }: { memberId: string }) 
           <ul className="divide-y divide-hairline">
             {data.departments.map((d: any) => (
               <li key={d.departmentId} className="flex justify-between py-2 text-sm">
-                <span className="text-slate-800">{d.name || d.departmentId}</span>
+                <span className="text-ink">{d.name || d.departmentId}</span>
                 <span className="text-ink-subtle">since {new Date(d.joinedAt).toLocaleDateString()}</span>
               </li>
             ))}
@@ -71,7 +72,7 @@ export default function MemberEngagementTab({ memberId }: { memberId: string }) 
           <ul className="divide-y divide-hairline">
             {data.leadership.map((l: any, i: number) => (
               <li key={i} className="flex justify-between py-2 text-sm">
-                <span className="text-slate-800 capitalize">{l.role?.replace(/_/g, ' ')} · {l.name || l.departmentId}</span>
+                <span className="text-ink capitalize">{l.role?.replace(/_/g, ' ')} · {l.name || l.departmentId}</span>
                 <span className="text-ink-subtle">since {new Date(l.since).toLocaleDateString()}</span>
               </li>
             ))}
@@ -87,7 +88,7 @@ export default function MemberEngagementTab({ memberId }: { memberId: string }) 
           ) : (
             <div className="flex flex-wrap gap-1.5">
               {data.groups.map((g: any) => (
-                <span key={g.groupId} className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700">{g.name}</span>
+                <span key={g.groupId} className="rounded-full bg-primary-light px-2.5 py-0.5 text-xs font-medium text-primary">{g.name}</span>
               ))}
             </div>
           )}

@@ -23,7 +23,7 @@ export default function Backups() {  const [stats, setStats] = useState<any>(nul
         </div>
       </div>
 
-      {error && <div className="rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">{error}</div>}
+      {error && <div className="alert alert-danger" role="alert">{error}</div>}
 
       <div className="card space-y-4">
         <div className="flex items-start gap-3">
@@ -38,15 +38,15 @@ export default function Backups() {  const [stats, setStats] = useState<any>(nul
               flags, so the screen cannot claim a capability the backend does not report. */}
           <div className="rounded-lg bg-canvas p-3">
             <p className="text-xs uppercase tracking-wider text-ink-subtle">Application backup</p>
-            <p className="mt-1 text-sm font-semibold text-slate-800">{stats ? flag(stats.applicationBackup, 'Available', 'Not available') : '—'}</p>
+            <p className="mt-1 text-sm font-semibold text-ink">{stats ? flag(stats.applicationBackup, 'Available', 'Not available') : '—'}</p>
           </div>
           <div className="rounded-lg bg-canvas p-3">
             <p className="text-xs uppercase tracking-wider text-ink-subtle">Scheduled backup</p>
-            <p className="mt-1 text-sm font-semibold text-slate-800">{stats ? flag(stats.scheduledBackup, 'Scheduled in-app', 'External / unverified') : '—'}</p>
+            <p className="mt-1 text-sm font-semibold text-ink">{stats ? flag(stats.scheduledBackup, 'Scheduled in-app', 'External / unverified') : '—'}</p>
           </div>
           <div className="rounded-lg bg-canvas p-3">
             <p className="text-xs uppercase tracking-wider text-ink-subtle">Verified restore</p>
-            <p className="mt-1 text-sm font-semibold text-slate-800">{stats ? flag(stats.verifiedRestore, 'Verified', 'Not recorded here') : '—'}</p>
+            <p className="mt-1 text-sm font-semibold text-ink">{stats ? flag(stats.verifiedRestore, 'Verified', 'Not recorded here') : '—'}</p>
           </div>
         </div>
         {stats?.externalProcedure && (

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../App';
 import { DocumentTextIcon, CheckIcon, XMarkIcon, PlusIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { PageLoader } from '../components/ui';
 
 const emptyForm = {
   departmentId: '',
@@ -98,9 +99,7 @@ export default function Reports() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <span className="spinner" />
-      </div>
+      <PageLoader rows={2} />
     );
   }
 
@@ -190,7 +189,7 @@ export default function Reports() {
             </div>
 
             {error && (
-              <div className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">
+              <div className="alert alert-danger mb-4" role="alert">
                 {error}
               </div>
             )}

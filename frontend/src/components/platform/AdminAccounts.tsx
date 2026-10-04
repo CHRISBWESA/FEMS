@@ -60,14 +60,14 @@ export default function AdminAccounts({ embedded = false }: { embedded?: boolean
 
       <div className="mb-4 rounded-lg bg-canvas p-4 text-sm text-ink-muted ring-1 ring-inset ring-hairline">
         <p>
-          <span className="font-semibold text-slate-800">Platform administrator</span> accounts are provisioned outside
+          <span className="font-semibold text-ink">Platform administrator</span> accounts are provisioned outside
           the application on purpose: they hold the most powerful role in the system, so no in-app button can mint one.
           Support accounts are read-only on the platform and may only <em>request</em> scoped, time-limited access to a
           fellowship.
         </p>
       </div>
 
-      {error && <div className="mb-4 rounded-lg bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-600/20">{error}</div>}
+      {error && <div className="alert alert-danger mb-4" role="alert">{error}</div>}
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <input className="input max-w-xs" placeholder="Search name or e-mail…" value={q} onChange={(e) => setQ(e.target.value)} />

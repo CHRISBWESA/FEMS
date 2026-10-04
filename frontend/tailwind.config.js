@@ -84,6 +84,63 @@ module.exports = {
           900: '#4c360e',
         },
 
+        /**
+         * The status ramps, remapped onto the semantic scale above.
+         *
+         * For the same reason as `slate`: pages are full of `rose-*`, `emerald-*`, `amber-*` and `sky-*` classes
+         * that predate the semantic names. Redirecting the ramps keeps the lightness order intact — so a
+         * `text-rose-700` on a `bg-rose-50` panel keeps the contrast it had — while the whole product moves onto
+         * one set of status colours. Bright Tailwind defaults never mix with the new navy-and-gold palette.
+         */
+        rose: {
+          50: '#fdeced',
+          100: '#fbdadd',
+          200: '#f4b6bb',
+          300: '#ea8b93',
+          400: '#dc5a66',
+          500: '#b4242f',
+          600: '#a01d27',
+          700: '#841821',
+          800: '#6b151c',
+          900: '#57131a',
+        },
+        emerald: {
+          50: '#e7f6ef',
+          100: '#cdebdc',
+          200: '#9dd8bf',
+          300: '#66c09c',
+          400: '#2a9d74',
+          500: '#0f7b52',
+          600: '#0b6845',
+          700: '#095438',
+          800: '#07422e',
+          900: '#053223',
+        },
+        amber: {
+          50: '#fdf3e4',
+          100: '#fae7c8',
+          200: '#f4cd93',
+          300: '#eeb05c',
+          400: '#de9224',
+          500: '#c67a12',
+          600: '#a55a06',
+          700: '#87470a',
+          800: '#6b390c',
+          900: '#562f0e',
+        },
+        sky: {
+          50: '#e8f2f9',
+          100: '#cfe4f2',
+          200: '#a9cde7',
+          300: '#7cb0d8',
+          400: '#4d8fc2',
+          500: '#2b7aa9',
+          600: '#155e8a',
+          700: '#134c6e',
+          800: '#123d59',
+          900: '#11314a',
+        },
+
         // Retained aliases: these names are used across existing pages and must keep resolving.
         border: '#e3e9f0',
         background: '#f6f8fb',

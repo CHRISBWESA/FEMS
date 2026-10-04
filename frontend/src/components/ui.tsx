@@ -262,6 +262,41 @@ export function TableSkeleton({ rows = 5, columns = 4 }: { rows?: number; column
   );
 }
 
+/**
+ * The generic "this page is loading" state.
+ *
+ * A centred spinner tells the reader only that time is passing. A skeleton that holds the page's own shape tells
+ * them what is arriving and stops the layout jumping when it does, which is the difference between a screen that
+ * feels broken and one that feels quick.
+ */
+export function PageLoader({ rows = 3, label = 'Loading' }: { rows?: number; label?: string }) {
+  return (
+    <div className="animate-pulse space-y-4" aria-busy="true" aria-live="polite">
+      <div className="flex items-center justify-between gap-4">
+        <div className="space-y-2">
+          <div className="skeleton h-6 w-48" />
+          <div className="skeleton h-3.5 w-72" />
+        </div>
+        <div className="skeleton h-9 w-28 rounded-control" />
+      </div>
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="card card-pad space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="skeleton h-10 w-10 rounded-control" />
+            <div className="flex-1 space-y-2">
+              <div className="skeleton h-3.5" style={{ width: `${38 + ((i * 17) % 34)}%` }} />
+              <div className="skeleton h-3 w-2/5" />
+            </div>
+          </div>
+          <div className="skeleton h-3 w-full" />
+          <div className="skeleton h-3 w-4/5" />
+        </div>
+      ))}
+      <span className="sr-only">{label}</span>
+    </div>
+  );
+}
+
 export function ErrorState({ title = 'Something went wrong', message, onRetry }: { title?: string; message?: ReactNode; onRetry?: () => void }) {
   return (
     <EmptyState

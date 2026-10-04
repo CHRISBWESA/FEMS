@@ -306,19 +306,19 @@ export function PlatformAbout() {
       <Section>
         <div className="grid gap-10 lg:grid-cols-2">
           <div className="card p-8">
-            <h3 className="text-lg font-semibold text-slate-900">The problem it solves</h3>
-            <p className="mt-3 text-sm leading-relaxed text-slate-600">
+            <h3 className="text-lg font-semibold text-ink">The problem it solves</h3>
+            <p className="mt-3 text-sm leading-relaxed text-ink-muted">
               Fellowships outgrow paper by outgrowing the people who remember it. Membership moves to one book,
               finance to another, and communication to a group chat. A secretary spends the week reconciling them.
             </p>
-            <p className="mt-3 text-sm leading-relaxed text-slate-600">
+            <p className="mt-3 text-sm leading-relaxed text-ink-muted">
               This puts the register, the ledger, the calendar and the public face of a congregation in one place,
               and keeps the boundaries between congregations enforced by the server rather than by convention.
             </p>
           </div>
           <div className="card p-8">
-            <h3 className="text-lg font-semibold text-slate-900">The offices it models</h3>
-            <ul className="mt-3 space-y-2.5 text-sm text-slate-600">
+            <h3 className="text-lg font-semibold text-ink">The offices it models</h3>
+            <ul className="mt-3 space-y-2.5 text-sm text-ink-muted">
               {[
                 ['Secretary', 'runs members, departments, activities and the accounts of the fellowship.'],
                 ['Assistant Secretary', 'the same, minus the Secretary-only actions.'],
@@ -328,7 +328,7 @@ export function PlatformAbout() {
                 ['Ordinary member', 'sees only their own details and their fellowship’s shared items.'],
               ].map(([role, body]) => (
                 <li key={role}>
-                  <span className="font-medium text-slate-900">{role}.</span> {body}
+                  <span className="font-medium text-ink">{role}.</span> {body}
                 </li>
               ))}
             </ul>
@@ -363,8 +363,8 @@ export function PlatformFeatures() {
                 <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary-light text-primary">
                   <Icon className="h-5 w-5" />
                 </div>
-                <h3 className="text-base font-semibold text-slate-900">{f.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-600">{f.body}</p>
+                <h3 className="text-base font-semibold text-ink">{f.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-ink-muted">{f.body}</p>
               </div>
             );
           })}
@@ -392,11 +392,11 @@ export function PlatformSolutions() {
           {SOLUTIONS.map((s) => (
             <div key={s.audience} className="card p-8">
               <p className="text-xs font-semibold uppercase tracking-wider text-primary">{s.audience}</p>
-              <h3 className="mt-2 text-xl font-semibold text-slate-900">{s.title}</h3>
-              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-600">{s.body}</p>
+              <h3 className="mt-2 text-xl font-semibold text-ink">{s.title}</h3>
+              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-ink-muted">{s.body}</p>
               <ul className="mt-5 grid gap-2.5 sm:grid-cols-3">
                 {s.points.map((p) => (
-                  <li key={p} className="flex gap-2 rounded-lg bg-slate-50 p-3 text-sm text-slate-700">
+                  <li key={p} className="flex gap-2 rounded-lg bg-canvas p-3 text-sm text-ink">
                     <ShieldCheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
                     <span>{p}</span>
                   </li>
@@ -427,8 +427,8 @@ export function PlatformResources() {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {RESOURCES.map((r) => (
             <div key={r.title} className="card card-hover p-6">
-              <h3 className="text-base font-semibold text-slate-900">{r.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600">{r.body}</p>
+              <h3 className="text-base font-semibold text-ink">{r.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-ink-muted">{r.body}</p>
             </div>
           ))}
         </div>
@@ -470,13 +470,13 @@ function FaqList() {
     <div className="mx-auto max-w-3xl divide-y divide-border overflow-hidden rounded-2xl bg-white">
       {FAQS.map((f) => (
         <details key={f.question} className="group px-6 py-5">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-semibold text-slate-900">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-semibold text-ink">
             {f.question}
-            <span className="shrink-0 text-lg leading-none text-slate-400 transition-transform group-open:rotate-45">
+            <span className="shrink-0 text-lg leading-none text-ink-subtle transition-transform group-open:rotate-45">
               +
             </span>
           </summary>
-          <p className="mt-3 text-sm leading-relaxed text-slate-600">{f.answer}</p>
+          <p className="mt-3 text-sm leading-relaxed text-ink-muted">{f.answer}</p>
         </details>
       ))}
     </div>
