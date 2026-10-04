@@ -7,8 +7,10 @@
  * These are presentational only. They render what they are given and raise intent back out through callbacks, so
  * none of them fetch, store or decide anything.
  */
-import { createContext, useContext, useEffect, useId, useRef, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { Link } from 'react-router-dom';
+import { ArrowUpTrayIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 /* ------------------------------------------------------------------ layout */
 
@@ -465,5 +467,372 @@ export function Tabs<T extends string>({
         </button>
       ))}
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ header/nav */
+
+/**
+ * Where the reader is, and one click back. The application shell already names the current page in its header, so
+ * this carries the path *through* it — which is what a deep link like /members/123 needs to make sense.
+ */
+export function Breadcrumb({ items }: { items: { label: string; to?: string }[] }) {
+  return (
+    <nav aria-label="Breadcrumb" className="mb-3">
+      <ol className="flex flex-wrap items-center gap-1.5 text-sm">
+        {items.map((item, i) => {
+          const last = i === items.length - 1;
+          return (
+            <li key={`${item.label}-${i}`} className="flex items-center gap-1.5">
+              {i > 0 ? <span className="text-ink-subtle" aria-hidden>/</span> : null}
+              {item.to && !last ? (
+                <Link to={item.to} className="rounded text-ink-muted transition-colors hover:text-primary">
+                  {item.label}
+                </Link>
+              ) : (
+                <span className={last ? 'font-medium text-ink' : 'text-ink-muted'} aria-current={last ? 'page' : undefined}>
+                  {item.label}
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
+/* ------------------------------------------------------------------ stats */
+
+/**
+ * A single figure with its label and an optional footnote.
+ *
+ * `tone` is for meaning, not decoration: a warning figure should read as a warning, and everything else should not
+ * be shouting at the reader from a dashboard wall.
+ */
+export function StatCard({
+  label, value, hint, icon, tone = 'neutral', to, onClick,
+}: {
+  label: string;
+  value: ReactNode;
+  hint?: ReactNode;
+  icon?: ReactNode;
+  tone?: 'neutral' | 'primary' | 'success' | 'warning' | 'danger';
+  to?: string;
+  onClick?: () => void;
+}) {
+  const tones = {
+    neutral: 'bg-surface-sunken text-ink-muted',
+    primary: 'bg-primary-light text-primary',
+    success: 'bg-success-light text-success',
+    warning: 'bg-warning-light text-warning',
+    danger: 'bg-danger-light text-danger',
+  };
+
+  const inner = (
+    <>
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-sm text-ink-muted">{label}</p>
+        {icon ? <div className={`stat-icon h-9 w-9 ${tones[tone]}`}>{icon}</div> : null}
+      </div>
+      <p className="mt-2 text-3xl font-semibold tabular-nums tracking-tight text-ink">{value}</p>
+      {hint ? <p className="mt-1 text-xs leading-relaxed text-ink-subtle">{hint}</p> : null}
+    </>
+  );
+
+  const className = 'card card-pad text-left transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-elevated';
+
+  if (to) return <Link to={to} className={className}>{inner}</Link>;
+  if (onClick) return <button type="button" onClick={onClick} className={`${className} w-full`}>{inner}</button>;
+  return <div className={className}>{inner}</div>;
+}
+
+/** The equal-height row of StatCards every list page and dashboard puts under its header. */
+export function StatGrid({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return <div className={`grid grid-cols-2 gap-4 lg:grid-cols-4 ${className}`}>{children}</div>;
+}
+
+/* ------------------------------------------------------------------ icon button */
+
+/** For a control that is only an icon. `label` is required, because there is no visible text to announce. */
+export function IconButton({
+  label, icon, variant = 'ghost', size = 'md', ...rest
+}: {
+  label: string;
+  icon: ReactNode;
+  variant?: 'ghost' | 'secondary' | 'danger' | 'danger-quiet';
+  size?: 'sm' | 'md';
+} & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      className={`btn btn-${variant} ${size === 'sm' ? 'btn-sm' : ''} px-2`}
+      {...rest}
+    >
+      {icon}
+    </button>
+  );
+}
+
+/* ------------------------------------------------------------------ choice inputs */
+
+export function Radio({ label, description, ...rest }: { label: ReactNode; description?: ReactNode } & React.InputHTMLAttributes<HTMLInputElement>) {
+  const id = useId();
+  return (
+    <div className="flex items-start gap-2.5">
+      <input type="radio" id={id} className="mt-1 h-4 w-4 shrink-0 cursor-pointer border-hairline text-primary focus:ring-2 focus:ring-primary/30" {...rest} />
+      <label htmlFor={id} className="cursor-pointer text-sm leading-relaxed text-ink">
+        {label}
+        {description ? <span className="mt-0.5 block text-xs text-ink-muted">{description}</span> : null}
+      </label>
+    </div>
+  );
+}
+
+export function Switch({ label, description, checked, onChange, disabled }: {
+  label: ReactNode;
+  description?: ReactNode;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  disabled?: boolean;
+}) {
+  const id = useId();
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <label htmlFor={id} className="cursor-pointer text-sm leading-relaxed text-ink">
+        {label}
+        {description ? <span className="mt-0.5 block text-xs text-ink-muted">{description}</span> : null}
+      </label>
+      <button
+        id={id}
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        disabled={disabled}
+        onClick={() => onChange(!checked)}
+        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 disabled:opacity-50 ${
+          checked ? 'bg-primary' : 'bg-hairline'
+        }`}
+      >
+        <span
+          className={`inline-block h-4.5 w-4.5 rounded-full bg-white shadow-card transition-transform duration-200 ease-out ${
+            checked ? 'translate-x-[1.375rem]' : 'translate-x-1'
+          }`}
+          style={{ height: '1.125rem', width: '1.125rem' }}
+        />
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Selecting several options from a short list.
+ *
+ * Deliberately a list of checkboxes rather than a custom popover: the option counts here are small (departments,
+ * roles, statuses) and native checkboxes come with keyboard behaviour and screen-reader support for free.
+ */
+export function MultiSelect({ options, value, onChange, emptyLabel = 'None selected' }: {
+  options: { value: string; label: string }[];
+  value: string[];
+  onChange: (next: string[]) => void;
+  emptyLabel?: string;
+}) {
+  const toggle = (v: string) => onChange(value.includes(v) ? value.filter((x) => x !== v) : [...value, v]);
+
+  if (options.length === 0) return <p className="text-sm text-ink-subtle">{emptyLabel}</p>;
+
+  return (
+    <div className="space-y-2">
+      {options.map((o) => (
+        <Checkbox key={o.value} label={o.label} checked={value.includes(o.value)} onChange={() => toggle(o.value)} />
+      ))}
+    </div>
+  );
+}
+
+export function DatePicker(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  const field = useContext(FieldContext);
+  const { className = '', ...rest } = props;
+  return (
+    <input
+      type="date"
+      className={`input ${className}`}
+      id={field?.id}
+      aria-describedby={field?.describedBy || undefined}
+      {...rest}
+    />
+  );
+}
+
+/* ------------------------------------------------------------------ file upload */
+
+/**
+ * A file input that shows what was chosen.
+ *
+ * The native control is kept, visually hidden rather than replaced, so drag-and-drop, the keyboard, and the
+ * platform file picker all keep working. Size is checked here as well as on the server: the server check is the one
+ * that matters, and this one saves the user a pointless upload first.
+ */
+export function FileUploader({
+  onSelect, accept, maxSizeMb = 10, label = 'Choose a file', hint, busy = false,
+}: {
+  onSelect: (file: File) => void;
+  accept?: string;
+  maxSizeMb?: number;
+  label?: string;
+  hint?: ReactNode;
+  busy?: boolean;
+}) {
+  const [chosen, setChosen] = useState<File | null>(null);
+  const [problem, setProblem] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handle = (file: File | undefined) => {
+    if (!file) return;
+    if (file.size > maxSizeMb * 1024 * 1024) {
+      setProblem(`${file.name} is ${(file.size / 1024 / 1024).toFixed(1)} MB. The limit is ${maxSizeMb} MB.`);
+      setChosen(null);
+      return;
+    }
+    setProblem('');
+    setChosen(file);
+    onSelect(file);
+  };
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center gap-3">
+        <label className={`btn btn-secondary ${busy ? 'pointer-events-none opacity-50' : ''}`}>
+          {busy ? <span className="spinner h-4 w-4" /> : <ArrowUpTrayIcon className="h-4 w-4" />}
+          {label}
+          <input
+            ref={inputRef}
+            type="file"
+            className="sr-only"
+            accept={accept}
+            disabled={busy}
+            onChange={(e) => handle(e.target.files?.[0])}
+          />
+        </label>
+        {chosen ? (
+          <span className="inline-flex items-center gap-2 text-sm text-ink">
+            {chosen.name}
+            <span className="text-ink-subtle">({(chosen.size / 1024).toFixed(0)} KB)</span>
+            <button
+              type="button"
+              onClick={() => {
+                setChosen(null);
+                setProblem('');
+                if (inputRef.current) inputRef.current.value = '';
+              }}
+              aria-label={`Remove ${chosen.name}`}
+              className="rounded p-1 text-ink-subtle hover:bg-surface-sunken hover:text-ink"
+            >
+              <XMarkIcon className="h-4 w-4" />
+            </button>
+          </span>
+        ) : null}
+      </div>
+      {hint ? <p className="hint">{hint}</p> : null}
+      {problem ? <p className="field-error">{problem}</p> : null}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ timeline */
+
+export function Timeline({ items }: { items: { key: string; title: ReactNode; meta?: ReactNode; body?: ReactNode }[] }) {
+  return (
+    <ol className="relative space-y-4 border-l border-hairline pl-5">
+      {items.map((it) => (
+        <li key={it.key} className="relative">
+          <span aria-hidden className="absolute -left-[1.4375rem] top-1.5 h-2.5 w-2.5 rounded-full bg-primary ring-4 ring-surface" />
+          <p className="text-sm font-medium text-ink">{it.title}</p>
+          {it.meta ? <p className="mt-0.5 text-xs text-ink-subtle">{it.meta}</p> : null}
+          {it.body ? <div className="mt-1 text-sm leading-relaxed text-ink-muted">{it.body}</div> : null}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/* ------------------------------------------------------------------ stepper */
+
+export function Stepper({ steps, current }: { steps: string[]; current: number }) {
+  return (
+    <ol className="flex flex-wrap items-center gap-2">
+      {steps.map((label, i) => {
+        const done = i < current;
+        const active = i === current;
+        return (
+          <li key={label} className="flex items-center gap-2">
+            <span
+              aria-current={active ? 'step' : undefined}
+              className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
+                done ? 'bg-primary text-white' : active ? 'bg-primary text-white ring-4 ring-primary/20' : 'bg-surface-sunken text-ink-subtle'
+              }`}
+            >
+              {done ? <CheckIcon className="h-4 w-4" /> : i + 1}
+            </span>
+            <span className={`text-sm ${active ? 'font-medium text-ink' : 'text-ink-muted'}`}>
+              {label}
+              {done ? <span className="sr-only"> (completed)</span> : null}
+            </span>
+            {i < steps.length - 1 ? <span aria-hidden className="mx-1 h-px w-6 bg-hairline sm:w-10" /> : null}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/* ------------------------------------------------------------------ toasts */
+
+type Toast = { id: number; tone: 'success' | 'error' | 'info'; message: string };
+const ToastContext = createContext<{ push: (tone: Toast['tone'], message: string) => void }>({ push: () => {} });
+
+export function useToast() {
+  return useContext(ToastContext);
+}
+
+/**
+ * Feedback for something that has already happened, so the reader is not left wondering whether their click
+ * registered. Deliberately not a substitute for an error that needs reading: a failed action that matters should
+ * also be shown inline where it happened.
+ */
+export function ToastProvider({ children }: { children: ReactNode }) {
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const next = useRef(1);
+
+  const push = (tone: Toast['tone'], message: string) => {
+    const id = next.current++;
+    setToasts((t) => [...t, { id, tone, message }]);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 5000);
+  };
+
+  return (
+    <ToastContext.Provider value={{ push }}>
+      {children}
+      <div className="pointer-events-none fixed inset-x-0 bottom-4 z-[60] flex flex-col items-center gap-2 px-4" aria-live="polite" aria-atomic="false">
+        {toasts.map((t) => (
+          <div
+            key={t.id}
+            className={`alert alert-${t.tone === 'error' ? 'danger' : t.tone} pointer-events-auto w-full max-w-md shadow-overlay`}
+          >
+            <span className="min-w-0 flex-1">{t.message}</span>
+            <button
+              type="button"
+              aria-label="Dismiss"
+              onClick={() => setToasts((list) => list.filter((x) => x.id !== t.id))}
+              className="shrink-0 rounded p-1 hover:bg-black/5"
+            >
+              <XMarkIcon className="h-4 w-4" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </ToastContext.Provider>
   );
 }
