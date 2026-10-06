@@ -104,6 +104,15 @@ export default function Layout() {
     setSidebarOpen(false);
   }, [location.pathname]);
 
+  // Close mobile drawer on Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && sidebarOpen) setSidebarOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [sidebarOpen]);
+
   useEffect(() => {
     // Once per session, not on every navigation: this ran on every route change and on its own was enough
     // traffic to exhaust the API rate limit during ordinary use. Session changes clear the cache.
@@ -192,7 +201,9 @@ export default function Layout() {
   );
 
   return (
-    <div className="flex h-dvh bg-canvas">
+    <>
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 z-50 btn btn-primary">Skip to main content</a>
+      <div className="flex h-dvh bg-canvas">
       {/* Desktop sidebar */}
       <aside className="hidden w-64 shrink-0 flex-col border-r border-hairline bg-surface lg:flex">
         <Link to="/dashboard" className="flex items-center gap-2.5 border-b border-hairline px-5 py-4">
@@ -223,9 +234,9 @@ export default function Layout() {
 
       {/* Mobile drawer */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Navigation menu">
           <div className="fixed inset-0 bg-ink/50 backdrop-blur-[2px]" onClick={() => setSidebarOpen(false)} />
-          <div className="relative flex h-full w-72 max-w-[85vw] flex-col bg-surface shadow-overlay">
+          <div className="relative flex h-full w-72 max-w-[85vw] flex-col bg-surface shadow-overlay" tabIndex={-1} ref={(el) => { if (el) el.focus(); }}>
             <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-8 w-8 items-center justify-center rounded-control bg-primary text-sm font-bold text-white">
@@ -256,6 +267,7 @@ export default function Layout() {
             <button
               onClick={() => setSidebarOpen(true)}
               aria-label="Open menu"
+              aria-expanded={sidebarOpen}
               className="btn btn-ghost btn-sm px-2 lg:hidden"
             >
               <Bars3Icon className="h-5 w-5" />
@@ -325,7 +337,7 @@ export default function Layout() {
         )}
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6 lg:p-8">
+        <main id="main-content" className="flex-1 overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6 lg:p-8">
           <Outlet />
         </main>
        </div>
@@ -336,8 +348,9 @@ export default function Layout() {
          message={`${confirmLogout.waiting} attendance check-in${confirmLogout.waiting === 1 ? ' has' : 's have'} not been sent to the server yet. Signing out now will delete ${confirmLogout.waiting === 1 ? 'it' : 'them'}. Sign out anyway?`}
          onConfirm={confirmLogoutAction}
          onCancel={() => setConfirmLogout(null)}
-       />
-     )}
-     </div>
-   );
+/>
+      )}
+      </div>
+    </>
+  );
 }
