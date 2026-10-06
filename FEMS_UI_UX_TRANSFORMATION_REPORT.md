@@ -212,3 +212,11 @@ Unrelated to this work, and still open from earlier investigation:
 - `platform` and `billing` integration suites still encode the previous onboarding model.
 - CORS accepts a single origin, so Vercel preview deploys are rejected.
 - Member photos, logos and event images are not modelled at all.
+
+
+---
+
+## Phase 2 addendum
+
+P0 routing fixed (ercel.json rewrites; routes verified 200, assets unaffected). DataTable and 13 primitives added. Platform admin: shell regrouped and Dashboard/Fellowships/Support/Audit rebuilt on the new primitives. Everything else from the Phase 2 instruction remains open; the undisguised completion number reported below is what stands.
+
