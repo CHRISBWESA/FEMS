@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Bar, Empty, Spinner, errMsg } from '../components/finance/common';
+import { Bar, errMsg } from '../components/finance/common';
+import { DataTable, type Column } from '../components/DataTable';
+import { Alert, EmptyState, PageLoader } from '../components/ui';
 
 const LIMIT_LABELS: Record<string, string> = { max_users: 'User accounts', max_members: 'Members', max_storage_mb: 'Document storage (MB)' };
 const MODULE_LABELS: Record<string, string> = { finance: 'Finance & contributions', youth: 'Youth & children', resources: 'Resources & assets', volunteers: 'Volunteers & service', analytics: 'Analytics', member_engagement: 'Member engagement' };
@@ -13,15 +15,15 @@ export default function Billing() {
   const [d, setD] = useState<any>(null);
   const [error, setError] = useState('');
   useEffect(() => { axios.get('/billing/subscription', { withCredentials: true }).then((r) => setD(r.data)).catch((e) => setError(errMsg(e, 'Could not load billing information'))); }, []);
-  if (error) return <div className="mx-auto max-w-4xl"><Empty text={error} /></div>;
-  if (!d) return <Spinner />;
+  if (error) return <div className="mx-auto max-w-4xl"><Alert tone="danger">{error}</Alert></div>;
+  if (!d) return <PageLoader />;
   const s = d.subscription;
   return (
     <div className="mx-auto max-w-4xl">
       <div className="page-header">
         <div><h1 className="page-title">Billing &amp; plan</h1><p className="page-desc">Your fellowship's FEMS subscription. This is separate from the fellowship's own Finance records.</p></div>
       </div>
-      {!s ? <Empty text="Your fellowship is not on a paid plan. Nothing is limited." /> : (
+      {!s ? <EmptyState title="No paid plan" description="Your fellowship is not on a paid plan. Nothing is limited." /> : (
         <>
           <div className="card mb-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -57,11 +59,16 @@ export default function Billing() {
       {d.invoices.length > 0 && (
         <div className="card">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Invoices &amp; receipts</h2>
-          <div className="overflow-x-auto"><table className="table"><thead><tr><th>Invoice</th><th>Period</th><th>Amount</th><th>Due</th><th>Status</th></tr></thead>
-            <tbody>{d.invoices.map((i: any) => (
-              <tr key={i.id}><td className="font-mono text-xs">{i.number}</td><td>{new Date(i.periodStart).toLocaleDateString()} – {new Date(i.periodEnd).toLocaleDateString()}</td><td>{i.amount} {i.currency}</td><td>{new Date(i.dueAt).toLocaleDateString()}</td>
-                <td><span className={`status-badge ${badge(i.status)} capitalize`}>{i.status}</span>{i.receipt && <span className="ml-2 text-xs text-ink-muted">Receipt {i.receipt.number} · {new Date(i.receipt.paidAt).toLocaleDateString()}</span>}</td></tr>
-            ))}</tbody></table></div>
+          {(() => {
+            const columns: Column<any>[] = [
+              { key: 'number', header: 'Invoice', priority: 'primary', render: (i) => <span className="font-mono text-xs">{i.number}</span> },
+              { key: 'period', header: 'Period', priority: 'secondary', render: (i) => `${new Date(i.periodStart).toLocaleDateString()} – ${new Date(i.periodEnd).toLocaleDateString()}` },
+              { key: 'amount', header: 'Amount', tabular: true, render: (i) => `${i.amount} ${i.currency}` },
+              { key: 'due', header: 'Due', priority: 'meta', render: (i) => new Date(i.dueAt).toLocaleDateString() },
+              { key: 'status', header: 'Status', render: (i) => <><span className={`status-badge ${badge(i.status)} capitalize`}>{i.status}</span>{i.receipt && <span className="ml-2 text-xs text-ink-muted">Receipt {i.receipt.number} · {new Date(i.receipt.paidAt).toLocaleDateString()}</span>}</> },
+            ];
+            return <DataTable columns={columns} rows={d.invoices} rowKey={(i) => i.id} caption="Invoices and receipts" clientPaging />;
+          })()}
         </div>
       )}
     </div>

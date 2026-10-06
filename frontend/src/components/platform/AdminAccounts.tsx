@@ -3,7 +3,9 @@ import axios from 'axios';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import SecretModal from './SecretModal';
 import FormModal from '../resources/FormModal';
-import { Empty, Spinner, errMsg } from '../finance/common';
+import { errMsg } from '../finance/common';
+import { DataTable, SearchInput } from '../DataTable';
+import { Alert, Button } from '../ui';
 
 /**
  * System (platform) accounts: the people who run FEMS itself rather than a fellowship. They belong to no
@@ -67,46 +69,36 @@ export default function AdminAccounts({ embedded = false }: { embedded?: boolean
         </p>
       </div>
 
-      {error && <div className="alert alert-danger mb-4" role="alert">{error}</div>}
+      {error && <Alert tone="danger" className="mb-4">{error}</Alert>}
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <input className="input max-w-xs" placeholder="Search name or e-mail…" value={q} onChange={(e) => setQ(e.target.value)} />
-        <button className="btn btn-primary" onClick={() => setCreating(true)}><PlusIcon className="h-4 w-4" /> Add support account</button>
+        <SearchInput value={q} onChange={setQ} placeholder="Search name or e-mail…" className="max-w-xs" />
+        <Button variant="primary" onClick={() => setCreating(true)}><PlusIcon className="h-4 w-4" /> Add support account</Button>
       </div>
 
-      {!rows ? <Spinner /> : filtered.length === 0 ? (
-        <Empty text={q ? 'No matches' : 'No system accounts'} />
-      ) : (
-        <div className="table-wrap overflow-x-auto">
-          <table className="table">
-            <thead><tr><th>Name</th><th>E-mail</th><th>Role</th><th>Status</th><th>Created</th><th /></tr></thead>
-            <tbody>
-              {filtered.map((s) => (
-                <tr key={s.id}>
-                  <td className="font-medium text-ink">{s.firstName} {s.lastName}</td>
-                  <td>{s.email}</td>
-                  <td>
-                    <span className={`status-badge ${s.roles.includes('admin') ? 'status-active' : 'status-submitted'}`}>
-                      {s.roles.includes('admin') ? 'Platform administrator' : 'Platform support'}
-                    </span>
-                  </td>
-                  <td><span className={`status-badge ${s.isActive ? 'status-active' : 'status-inactive'}`}>{s.isActive ? 'Active' : 'Inactive'}</span></td>
-                  <td className="whitespace-nowrap text-xs text-ink-muted">{s.createdAt ? new Date(s.createdAt).toLocaleDateString() : '—'}</td>
-                  <td className="text-right">
-                    {/* Deactivating a support account also revokes every support grant it requested. */}
-                    {s.roles.includes('platform_support') && !s.roles.includes('admin') && (
-                      <button className="btn btn-secondary btn-sm" disabled={busy === s.id} onClick={() => toggle(s)}>
-                        {s.isActive ? 'Deactivate' : 'Activate'}
-                      </button>
-                    )}
-                    {s.roles.includes('admin') && <span className="text-xs text-ink-subtle">Cannot be changed here</span>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <DataTable
+        columns={[
+          { key: 'name', header: 'Name', priority: 'primary', render: (s) => <span className="font-medium text-ink">{s.firstName} {s.lastName}</span> },
+          { key: 'email', header: 'E-mail', priority: 'secondary' },
+          { key: 'role', header: 'Role', render: (s) => <span className={`status-badge ${s.roles.includes('admin') ? 'status-active' : 'status-submitted'}`}>{s.roles.includes('admin') ? 'Platform administrator' : 'Platform support'}</span> },
+          { key: 'status', header: 'Status', render: (s) => <span className={`status-badge ${s.isActive ? 'status-active' : 'status-inactive'}`}>{s.isActive ? 'Active' : 'Inactive'}</span> },
+          { key: 'created', header: 'Created', priority: 'meta', render: (s) => <span className="text-xs text-ink-muted">{s.createdAt ? new Date(s.createdAt).toLocaleDateString() : '—'}</span> },
+        ]}
+        rows={rows === null ? undefined : filtered}
+        rowKey={(s) => s.id}
+        loading={rows === null}
+        caption="System accounts"
+        empty={{ title: q ? 'No matches' : 'No system accounts' }}
+        mobile="scroll"
+        rowActions={(s) => {
+          // Deactivating a support account also revokes every support grant it requested.
+          if (s.roles.includes('platform_support') && !s.roles.includes('admin')) {
+            return <Button variant="secondary" size="sm" disabled={busy === s.id} onClick={() => toggle(s)}>{s.isActive ? 'Deactivate' : 'Activate'}</Button>;
+          }
+          if (s.roles.includes('admin')) return <span className="text-xs text-ink-subtle">Cannot be changed here</span>;
+          return null;
+        }}
+      />
 
       {creating && (
         <FormModal

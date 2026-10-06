@@ -6,7 +6,8 @@ import { useAuth } from '../App';
 import FormModal from '../components/resources/FormModal';
 import SecretModal from '../components/platform/SecretModal';
 import SubscriptionCard from '../components/platform/SubscriptionCard';
-import { Empty, Spinner, errMsg } from '../components/finance/common';
+import { PageLoader, Alert } from '../components/ui';
+import { errMsg } from '../components/finance/common';
 
 type Dialog = null | 'suspend' | 'reactivate' | 'edit' | 'admin';
 
@@ -24,8 +25,8 @@ export default function PlatformTenant() {
   const load = () => axios.get(`/platform/tenants/${id}`, { withCredentials: true }).then((r) => { setT(r.data); setError(''); }).catch((e) => setError(e.response?.status === 404 ? 'Fellowship not found.' : errMsg(e, 'Could not load the fellowship')));
   useEffect(() => { load(); }, [id]);
 
-  if (error) return <div className="mx-auto max-w-4xl"><button onClick={() => navigate('/platform')} className="mb-4 text-sm text-ink-muted">← Back</button><Empty text={error} /></div>;
-  if (!t) return <Spinner />;
+  if (error) return <div className="mx-auto max-w-4xl"><button onClick={() => navigate('/platform')} className="mb-4 text-sm text-ink-muted">← Back</button><Alert tone="danger">{error}</Alert></div>;
+  if (!t) return <PageLoader />;
 
   const toggleModule = async (key: string, enabled: boolean) => {
     setBusy(key);
