@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { CheckCircleIcon, ExclamationTriangleIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon, ExclamationTriangleIcon, ShieldCheckIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { PASSWORD_HINT, storeSessionTokens } from '../lib/session';
 import { Alert, Button } from '../components/ui';
 
@@ -38,6 +38,8 @@ export default function AcceptInvitation() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [showPw2, setShowPw2] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -151,15 +153,18 @@ export default function AcceptInvitation() {
                   Choose a password
                   <span className="ml-0.5 text-danger">*</span>
                 </label>
-                <input
-                  id="pw"
-                  type="password"
-                  required
-                  autoComplete="new-password"
-                  className="input"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+                <div className="relative">
+                  <input
+                    id="pw"
+                    type={showPw ? 'text' : 'password'}
+                    required
+                    autoComplete="new-password"
+                    className="input pr-10"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <Toggle show={showPw} onToggle={() => setShowPw((v) => !v)} />
+                </div>
                 <p className="hint">{PASSWORD_HINT}</p>
               </div>
 
@@ -168,15 +173,18 @@ export default function AcceptInvitation() {
                   Type it again
                   <span className="ml-0.5 text-danger">*</span>
                 </label>
-                <input
-                  id="pw2"
-                  type="password"
-                  required
-                  autoComplete="new-password"
-                  className="input"
-                  value={confirm}
-                  onChange={(e) => setConfirm(e.target.value)}
-                />
+                <div className="relative">
+                  <input
+                    id="pw2"
+                    type={showPw2 ? 'text' : 'password'}
+                    required
+                    autoComplete="new-password"
+                    className="input pr-10"
+                    value={confirm}
+                    onChange={(e) => setConfirm(e.target.value)}
+                  />
+                  <Toggle show={showPw2} onToggle={() => setShowPw2((v) => !v)} />
+                </div>
               </div>
 
               <Button type="submit" variant="primary" size="lg" className="btn-block" loading={busy}>
@@ -195,6 +203,21 @@ export default function AcceptInvitation() {
         )}
       </div>
     </Shell>
+  );
+}
+
+function Toggle({ show, onToggle }: { show: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={show ? 'Hide password' : 'Show password'}
+      aria-pressed={show}
+      title={show ? 'Hide password' : 'Show password'}
+      className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1.5 text-ink-subtle transition-colors hover:bg-surface-sunken hover:text-ink"
+    >
+      {show ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+    </button>
   );
 }
 
