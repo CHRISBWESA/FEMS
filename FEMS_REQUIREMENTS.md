@@ -1,0 +1,15 @@
+﻿# FEMS — running requirements list and true status
+
+Captured so a new session does not need this chat thread.
+
+1. Responsive signup-request rows/details — DONE (RegistrationsTab now uses DataTable with mobile card layout)
+2. Rejected signup requests: 30-day retention, rejection count, Pending/Approved/Rejected/All filter, applicant notification via Email/SMS/WhatsApp with recorded status, admin reason — PARTIAL. Filter/counts already existed; retention + notification + status storage NOT built; SMS/email/WhatsApp envs are placeholders only in .env.example
+3. Profile page for Fellowship Admin and all accounts, editable name + email (validation, uniqueness, audit, own-only) — NOT DONE
+4. Bulk SMS to members with personalized names ({{firstName}}), preview, recipient filters, delivery tracking, communication-permission gating — NOT DONE (SMS provider envs set, nothing implemented)
+5. Treasurer/Mwasibu contribution reminders via SMS, {{firstName}}/{{amount}} placeholders, individual/multi/all/filter, tracked delivery, permission-gated — NOT DONE (same SMS provider blocker)
+6. Password visibility (Show/Hide) on all password forms — DONE (AcceptInvitation added the toggle; Login/Register/ForcePasswordChange already had it)
+7. Secretary: 15-minute member registration link, countdown and expiry, copy/WhatsApp/Email share, no-account submission, Pending verification queue (Verify & Add / Reject / edit, verifier + timestamp, audit), duplicate guard, filtered member export (.xlsx/.pdf/.csv) — NOT DONE
+8. Notifications should be in-app message notifications — NOT DONE (Notification centre page exists, not redesigned or adopted)
+
+General rule for the next session: backend gets provider envs; everything else is frontend and must be
+implemented and verified (tsc + eslint + build + jest). Do not claim delivery for SMS/email until a provider key is present.
