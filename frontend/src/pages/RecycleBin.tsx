@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { TrashIcon, ArchiveBoxXMarkIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../App';
-import { PageLoader } from '../components/ui';
+import { PageLoader, ConfirmDialog } from '../components/ui';
 
 export default function RecycleBin() {
   const { hasRole } = useAuth();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [confirmDelete, setConfirmDelete] = useState<null | string>(null);
 
   useEffect(() => {
     axios.get('/recycle-bin', { withCredentials: true })
@@ -16,13 +17,17 @@ export default function RecycleBin() {
       .finally(() => setLoading(false));
   }, []);
 
-  const deletePermanently = async (id: string) => {
-    if (!window.confirm('This permanently deletes the recycle-bin record. Proceed?')) return;
+  const deletePermanently = (id: string) => setConfirmDelete(id);
+
+  const confirmDeleteAction = async () => {
+    if (!confirmDelete) return;
     try {
-      await axios.delete(`/recycle-bin/${id}`, { withCredentials: true });
-      setItems(items.filter((item) => item.id !== id));
+      await axios.delete(`/recycle-bin/${confirmDelete}`, { withCredentials: true });
+      setItems(items.filter((item) => item.id !== confirmDelete));
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to delete');
+    } finally {
+      setConfirmDelete(null);
     }
   };
 
@@ -76,6 +81,16 @@ export default function RecycleBin() {
           <ShieldCheckIcon className="mt-0.5 h-4 w-4 shrink-0" />
           Assistant secretaries can list records; only the Main Secretary can permanently delete one.
         </div>
+      )}
+      {confirmDelete && (
+        <ConfirmDialog
+          open
+          title="Delete permanently"
+          message="This permanently deletes the recycle-bin record. Proceed?"
+          tone="danger"
+          onConfirm={confirmDeleteAction}
+          onCancel={() => setConfirmDelete(null)}
+        />
       )}
     </div>
   );

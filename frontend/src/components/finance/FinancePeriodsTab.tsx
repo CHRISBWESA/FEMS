@@ -3,6 +3,7 @@ import axios from 'axios';
 import { LockClosedIcon, LockOpenIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../../App';
 import { ErrorBox, Empty, Modal, Spinner, errMsg } from './common';
+import { ConfirmDialog } from '../ui';
 
 // A closed period rejects new, edited or deleted records dated inside it.
 export default function FinancePeriodsTab() {
@@ -13,13 +14,19 @@ export default function FinancePeriodsTab() {
   const [show, setShow] = useState(false);
   const [form, setForm] = useState({ name: '', startDate: '', endDate: '' });
   const [error, setError] = useState('');
+  const [confirmClose, setConfirmClose] = useState<null | { id: string; name: string }>(null);
 
   const load = () => axios.get('/finance/periods', { withCredentials: true }).then((r) => setRows(r.data)).catch((e) => { setError(errMsg(e, 'Could not load periods')); setRows([]); });
   useEffect(() => { load(); }, []);
 
   const close = async (p: any) => {
-    if (!window.confirm(`Close "${p.name}"? Records dated inside it can no longer be added, edited or deleted.`)) return;
-    try { await axios.post(`/finance/periods/${p.id}/close`, {}, { withCredentials: true }); load(); } catch (e: any) { alert(errMsg(e, 'Failed')); }
+    setConfirmClose({ id: p.id, name: p.name });
+  };
+
+  const confirmCloseAction = async () => {
+    if (!confirmClose) return;
+    try { await axios.post(`/finance/periods/${confirmClose.id}/close`, {}, { withCredentials: true }); load(); } catch (e: any) { alert(errMsg(e, 'Failed')); }
+    setConfirmClose(null);
   };
   const reopen = async (p: any) => {
     const reason = window.prompt(`Reason for re-opening "${p.name}" (recorded in the audit trail):`);
@@ -73,6 +80,15 @@ export default function FinancePeriodsTab() {
             <div className="flex gap-2"><button className="btn btn-primary flex-1" type="submit">Create</button><button type="button" onClick={() => setShow(false)} className="btn btn-secondary flex-1">Cancel</button></div>
           </form>
         </Modal>
+      )}
+      {confirmClose && (
+        <ConfirmDialog
+          open
+          title="Close financial period"
+          message={`Close "${confirmClose.name}"? Records dated inside it can no longer be added, edited or deleted.`}
+          onConfirm={confirmCloseAction}
+          onCancel={() => setConfirmClose(null)}
+        />
       )}
     </div>
   );

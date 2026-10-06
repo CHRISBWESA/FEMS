@@ -15,7 +15,7 @@ import { useOfflineSync } from '../offline/hooks';
 import { onSignOut } from '../offline/session';
 import { pendingCount } from '../offline/outbox';
 import ImpersonationBanner, { SupportSessionBanner } from './platform/ImpersonationBanner';
-import { Avatar } from './ui';
+import { Avatar, ConfirmDialog } from './ui';
 
 interface NavItem {
   name: string;
@@ -96,6 +96,7 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [disabledModules, setDisabledModules] = useState<string[]>([]);
+  const [confirmLogout, setConfirmLogout] = useState<null | { waiting: number }>(null);
   const location = useLocation();
   const offline = useOfflineSync(user?.id);
 
@@ -133,17 +134,24 @@ export default function Layout() {
 
   const handleLogout = async () => {
     // Unsynced offline check-ins would be lost: make that a conscious choice. Downloaded member lists are always wiped.
-    let discard = false;
     if (user?.id) {
       const waiting = await pendingCount(user.id).catch(() => 0);
       if (waiting > 0) {
-        if (!window.confirm(`${waiting} attendance check-in${waiting === 1 ? ' has' : 's have'} not been sent to the server yet. Signing out now will delete ${waiting === 1 ? 'it' : 'them'}. Sign out anyway?`)) return;
-        discard = true;
+        setConfirmLogout({ waiting });
+        return;
       }
-      await onSignOut(user.id, discard).catch(() => undefined);
+      await onSignOut(user.id, false).catch(() => undefined);
     }
     await logout();
     navigate('/login');
+  };
+
+  const confirmLogoutAction = async () => {
+    if (!confirmLogout) return;
+    await onSignOut(user!.id, true).catch(() => undefined);
+    await logout();
+    navigate('/login');
+    setConfirmLogout(null);
   };
 
   // The word for the signed-in person, used by the current-page heading so it never disagrees with the sidebar.
@@ -320,7 +328,16 @@ export default function Layout() {
         <main className="flex-1 overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6 lg:p-8">
           <Outlet />
         </main>
-      </div>
-    </div>
-  );
+       </div>
+     {confirmLogout && (
+       <ConfirmDialog
+         open
+         title="Sign out"
+         message={`${confirmLogout.waiting} attendance check-in${confirmLogout.waiting === 1 ? ' has' : 's have'} not been sent to the server yet. Signing out now will delete ${confirmLogout.waiting === 1 ? 'it' : 'them'}. Sign out anyway?`}
+         onConfirm={confirmLogoutAction}
+         onCancel={() => setConfirmLogout(null)}
+       />
+     )}
+     </div>
+   );
 }

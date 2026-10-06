@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Empty, Spinner, errMsg } from '../components/finance/common';
+import { ConfirmDialog } from '../components/ui';
 
 const SCOPE: Record<string, string> = { tenant_config: 'Configuration (settings, modules, department names)', user_directory: 'Account directory (names, e-mails, roles, status)' };
 const badge = (s: string) => (s === 'approved' ? 'status-active' : s === 'requested' ? 'status-submitted' : s === 'expired' ? 'status-inactive' : 'status-rejected');
@@ -10,6 +11,7 @@ export default function SupportAccess() {
   const [rows, setRows] = useState<any[] | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
+  const [confirmRevoke, setConfirmRevoke] = useState<null | string>(null);
   const load = () => axios.get('/support/grants', { withCredentials: true }).then((r) => { setRows(r.data); setError(''); }).catch((e) => setError(errMsg(e, 'Could not load support requests')));
   useEffect(() => { load(); }, []);
   const act = async (id: string, path: string, body: object = {}) => {
@@ -35,12 +37,21 @@ export default function SupportAccess() {
                 <div className="flex flex-col items-end gap-2">
                   <span className={`status-badge ${badge(g.status)} capitalize`}>{g.status}</span>
                   {g.status === 'requested' && <div className="space-x-2"><button className="btn btn-primary btn-sm" disabled={busy === g.id} onClick={() => act(g.id, 'decide', { decision: 'approve' })}>Approve</button><button className="btn btn-secondary btn-sm" disabled={busy === g.id} onClick={() => act(g.id, 'decide', { decision: 'deny' })}>Decline</button></div>}
-                  {g.status === 'approved' && <button className="btn btn-danger btn-sm" disabled={busy === g.id} onClick={() => window.confirm('End this access now?') && act(g.id, 'revoke')}>End access now</button>}
+                  {g.status === 'approved' && <button className="btn btn-danger btn-sm" disabled={busy === g.id} onClick={() => setConfirmRevoke(g.id)}>End access now</button>}
                 </div>
               </div>
             </div>
           ))}
         </div>
+      )}
+      {confirmRevoke && (
+        <ConfirmDialog
+          open
+          title="End support access"
+          message="End this access now?"
+          onConfirm={() => act(confirmRevoke!, 'revoke')}
+          onCancel={() => setConfirmRevoke(null)}
+        />
       )}
     </div>
   );

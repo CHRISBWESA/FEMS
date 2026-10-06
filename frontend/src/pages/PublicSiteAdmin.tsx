@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
+import { ConfirmDialog } from '../components/ui';
 import {
   GlobeAltIcon, CheckCircleIcon, PlusIcon, TrashIcon,
   EyeIcon, EyeSlashIcon, InboxIcon, PencilSquareIcon, XMarkIcon, CheckIcon,
@@ -496,6 +497,7 @@ function PostsTab({ data, onSaved, flash }: { data: Overview; onSaved: () => voi
   const [form, setForm] = useState({ ...EMPTY_POST });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState<null | { id: string; title: string }>(null);
 
   const set = (k: keyof typeof EMPTY_POST) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -544,14 +546,18 @@ function PostsTab({ data, onSaved, flash }: { data: Overview; onSaved: () => voi
     }
   };
 
-  const remove = async (p: Post) => {
-    if (!window.confirm(`Remove "${p.title}" from your website? It will be unpublished and kept as a draft.`)) return;
+  const remove = (p: Post) => setConfirmRemove({ id: p.id, title: p.title });
+
+  const confirmRemoveAction = async () => {
+    if (!confirmRemove) return;
     try {
-      await axios.delete(`/it-content/site/posts/${p.id}`);
+      await axios.delete(`/it-content/site/posts/${confirmRemove.id}`);
       flash('Removed from the website.');
       onSaved();
     } catch (e: any) {
       flash(e.response?.data?.message || 'Could not remove that.');
+    } finally {
+      setConfirmRemove(null);
     }
   };
 
@@ -665,6 +671,15 @@ function PostsTab({ data, onSaved, flash }: { data: Overview; onSaved: () => voi
           </div>
         </div>
       ))}
+    {confirmRemove && (
+        <ConfirmDialog
+          open
+          title="Remove post"
+          message={`Remove "${confirmRemove.title}" from your website? It will be unpublished and kept as a draft.`}
+          onConfirm={confirmRemoveAction}
+          onCancel={() => setConfirmRemove(null)}
+        />
+      )}
     </div>
   );
 }

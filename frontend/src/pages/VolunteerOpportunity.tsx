@@ -5,6 +5,7 @@ import { ArrowLeftIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../App';
 import FormModal, { Field } from '../components/resources/FormModal';
 import { Empty, Spinner, errMsg } from '../components/finance/common';
+import { ConfirmDialog } from '../components/ui';
 
 const badge = (s: string) => (s === 'open' ? 'status-active' : s === 'cancelled' ? 'status-rejected' : s === 'closed' ? 'status-inactive' : 'status-draft');
 const NEXT: Record<string, [string, string][]> = {
@@ -34,6 +35,10 @@ export default function VolunteerOpportunity() {
   const [suggest, setSuggest] = useState<any | null>(null);
   const [lookups, setLookups] = useState<{ members: any[]; roles: any[]; activities: any[] }>({ members: [], roles: [], activities: [] });
   const [busy, setBusy] = useState('');
+  const [confirmCancelOpp, setConfirmCancelOpp] = useState(false);
+  const [confirmWithdraw, setConfirmWithdraw] = useState<null | string>(null);
+  const [confirmCancelShift, setConfirmCancelShift] = useState<null | string>(null);
+  const [confirmRemoveVol, setConfirmRemoveVol] = useState<null | string>(null);
 
   const load = () => axios.get(`/volunteers/opportunities/${id}`, { withCredentials: true })
     .then((r) => { setOpp(r.data); setError(''); })
@@ -99,7 +104,7 @@ export default function VolunteerOpportunity() {
             <button className="btn btn-secondary btn-sm" onClick={() => setDialog({ type: 'edit' })}>Edit</button>
             {NEXT[opp.status].map(([to, label]) => (
               <button key={to} disabled={busy === to} className={`btn btn-sm ${to === 'cancelled' ? 'btn-danger' : 'btn-secondary'}`}
-                onClick={() => { if (to !== 'cancelled' || window.confirm('Cancel this opportunity? All its shifts and sign-ups are cancelled and volunteers are told.')) act(to, () => post(`opportunities/${id}/status`, { status: to })); }}>{label}</button>
+                onClick={() => { if (to === 'cancelled') setConfirmCancelOpp(true); else act(to, () => post(`opportunities/${id}/status`, { status: to })); }}>{label}</button>
             ))}
           </div>
         )}
@@ -132,11 +137,11 @@ export default function VolunteerOpportunity() {
                     {mine && mine.status !== 'withdrawn' && <span className="text-sm capitalize text-ink-muted">You: {mine.status.replace('_', ' ')}</span>}
                     {canApply && <button className="btn btn-primary btn-sm" onClick={() => setDialog({ type: 'apply', shift: s })}>Sign up</button>}
                     {mine && ['applied', 'confirmed'].includes(mine.status) && !started && (
-                      <button className="btn btn-secondary btn-sm" disabled={busy === mine.id} onClick={() => window.confirm('Withdraw from this shift?') && act(mine.id, () => post(`assignments/${mine.id}/withdraw`))}>Withdraw</button>
+                      <button className="btn btn-secondary btn-sm" disabled={busy === mine.id} onClick={() => setConfirmWithdraw(mine.id)}>Withdraw</button>
                     )}
                     {staff && <button className="btn btn-secondary btn-sm" onClick={() => toggleRoster(s.id)}>{open === s.id ? 'Hide roster' : 'Roster'}</button>}
                     {staff && s.status === 'scheduled' && !started && <button className="btn btn-secondary btn-sm" onClick={() => setDialog({ type: 'editShift', shift: s })}>Edit</button>}
-                    {staff && s.status === 'scheduled' && !started && <button className="btn btn-danger btn-sm" disabled={busy === s.id} onClick={() => window.confirm('Cancel this shift? Volunteers will be told.') && act(s.id, () => post(`shifts/${s.id}/cancel`))}>Cancel</button>}
+                    {staff && s.status === 'scheduled' && !started && <button className="btn btn-danger btn-sm" disabled={busy === s.id} onClick={() => setConfirmCancelShift(s.id)}>Cancel</button>}
                   </div>
                 </div>
 
@@ -169,7 +174,7 @@ export default function VolunteerOpportunity() {
                                   <button className="btn btn-primary btn-sm" disabled={busy === a.id} onClick={() => act(a.id, () => post(`assignments/${a.id}/decide`, { decision: 'approve' }))}>Approve</button>
                                   <button className="btn btn-secondary btn-sm" disabled={busy === a.id} onClick={() => act(a.id, () => post(`assignments/${a.id}/decide`, { decision: 'reject' }))}>Decline</button>
                                 </>}
-                                {['applied', 'confirmed'].includes(a.status) && !started && <button className="btn btn-secondary btn-sm" disabled={busy === a.id} onClick={() => window.confirm('Remove this volunteer from the shift?') && act(a.id, () => post(`assignments/${a.id}/cancel`))}>Remove</button>}
+                                {['applied', 'confirmed'].includes(a.status) && !started && <button className="btn btn-secondary btn-sm" disabled={busy === a.id} onClick={() => setConfirmRemoveVol(a.id)}>Remove</button>}
                                 {started && ['confirmed', 'no_show'].includes(a.status) && <button className="btn btn-primary btn-sm" disabled={busy === a.id} onClick={() => act(a.id, () => post(`assignments/${a.id}/attendance`, { outcome: 'attended' }))}>Attended</button>}
                                 {started && a.status === 'confirmed' && <button className="btn btn-secondary btn-sm" disabled={busy === a.id} onClick={() => act(a.id, () => post(`assignments/${a.id}/attendance`, { outcome: 'no_show' }))}>No-show</button>}
                               </td>
@@ -223,6 +228,42 @@ export default function VolunteerOpportunity() {
           ]}
           onSubmit={async (v) => { await axios.put(`/volunteers/opportunities/${id}`, { title: v.title, description: v.description || null, location: v.location || null, coordinatorMemberId: v.coordinatorMemberId || null }, { withCredentials: true }); refresh(); }}
           onClose={() => setDialog(null)} />
+      )}
+      {confirmCancelOpp && (
+        <ConfirmDialog
+          open
+          title="Cancel opportunity"
+          message="Cancel this opportunity? All its shifts and sign-ups are cancelled and volunteers are told."
+          onConfirm={() => act('cancelled', () => post(`opportunities/${id}/status`, { status: 'cancelled' }))}
+          onCancel={() => setConfirmCancelOpp(false)}
+        />
+      )}
+      {confirmWithdraw && (
+        <ConfirmDialog
+          open
+          title="Withdraw from shift"
+          message="Withdraw from this shift?"
+          onConfirm={() => act(confirmWithdraw, () => post(`assignments/${confirmWithdraw}/withdraw`))}
+          onCancel={() => setConfirmWithdraw(null)}
+        />
+      )}
+      {confirmCancelShift && (
+        <ConfirmDialog
+          open
+          title="Cancel shift"
+          message="Cancel this shift? Volunteers will be told."
+          onConfirm={() => act(confirmCancelShift, () => post(`shifts/${confirmCancelShift}/cancel`))}
+          onCancel={() => setConfirmCancelShift(null)}
+        />
+      )}
+      {confirmRemoveVol && (
+        <ConfirmDialog
+          open
+          title="Remove volunteer"
+          message="Remove this volunteer from the shift?"
+          onConfirm={() => act(confirmRemoveVol, () => post(`assignments/${confirmRemoveVol}/cancel`))}
+          onCancel={() => setConfirmRemoveVol(null)}
+        />
       )}
     </div>
   );

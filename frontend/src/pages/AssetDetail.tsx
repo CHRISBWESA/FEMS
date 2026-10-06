@@ -5,6 +5,7 @@ import { ArrowLeftIcon, CubeIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../App';
 import FormModal, { Field } from '../components/resources/FormModal';
 import { Empty, Spinner, errMsg, isoDay, money } from '../components/finance/common';
+import { ConfirmDialog } from '../components/ui';
 
 const CONDITIONS = ['new', 'good', 'fair', 'poor', 'damaged'];
 const condOpts = CONDITIONS.map((v) => ({ value: v, label: v }));
@@ -29,6 +30,7 @@ export default function AssetDetail() {
   const [tab, setTab] = useState<Tab>('history');
   const [tabData, setTabData] = useState<any[] | null>(null);
   const [dialog, setDialog] = useState<Dialog>(null);
+  const [confirmRemoveDoc, setConfirmRemoveDoc] = useState<null | string>(null);
   const [lookups, setLookups] = useState<{ members: any[]; departments: any[]; locations: any[]; documents: any[] }>({ members: [], departments: [], locations: [], documents: [] });
 
   const loadAsset = () => axios.get(`/resources/assets/${id}`, { withCredentials: true })
@@ -246,7 +248,7 @@ export default function AssetDetail() {
               {tabData.map((d) => (
                 <li key={d.id} className="flex items-center justify-between py-3 text-sm">
                   <span className="text-ink">{d.document?.title || 'Document unavailable'}{d.label && <span className="ml-2 text-ink-muted">({d.label})</span>}</span>
-                  {canDocs && <button className="btn btn-secondary btn-sm" onClick={async () => { if (window.confirm('Remove this attachment?')) { try { await axios.post(`/resources/assets/${id}/documents/${d.id}/remove`, {}, { withCredentials: true }); refresh(); } catch (e: any) { alert(errMsg(e, 'Failed')); } } }}>Remove</button>}
+                  {canDocs && <button className="btn btn-secondary btn-sm" onClick={() => setConfirmRemoveDoc(d.id)}>Remove</button>}
                 </li>
               ))}
             </ul>
@@ -255,6 +257,18 @@ export default function AssetDetail() {
       )}
 
       {current && <FormModal title={current.title} description={current.description} fields={current.fields} initial={current.initial} submitLabel={current.label} onSubmit={current.submit} onClose={() => setDialog(null)} />}
+      {confirmRemoveDoc && (
+        <ConfirmDialog
+          open
+          title="Remove attachment"
+          message="Remove this attachment?"
+          onConfirm={async () => {
+            try { await axios.post(`/resources/assets/${id}/documents/${confirmRemoveDoc}/remove`, {}, { withCredentials: true }); refresh(); } catch (e: any) { alert(errMsg(e, 'Failed')); }
+            setConfirmRemoveDoc(null);
+          }}
+          onCancel={() => setConfirmRemoveDoc(null)}
+        />
+      )}
     </div>
   );
 }

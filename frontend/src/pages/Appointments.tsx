@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
+import { ConfirmDialog } from '../components/ui';
 import {
   IdentificationIcon, UserPlusIcon, ArrowPathIcon, XMarkIcon, CheckIcon,
   ExclamationTriangleIcon, ClockIcon, LinkIcon,
@@ -181,9 +182,11 @@ function InvitationRow({
   flash: (m: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [confirmRevoke, setConfirmRevoke] = useState(false);
 
-  const revoke = async () => {
-    if (!window.confirm(`Withdraw the invitation to ${invitation.email}? The link will stop working.`)) return;
+  const revoke = () => setConfirmRevoke(true);
+
+  const confirmRevokeAction = async () => {
     setBusy(true);
     try {
       await axios.post(`/invitations/${invitation.id}/revoke`);
@@ -193,6 +196,7 @@ function InvitationRow({
       flash(e.response?.data?.message || 'Could not withdraw that invitation.');
     } finally {
       setBusy(false);
+      setConfirmRevoke(false);
     }
   };
 
@@ -239,6 +243,15 @@ function InvitationRow({
         <p className="mt-2 text-xs text-amber-700">
           This link expires soon. If the link has not arrived, use &ldquo;New link&rdquo;.
         </p>
+      )}
+      {confirmRevoke && (
+        <ConfirmDialog
+          open
+          title="Withdraw invitation"
+          message={`Withdraw the invitation to ${invitation.email}? The link will stop working.`}
+          onConfirm={confirmRevokeAction}
+          onCancel={() => setConfirmRevoke(false)}
+        />
       )}
     </div>
   );

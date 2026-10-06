@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../App';
 import { RectangleGroupIcon, PlusIcon, XMarkIcon, UserPlusIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { PageLoader } from '../components/ui';
+import { PageLoader, ConfirmDialog } from '../components/ui';
 
 export default function MemberGroups() {
   const { hasPermission } = useAuth();
@@ -16,6 +16,7 @@ export default function MemberGroups() {
   const [open, setOpen] = useState<any>(null);
   const [search, setSearch] = useState('');
   const [candidates, setCandidates] = useState<any[]>([]);
+  const [confirmRemove, setConfirmRemove] = useState<null | string>(null);
 
   const load = () => {
     setLoading(true);
@@ -75,14 +76,18 @@ export default function MemberGroups() {
     }
   };
 
-  const removeMember = async (memberId: string) => {
-    if (!window.confirm('Remove this member from the group?')) return;
+  const removeMember = (memberId: string) => setConfirmRemove(memberId);
+
+  const confirmRemoveAction = async () => {
+    if (!confirmRemove || !open) return;
     try {
-      await axios.post(`/member-groups/${open.id}/members/${memberId}/remove`, {}, { withCredentials: true });
+      await axios.post(`/member-groups/${open.id}/members/${confirmRemove}/remove`, {}, { withCredentials: true });
       await openGroup(open.id);
       load();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to remove member');
+    } finally {
+      setConfirmRemove(null);
     }
   };
 
@@ -194,11 +199,20 @@ export default function MemberGroups() {
                     )}
                   </li>
                 ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
+</ul>
+             )}
+           </div>
+         </div>
+       )}
+       {confirmRemove && open && (
+         <ConfirmDialog
+           open
+           title="Remove member"
+           message="Remove this member from the group?"
+           onConfirm={confirmRemoveAction}
+           onCancel={() => setConfirmRemove(null)}
+         />
+       )}
+     </div>
+   );
 }

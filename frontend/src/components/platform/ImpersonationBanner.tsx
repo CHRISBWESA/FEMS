@@ -4,6 +4,7 @@ import { EyeIcon, UserIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../../App';
 import { currentSession, endImpersonation, hasExpired, isImpersonating } from '../../lib/impersonation';
 import { Spinner, errMsg } from '../finance/common';
+import { ConfirmDialog } from '../ui';
 
 /**
  * Shown to the administrator while they are acting as somebody else. It is deliberately loud: the person using
@@ -13,6 +14,7 @@ import { Spinner, errMsg } from '../finance/common';
 export default function ImpersonationBanner() {
   const [session, setSession] = useState(currentSession());
   const [busy, setBusy] = useState(false);
+  const [confirmStop, setConfirmStop] = useState(false);
 
   useEffect(() => { setSession(currentSession()); }, []);
 
@@ -34,8 +36,11 @@ export default function ImpersonationBanner() {
 
   if (!session) return null;
 
-  const stop = async () => {
-    if (!window.confirm(`Stop acting as ${session.targetName}?`)) return;
+  const stop = () => {
+    setConfirmStop(true);
+  };
+
+  const confirmStopAction = async () => {
     setBusy(true);
     try {
       await axios.post(`/platform/impersonations/${session.id}/end`, { reason: 'Ended by the administrator.' });
@@ -45,8 +50,8 @@ export default function ImpersonationBanner() {
       }
     } finally {
       setBusy(false);
+      setConfirmStop(false);
       endImpersonation();
-      // The administrator's own identity is back, so a full reload is the safest way to resume.
       window.location.href = '/platform';
     }
   };
@@ -74,6 +79,15 @@ export default function ImpersonationBanner() {
         >
           {busy ? <Spinner /> : 'Stop impersonating'}
         </button>
+        {confirmStop && (
+          <ConfirmDialog
+            open
+            title="Stop impersonating"
+            message={`Stop acting as ${session.targetName}?`}
+            onConfirm={confirmStopAction}
+            onCancel={() => setConfirmStop(false)}
+          />
+        )}
       </div>
     </div>
   );

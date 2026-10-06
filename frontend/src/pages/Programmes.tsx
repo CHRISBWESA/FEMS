@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { PageLoader } from '../components/ui';
+import { PageLoader, ConfirmDialog } from '../components/ui';
 import {
   PlusIcon, XMarkIcon, BookOpenIcon, PencilSquareIcon, TrashIcon,
   CloudArrowUpIcon, DocumentArrowDownIcon,
@@ -24,6 +24,7 @@ export default function Programmes() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<any>(null);
+  const [confirmRemove, setConfirmRemove] = useState<null | { id: string; name: string }>(null);
 
   useEffect(() => {
     fetchProgrammes();
@@ -74,13 +75,17 @@ export default function Programmes() {
     }
   };
 
-  const remove = async (p: any) => {
-    if (!window.confirm(`Delete programme "${p.name}"?`)) return;
+  const remove = (p: any) => setConfirmRemove({ id: p.id, name: p.name });
+
+  const confirmRemoveAction = async () => {
+    if (!confirmRemove) return;
     try {
-      await axios.delete(`/programmes/${p.id}`, { withCredentials: true });
+      await axios.delete(`/programmes/${confirmRemove.id}`, { withCredentials: true });
       fetchProgrammes();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to delete programme');
+    } finally {
+      setConfirmRemove(null);
     }
   };
 
@@ -311,8 +316,17 @@ export default function Programmes() {
               </button>
             </div>
           </form>
-        </div>
-      )}
-    </div>
-  );
+</div>
+       )}
+       {confirmRemove && (
+         <ConfirmDialog
+           open
+           title="Delete programme"
+           message={`Delete programme "${confirmRemove.name}"?`}
+           onConfirm={confirmRemoveAction}
+           onCancel={() => setConfirmRemove(null)}
+         />
+       )}
+     </div>
+   );
 }

@@ -5,7 +5,7 @@ import { useAuth } from '../App';
 import AdminAccounts from '../components/platform/AdminAccounts';
 import SecretModal from '../components/platform/SecretModal';
 import { Modal } from '../components/finance/common';
-import { PageLoader } from '../components/ui';
+import { PageLoader, ConfirmDialog } from '../components/ui';
 import {
   UsersIcon, PlusIcon, XMarkIcon, PauseIcon, PlayIcon, UserPlusIcon,
   KeyIcon, PencilSquareIcon, ArrowPathIcon, TrashIcon,
@@ -77,6 +77,8 @@ export default function Users() {
   const [savingRoles, setSavingRoles] = useState(false);
 
   const [resettingId, setResettingId] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState<null | { id: string; name: string; email: string }>(null);
+  const [confirmReset, setConfirmReset] = useState<null | { id: string; name: string }>(null);
   // The one-time password from a reset. Held in memory only, and shown in a copyable dialog: an alert box
   // cannot be selected from, so the operator had to write the password down by hand.
   const [resetSecret, setResetSecret] = useState<null | { email: string; password: string; name: string }>(null);
@@ -165,7 +167,7 @@ export default function Users() {
           roles: [roleName],
           fellowshipId: isAdmin() ? roleFellowshipId : undefined,
         }, { withCredentials: true });
-        window.alert(`Account created for ${m.full_name} with the ${roleLabel(roleName)} role.\n\nTemporary password: ${password}\n\nShare it with them — they must change it on login.`);
+        window.alert(`Account created for ${m.full_name} with the ${roleLabel(roleName)} role.\n\nTemporary password: ${password}\n\nShare it with them ï¿½ they must change it on login.`);
         setNewAccountEmail('');
         setNewAccountPassword('');
       }
@@ -183,7 +185,7 @@ export default function Users() {
     if (!reason) return;
     try {
       await axios.post(`/users/${u.id}/request-role-removal`, { role, reason }, { withCredentials: true });
-      alert('Unassignment requested — it takes effect once the chairperson approves it.');
+      alert('Unassignment requested ï¿½ it takes effect once the chairperson approves it.');
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to request unassignment');
     }
@@ -319,15 +321,17 @@ export default function Users() {
     }
   };
 
-  const deleteUser = async (u: any) => {
-    if (!window.confirm(`Delete the account for ${u.first_name} ${u.last_name} (${u.email})? The account will be deactivated.`)) {
-      return;
-    }
+  const deleteUser = (u: any) => setConfirmDelete({ id: u.id, name: `${u.first_name} ${u.last_name}`, email: u.email });
+
+  const confirmDeleteAction = async () => {
+    if (!confirmDelete) return;
     try {
-      await axios.delete(`/users/${u.id}`, { withCredentials: true });
+      await axios.delete(`/users/${confirmDelete.id}`, { withCredentials: true });
       fetchUsers();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to delete user');
+    } finally {
+      setConfirmDelete(null);
     }
   };
 
@@ -348,21 +352,28 @@ export default function Users() {
     }
   };
 
-  const resetPassword = async (u: any) => {
-    if (!window.confirm(`Reset the password for ${u.first_name} ${u.last_name}?`)) return;
-    setResettingId(u.id);
+  const resetPassword = (u: any) => setConfirmReset({ id: u.id, name: `${u.first_name} ${u.last_name}` });
+
+  const confirmResetAction = async () => {
+    if (!confirmReset) return;
+    setResettingId(confirmReset.id);
     try {
-      const res = await axios.post('/auth/reset-password', { targetUserId: u.id }, { withCredentials: true });
+      const res = await axios.post('/auth/reset-password', { targetUserId: confirmReset.id }, { withCredentials: true });
       const tempPassword = res.data?.temporaryPassword || res.data?.data?.temporaryPassword;
       if (!tempPassword) {
         alert('The password was reset, but no temporary password was returned. Ask the user to use "Forgot password" on the sign-in page.');
         return;
       }
-      setResetSecret({ email: u.email, password: tempPassword, name: `${u.first_name} ${u.last_name}` });
+      // We need the email and name for the secret dialog - fetch or store them
+      const user = users.find((usr) => usr.id === confirmReset.id);
+      if (user) {
+        setResetSecret({ email: user.email, password: tempPassword, name: confirmReset.name });
+      }
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to reset password');
     } finally {
       setResettingId('');
+      setConfirmReset(null);
     }
   };
 
@@ -392,9 +403,9 @@ export default function Users() {
           <h1 className="page-title">Users</h1>
           <p className="page-desc">
             {category === 'system'
-              ? 'Accounts that run FEMS itself. They belong to no fellowship and never see a fellowship’s members, finances or other operational data.'
+              ? 'Accounts that run FEMS itself. They belong to no fellowship and never see a fellowshipï¿½s members, finances or other operational data.'
               : isAdmin()
-                ? 'Fellowship accounts across the platform. Create one on an owner’s behalf below; a whole new fellowship is created from Platform › Fellowships.'
+                ? 'Fellowship accounts across the platform. Create one on an ownerï¿½s behalf below; a whole new fellowship is created from Platform ï¿½ Fellowships.'
                 : 'Manage account access. Every account belongs to a member.'}
           </p>
         </div>
@@ -471,7 +482,7 @@ export default function Users() {
         <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-subtle" />
         <input
           type="text"
-          placeholder="Search by name, email or member…"
+          placeholder="Search by name, email or memberï¿½"
           className="input pl-10"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -547,7 +558,7 @@ export default function Users() {
                     <td className="text-ink-muted">
                       {u.member
                         ? <span>{u.member.full_name} <span className="font-mono text-xxs text-ink-subtle">({u.member.member_code})</span></span>
-                        : '—'}
+                        : 'ï¿½'}
                     </td>
                     <td>
                       <span className={`status-badge ${u.is_active === false ? 'status-inactive' : 'status-active'}`}>
@@ -662,7 +673,7 @@ export default function Users() {
                             value={roleFellowshipId}
                             onChange={(e) => { setRoleFellowshipId(e.target.value); setRoleAssignPick(''); }}
                           >
-                            <option value="">Select a fellowship…</option>
+                            <option value="">Select a fellowshipï¿½</option>
                             {fellowships.map((f) => (
                               <option key={f.id} value={f.id}>{f.name}</option>
                             ))}
@@ -698,7 +709,7 @@ export default function Users() {
                           setNewAccountPassword('');
                         }}
                       >
-                        <option value="">Select a person…</option>
+                        <option value="">Select a personï¿½</option>
                         <optgroup label="Existing accounts without this role">
                           {cands.users.map((u) => (
                             <option key={u.id} value={`user:${u.id}`}>{u.first_name} {u.last_name} ({u.email})</option>
@@ -764,7 +775,7 @@ export default function Users() {
                               <div className="avatar h-8 w-8 text-xs">{initials(u)}</div>
                               <div>
                                 <p className="text-sm font-medium text-ink">{u.first_name} {u.last_name}</p>
-                                <p className="text-xs text-ink-subtle">{u.email}{u.member ? ` · ${u.member.member_code}` : ''}</p>
+                                <p className="text-xs text-ink-subtle">{u.email}{u.member ? ` ï¿½ ${u.member.member_code}` : ''}</p>
                               </div>
                             </div>
                             {/* Unassigning is a role change too, so it is hidden from a platform administrator
@@ -821,7 +832,7 @@ export default function Users() {
                       setNewMemberMode(false);
                     }}
                   >
-                    <option value="">Select a fellowship…</option>
+                    <option value="">Select a fellowshipï¿½</option>
                     {fellowships.map((f) => (
                       <option key={f.id} value={f.id}>{f.name}</option>
                     ))}
@@ -846,13 +857,13 @@ export default function Users() {
                     }
                   }}
                 >
-                  <option value="">Select a member…</option>
+                  <option value="">Select a memberï¿½</option>
                   {members
                     .filter((m) => !m.user_id && (!isAdmin() || !form.fellowshipId || m.fellowship_id === form.fellowshipId))
                     .map((m) => (
                       <option key={m.id} value={m.id}>{m.full_name} ({m.member_code})</option>
                     ))}
-                  {isAdmin() && form.fellowshipId && <option value="__new__">+ Create new member…</option>}
+                  {isAdmin() && form.fellowshipId && <option value="__new__">+ Create new memberï¿½</option>}
                 </select>
                 {form.memberId && !newMemberMode && (
                   <p className="mt-1 text-xs text-ink-subtle">Details prefilled from the member record.</p>
@@ -989,13 +1000,13 @@ export default function Users() {
           >
             <p className="rounded-lg bg-canvas p-3 text-sm text-ink-muted ring-1 ring-inset ring-hairline">
               For an owner who cannot request access themselves. This creates the account inside an existing
-              fellowship; a <em>new</em> fellowship is created from Platform › Fellowships. A temporary password is
+              fellowship; a <em>new</em> fellowship is created from Platform ï¿½ Fellowships. A temporary password is
               shown once, and the account must change it at first sign-in.
             </p>
             <div>
               <label className="label">Fellowship *</label>
               <select name="fellowshipId" required className="select w-full" defaultValue="">
-                <option value="" disabled>Select a fellowship…</option>
+                <option value="" disabled>Select a fellowshipï¿½</option>
                 {fellowships.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
               </select>
             </div>
@@ -1020,16 +1031,16 @@ export default function Users() {
             <div>
               <label className="label">Role *</label>
               <select name="role" required className="select w-full" defaultValue="secretary">
-                <option value="secretary">Secretary — runs the fellowship</option>
+                <option value="secretary">Secretary ï¿½ runs the fellowship</option>
                 <option value="assistant_secretary">Assistant Secretary</option>
-                <option value="chairperson">Chairperson — approvals and oversight</option>
+                <option value="chairperson">Chairperson ï¿½ approvals and oversight</option>
                 <option value="assistant_chairperson">Assistant Chairperson</option>
-                <option value="treasurer">Treasurer — money</option>
-                <option value="it_admin">IT Administrator — runs the instance and dashboard content</option>
+                <option value="treasurer">Treasurer ï¿½ money</option>
+                <option value="it_admin">IT Administrator ï¿½ runs the instance and dashboard content</option>
               </select>
               <p className="mt-1 text-xs text-ink-subtle">
                 Platform roles cannot be assigned here. The first account for a new fellowship is created with
-                Platform › Fellowships › Onboard fellowship.
+                Platform ï¿½ Fellowships ï¿½ Onboard fellowship.
               </p>
             </div>
             <div className="flex gap-2">
@@ -1073,7 +1084,7 @@ export default function Users() {
             />
             <label className="label">Role to add *</label>
             <select required className="select" value={assignRole} onChange={(e) => setAssignRole(e.target.value)}>
-              <option value="">Select a role…</option>
+              <option value="">Select a roleï¿½</option>
               {roleOptions
                 .filter((r) => !(assignTarget.roles || []).includes(r.name))
                 .map((r) => (
@@ -1092,6 +1103,24 @@ export default function Users() {
         </div>
       )}
       </>
+      )}
+      {confirmDelete && (
+        <ConfirmDialog
+          open
+          title="Delete account"
+          message={`Delete the account for ${confirmDelete.name} (${confirmDelete.email})? The account will be deactivated.`}
+          onConfirm={confirmDeleteAction}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
+      {confirmReset && (
+        <ConfirmDialog
+          open
+          title="Reset password"
+          message={`Reset the password for ${confirmReset.name}?`}
+          onConfirm={confirmResetAction}
+          onCancel={() => setConfirmReset(null)}
+        />
       )}
     </div>
   );
