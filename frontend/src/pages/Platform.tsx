@@ -131,7 +131,6 @@ export default function Platform() {
 
 function RegistrationsTab() {
   const { hasPermission } = useAuth();
-  const navigate = useNavigate();
   const canApprove = hasPermission('platform.onboard');
   const [data, setData] = useState<any>(null);
   const [status, setStatus] = useState('pending');
@@ -220,52 +219,57 @@ function RegistrationsTab() {
       )}
       {error && <p className="alert alert-danger mb-3 py-2.5" role="alert">{error}</p>}
 
-      {!data ? <Spinner /> : data.data.length === 0 ? <Empty text="No signup requests" /> : (
-        <div className="table-wrap overflow-x-auto">
-          <table className="table">
-            <thead><tr><th>Fellowship</th><th>Requested by</th><th>Contact</th><th>Plan asked for</th><th>Status</th><th>Received</th><th /></tr></thead>
-            <tbody>
-              {data.data.map((row: any) => (
-                <tr key={row.id} className="align-top">
-                  <td className="font-medium text-ink">
-                    {row.fellowshipName}
-                    {row.location && <span className="ml-2 text-xs text-ink-subtle">{row.location}</span>}
-                    {row.description && <p className="mt-1 max-w-xs text-xs text-ink-muted">{row.description}</p>}
-                    {row.reason && <p className="mt-1 max-w-xs text-xs italic text-ink-muted">"{row.reason}"</p>}
-                  </td>
-                  <td className="text-xs">
-                    <span className="block text-ink">{row.email}</span>
-                    {row.phone && <span className="text-ink-subtle">{row.phone}</span>}
-                    {row.submittedIp && <span className="block text-ink-subtle">from {row.submittedIp}</span>}
-                  </td>
-                  <td className="text-xs text-ink">{row.contactName}</td>
-                  <td className="text-xs text-ink-muted">{row.requestedPlanCode || 'â€”'}</td>
-                  <td>
-                    <span className={`status-badge ${row.status === 'approved' ? 'status-active' : row.status === 'rejected' ? 'status-rejected' : 'status-submitted'} capitalize`}>{row.status}</span>
-                    {row.decisionNote && <p className="mt-1 max-w-[12rem] text-xs text-ink-muted">{row.decisionNote}</p>}
-                  </td>
-                  <td className="whitespace-nowrap text-xs text-ink-muted">{new Date(row.createdAt).toLocaleDateString()}</td>
-                  <td className="text-right">
-                    {row.status === 'pending' && (
-                      <span className="space-x-2">
-                        <button className="btn btn-primary btn-sm" disabled={busy === row.id || !canApprove}
-                          title={canApprove ? '' : 'Your role can review requests but not approve them'}
-                          onClick={() => setDialog({ r: row, mode: 'approve' })}>Approve</button>
-                        <button className="btn btn-secondary btn-sm" disabled={busy === row.id}
-                          onClick={() => setDialog({ r: row, mode: 'reject' })}>Reject</button>
-                      </span>
-                    )}
-                    {row.createdFellowshipId && (
-                      <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/platform/tenants/${row.createdFellowshipId}`)}>Open fellowship</button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <DataTable
+        caption="Signup requests"
+        columns={[
+          { key: 'fellowshipName', header: 'Fellowship', priority: 'primary', render: (row: any) => (
+            <div className="min-w-0">
+              <p className="font-medium text-ink">{row.fellowshipName}</p>
+              {row.location ? <p className="text-xxs text-ink-subtle">{row.location}</p> : null}
+              {row.description ? <p className="mt-1 max-w-xs text-xs text-ink-muted">{row.description}</p> : null}
+              {row.reason ? <p className="mt-1 max-w-xs text-xs italic text-ink-muted">"{row.reason}"</p> : null}
+            </div>
+          ) },
+          { key: 'applicant', header: 'Requested by', priority: 'meta', render: (row: any) => (
+            <div className="text-xs">
+              <span className="block text-ink">{row.email}</span>
+              {row.phone ? <span className="text-ink-subtle">{row.phone}</span> : null}
+              {row.submittedIp ? <span className="block text-ink-subtle">from {row.submittedIp}</span> : null}
+            </div>
+          ) },
+          { key: 'contactName', header: 'Contact', priority: 'meta' },
+          { key: 'requestedPlanCode', header: 'Plan asked for', priority: 'secondary', render: (row: any) => row.requestedPlanCode || '�' },
+          { key: 'status', header: 'Status', priority: 'meta', render: (row: any) => (
+            <Badge tone={statusTone(row.status)}>{row.status}</Badge>
+          ) },
+          { key: 'createdAt', header: 'Received', priority: 'secondary', render: (row: any) => new Date(row.createdAt).toLocaleDateString() },
+        ]}
+        rows={data?.data ?? []}
+        rowKey={(row: any) => row.id}
+        loading={!data}
+        error={error || null}
+        onRetry={load}
+        empty={{ title: 'No signup requests', description: status === 'rejected' ? 'Rejections are kept for 30 days and then purged.' : 'Requests from the public signup form appear here.' }}
+        rowActions={(row: any) => (
+          <div className="flex justify-end gap-2">
+            {row.status === 'pending' && (
+              <>
+                <Button variant="primary" size="sm" disabled={busy === row.id || !canApprove}
+                  title={canApprove ? '' : 'Your role can review requests but not approve them'}
+                  onClick={() => setDialog({ r: row, mode: 'approve' })}>Approve</Button>
+                <Button variant="secondary" size="sm" disabled={busy === row.id}
+                  onClick={() => setDialog({ r: row, mode: 'reject' })}>Reject</Button>
+              </>
+            )}
+            {row.createdFellowshipId && (
+              <Link to={`/platform/tenants/${row.createdFellowshipId}`} className="btn btn-secondary btn-sm">Open fellowship</Link>
+            )}
+          </div>
+        )}
+      />
+      {outcome && !secret && !credentials && (
+        <Alert tone="success" className="mt-3">{outcome}</Alert>
       )}
-
       {dialog && r && dialog.mode === 'approve' && (
         <FormModal
           title={`Approve ${r.fellowshipName}`}
