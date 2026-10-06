@@ -16,7 +16,6 @@ const MODULES: [string, string][] = [
   ['volunteers', 'Volunteers & service'], ['analytics', 'Analytics'], ['member_engagement', 'Member engagement'],
 ];
 type Tab = 'dashboard' | 'registrations' | 'impersonation' | 'tenants' | 'plans' | 'billing' | 'invoices' | 'webhooks' | 'support' | 'audit' | 'health';
-const badge = (s: string) => (s === 'active' || s === 'approved' ? 'status-active' : s === 'suspended' || s === 'denied' || s === 'revoked' ? 'status-rejected' : s === 'requested' ? 'status-submitted' : 'status-inactive');
 
 const statusTone = (s: string): 'success' | 'danger' | 'warning' | 'neutral' =>
   s === 'active' || s === 'approved' || s === 'paid' ? 'success'
@@ -341,9 +340,9 @@ function DashboardTab() {
 
   const revenueColumns: Column<any>[] = [
     { key: 'currency', header: 'Currency', priority: 'primary' },
-    { key: 'invoiced', header: 'Invoiced', align: 'right', tabular: true, priority: 'meta', render: (r) => r.invoiced.toFixed(2) },
-    { key: 'collected', header: 'Collected', align: 'right', tabular: true, priority: 'meta', render: (r) => <span className="text-success">{r.collected.toFixed(2)}</span> },
-    { key: 'outstanding', header: 'Outstanding', align: 'right', tabular: true, priority: 'meta', render: (r) => <span className="text-warning">{r.outstanding.toFixed(2)}</span> },
+    { key: 'invoiced', header: 'Invoiced', align: 'right', tabular: true, priority: 'meta', render: (r: any) => r.invoiced.toFixed(2) },
+    { key: 'collected', header: 'Collected', align: 'right', tabular: true, priority: 'meta', render: (r: any) => <span className="text-success">{r.collected.toFixed(2)}</span> },
+    { key: 'outstanding', header: 'Outstanding', align: 'right', tabular: true, priority: 'meta', render: (r: any) => <span className="text-warning">{r.outstanding.toFixed(2)}</span> },
   ];
 
   const planColumns: Column<any>[] = [
@@ -654,22 +653,30 @@ function SupportTab() {
         <p className="text-sm text-ink-muted">Support access is requested from the fellowship's Secretary, limited to read-only diagnostics, time-boxed, and every use is recorded in the fellowship's audit trail.</p>
         <button className="btn btn-primary" onClick={() => setRequesting(true)}><PlusIcon className="h-4 w-4" /> Request access</button>
       </div>
-      {!rows ? <Spinner /> : rows.length === 0 ? <Empty text="No support requests yet" /> : (
-        <div className="table-wrap overflow-x-auto"><table className="table"><thead><tr><th>Fellowship</th><th>Scope</th><th>Status</th><th>Expires</th><th /></tr></thead>
-          <tbody>{rows.map((g) => (
-            <tr key={g.id}>
-              <td className="font-medium text-ink">{nameOf(g.fellowshipId)}</td>
-              <td>{g.scopes.join(', ').replace(/_/g, ' ')}</td>
-              <td><span className={`status-badge ${badge(g.status)} capitalize`}>{g.status}</span></td>
-              <td>{g.expiresAt && g.status === 'approved' ? new Date(g.expiresAt).toLocaleTimeString() : 'â€”'}</td>
-              <td className="space-x-2 text-right">
-                {g.status === 'approved' && g.scopes.includes('tenant_config') && <button className="btn btn-secondary btn-sm" onClick={() => open(g, 'config')}>Configuration</button>}
-                {g.status === 'approved' && g.scopes.includes('user_directory') && <button className="btn btn-secondary btn-sm" onClick={() => open(g, 'users')}>Accounts</button>}
-                {['requested', 'approved'].includes(g.status) && <button className="btn btn-secondary btn-sm" onClick={async () => { try { await axios.post(`/platform/support/grants/${g.id}/cancel`, {}, { withCredentials: true }); load(); } catch (e) { alert(errMsg(e, 'Failed')); } }}>{g.status === 'requested' ? 'Withdraw' : 'End access'}</button>}
-              </td>
-            </tr>
-          ))}</tbody></table></div>
-      )}
+      <DataTable
+        caption="Support access grants"
+        columns={[
+          { key: 'fellowshipId', header: 'Fellowship', priority: 'primary', render: (g: any) => <span className="font-medium text-ink">{nameOf(g.fellowshipId)}</span> },
+          { key: 'scopes', header: 'Scope', priority: 'meta', render: (g: any) => g.scopes.join(', ').replace(/_/g, ' ') },
+          { key: 'status', header: 'Status', priority: 'meta', render: (g: any) => <Badge tone={statusTone(g.status)}>{g.status}</Badge> },
+          { key: 'expiresAt', header: 'Expires', priority: 'secondary', render: (g: any) => (g.expiresAt && g.status === 'approved' ? new Date(g.expiresAt).toLocaleTimeString() : '—') },
+        ]}
+        rows={rows}
+        rowKey={(g: any) => g.id}
+        loading={!rows}
+        empty={{ title: 'No support requests yet', description: 'A request by a fellowship for diagnostic access appears here once created.' }}
+        rowActions={(g: any) => (
+          <div className="flex justify-end gap-2">
+            {g.status === 'approved' && g.scopes.includes('tenant_config') && <Button variant="secondary" size="sm" onClick={() => open(g, 'config')}>Configuration</Button>}
+            {g.status === 'approved' && g.scopes.includes('user_directory') && <Button variant="secondary" size="sm" onClick={() => open(g, 'users')}>Accounts</Button>}
+            {['requested', 'approved'].includes(g.status) && (
+              <Button variant="secondary" size="sm" onClick={async () => { try { await axios.post(`/platform/support/grants/${g.id}/cancel`, {}, { withCredentials: true }); load(); } catch (e) { alert(errMsg(e, 'Failed')); } }}>
+                {g.status === 'requested' ? 'Withdraw' : 'End access'}
+              </Button>
+            )}
+          </div>
+        )}
+      />
       {requesting && (
         <FormModal
           title="Request support access" submitLabel="Send request"
@@ -708,28 +715,32 @@ function AuditTab() {
   const search = (e: React.FormEvent) => { e.preventDefault(); setPage(1); setData(null); axios.get(`/platform/audit?limit=25&action=${encodeURIComponent(action.trim())}`, { withCredentials: true }).then((r) => setData(r.data)).catch(() => {}); };
   return (
     <div>
-      <form onSubmit={search} className="mb-4 flex gap-2"><input className="input max-w-xs" placeholder="Filter by action (e.g. platform.tenant)" value={action} onChange={(e) => setAction(e.target.value)} /><button className="btn btn-secondary" type="submit">Filter</button></form>
-      {error ? <Empty text={error} /> : !data ? <Spinner /> : data.data.length === 0 ? <Empty text="No platform entries" /> : (
-        <>
-          <div className="table-wrap overflow-x-auto"><table className="table"><thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Entity</th><th>Fellowship</th><th>IP</th><th>Comment</th></tr></thead>
-            <tbody>{data.data.map((r: any) => (
-              <tr key={r.id}>
-                <td className="whitespace-nowrap">{new Date(r.timestamp).toLocaleString()}</td>
-                <td className="text-xs">
-                  {r.actor
-                    ? <><span className="block font-medium text-ink">{r.actor.name || r.actor.email}</span>{r.actor.roles?.length > 0 && <span className="text-ink-subtle">{r.actor.roles.join(', ').replace(/_/g, ' ')}</span>}</>
-                    : <span className="text-ink-subtle">system</span>}
-                </td>
-                <td className="font-mono text-xs">{r.action}</td>
-                <td className="text-xs text-ink-muted">{r.entityType || 'â€”'} {r.entityId?.slice(0, 8)}</td>
-                <td className="text-xs text-ink-muted">{r.tenant ? r.tenant.name : <span className="text-ink-subtle">platform</span>}</td>
-                <td className="font-mono text-xs text-ink-muted">{r.ipAddress || 'â€”'}</td>
-                <td className="text-ink-muted">{r.comment || ''}</td>
-              </tr>
-            ))}</tbody></table></div>
-          <div className="mt-3 flex items-center justify-between text-sm text-ink-muted"><span>{data.total} entries</span><span className="space-x-2"><button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button><button className="btn btn-secondary btn-sm" disabled={page * 25 >= data.total} onClick={() => setPage(page + 1)}>Next</button></span></div>
-        </>
-      )}
+      <form onSubmit={search} className="mb-4 flex gap-2">
+        <SearchInput value={action} onChange={setAction} placeholder="Filter by action (e.g. platform.tenant)" className="max-w-md" />
+        <Button variant="secondary" type="submit">Filter</Button>
+      </form>
+      <DataTable
+        caption="Platform audit log"
+        columns={[
+          { key: 'timestamp', header: 'When', priority: 'primary', render: (r: any) => new Date(r.timestamp).toLocaleString() },
+          { key: 'actor', header: 'Actor', priority: 'meta', render: (r: any) => r.actor ? <span className="block"><span className="block font-medium text-ink">{r.actor.name || r.actor.email}</span>{r.actor.roles?.length > 0 ? <span className="text-xxs text-ink-subtle">{r.actor.roles.join(', ').replace(/_/g, ' ')}</span> : null}</span> : <span className="text-ink-subtle">system</span> },
+          { key: 'action', header: 'Action', priority: 'meta', render: (r: any) => <code className="font-mono text-xs">{r.action}</code> },
+          { key: 'entity', header: 'Entity', priority: 'secondary', render: (r: any) => `${r.entityType || '—'} ${r.entityId?.slice(0, 8) ?? ''}` },
+          { key: 'tenant', header: 'Fellowship', priority: 'secondary', render: (r: any) => (r.tenant ? <span className="text-ink-muted">{r.tenant.name}</span> : <span className="text-ink-subtle">platform</span>) },
+          { key: 'ipAddress', header: 'IP', priority: 'secondary', render: (r: any) => <code className="font-mono text-xs text-ink-muted">{r.ipAddress || '—'}</code> },
+          { key: 'comment', header: 'Comment', priority: 'secondary', render: (r: any) => <span className="text-ink-muted">{r.comment || ''}</span> },
+        ]}
+        rows={data?.data ?? []}
+        rowKey={(r: any) => r.id}
+        loading={!data}
+        error={error || null}
+        total={data?.total ?? null}
+        page={page}
+        pageSize={25}
+        onPageChange={setPage}
+        empty={{ title: 'No platform entries', description: 'No audit entries match this filter.' }}
+        mobile="scroll"
+      />
     </div>
   );
 }
