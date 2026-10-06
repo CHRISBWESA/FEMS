@@ -12,8 +12,7 @@
   }
 
   body {
-    @apply bg-canvas text-ink antialiased;
-    /* iOS resizing text after rotation and the tap-highlight flash both look broken on a real device. */
+    @apply bg-canvas text-ink antialiased font-sans;
     -webkit-tap-highlight-color: transparent;
     font-synthesis-weight: none;
   }

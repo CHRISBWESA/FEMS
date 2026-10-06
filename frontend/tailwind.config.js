@@ -160,6 +160,12 @@ module.exports = {
         card: '0.75rem',
         control: '0.5rem',
       },
+      fontFamily: {
+        // Institutional, tabular-friendly. Loaded once in index.html and applied to body only, so headings and UI
+        // inherit one voice while numbers stay lining up.
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+      },
       fontSize: {
         xxs: ['0.6875rem', '1rem'],
         'display-sm': ['2rem', { lineHeight: '2.25rem', letterSpacing: '-0.02em' }],
