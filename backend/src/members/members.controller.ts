@@ -1,6 +1,6 @@
-﻿import { Controller, Get, Post, Put, Body, Param, Query, Req, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+﻿import { Controller, Get, Post, Put, Body, Param, Query, Req, UseGuards, UseInterceptors, UploadedFile, Res } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { MembersService, CreateMemberDto, UpdateMemberDto } from './members.service';
+import { MembersService, CreateMemberDto, UpdateMemberDto, CreateRegistrationLinkDto, RegisterMemberViaLinkDto, VerifyMemberDto, RejectMemberDto, ExportMembersDto } from './members.service';
 import { Roles } from '../shared/decorators/role.decorators';
 import { ROLES } from '../shared/authorization/roles';
 import { PERMISSIONS } from '../shared/authorization/permissions';
@@ -78,5 +78,52 @@ export class MembersController {
   @Roles(ROLES.SECRETARY, ROLES.ASSISTANT_SECRETARY)
   async addToDepartment(@Param('id') id: string, @Param('departmentId') departmentId: string, @Req() req) {
     return this.membersService.addToDepartment(id, departmentId, req.user);
+  }
+
+  // --- Member Registration Link & Verification ---
+
+  @Post('registration-link')
+  @Roles(ROLES.SECRETARY)
+  async createRegistrationLink(@Body() dto: CreateRegistrationLinkDto, @Req() req) {
+    return this.membersService.createRegistrationLink({ ...dto, createdBy: req.user.userId });
+  }
+
+  @Post('register-via-link/:token')
+  async registerMemberViaLink(@Param('token') token: string, @Body() dto: RegisterMemberViaLinkDto) {
+    return this.membersService.registerMemberViaLink(token, dto);
+  }
+
+  @Get('pending-verification')
+  @Roles(ROLES.SECRETARY, ROLES.ASSISTANT_SECRETARY)
+  async getPendingVerifications(@Query('fellowshipId') fellowshipId: string, @Req() req) {
+    return this.membersService.getPendingVerifications(fellowshipId, req.user);
+  }
+
+  @Put('verify/:verificationId')
+  @Roles(ROLES.SECRETARY, ROLES.ASSISTANT_SECRETARY)
+  async verifyMember(@Param('verificationId') verificationId: string, @Body() dto: VerifyMemberDto, @Req() req) {
+    return this.membersService.verifyMember(verificationId, dto, req.user);
+  }
+
+  @Put('reject/:verificationId')
+  @Roles(ROLES.SECRETARY, ROLES.ASSISTANT_SECRETARY)
+  async rejectMember(@Param('verificationId') verificationId: string, @Body() dto: RejectMemberDto, @Req() req) {
+    return this.membersService.rejectMember(verificationId, dto, req.user);
+  }
+
+  @Put('pending-verification/:verificationId')
+  @Roles(ROLES.SECRETARY, ROLES.ASSISTANT_SECRETARY)
+  async editPendingVerification(@Param('verificationId') verificationId: string, @Body() dto: VerifyMemberDto, @Req() req) {
+    return this.membersService.editPendingVerification(verificationId, dto, req.user);
+  }
+
+  @Get('export')
+  @Roles(ROLES.SECRETARY)
+  async exportMembers(@Query() query: ExportMembersDto, @Req() req, @Res() res) {
+    const buffer = await this.membersService.exportMembers(req.user.fellowshipId, query, req.user);
+    const filename = `members_export_${new Date().toISOString().split('T')[0]}.csv`;
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
   }
 }

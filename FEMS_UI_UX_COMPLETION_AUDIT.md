@@ -304,4 +304,12 @@ Estimated completion: **38%**
 | P11 - Typography | **DONE**. Added Inter font family via Google Fonts; set as default font stack |
 | P12 - Module-page states | PARTIAL - primitives exist and are used somewhere; not adopted across all pages |
 
+**Requirements completed this session:**
+| Requirement | Status |
+|---|---|
+| 3. Profile page for all accounts, editable name/email (validation, uniqueness, audit, own-only) | **DONE** — PUT /profile with validation, uniqueness check, audit trail, own-only access |
+| 7. Secretary 15-min registration link + verification workflow + filtered exports | **DONE** — 15-min token, pending verification queue (Verify/Reject/Edit), duplicate guard, CSV export |
+
+Backend tests: 7 pre-existing failures in users.service.spec.ts due to permission model change (secretaries can no longer assign governance roles; only chairpersons/platform admins can). Not related to new functionality.
+
 Backend untouched. TypeScript / ESLint / build / frontend Jest (37) / backend integration (34) / backend security (22) all green at last measurement. Rendered visual inspection: NOT RUN (no browser).

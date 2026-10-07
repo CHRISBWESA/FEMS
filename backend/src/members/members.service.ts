@@ -688,6 +688,271 @@ export class MembersService {
 
     return this.findOne(memberId, currentUser);
   }
+
+  // --- Member Registration Link & Verification ---
+
+  async createRegistrationLink(dto: CreateRegistrationLinkDto): Promise<{ token: string; expiresAt: Date }> {
+    const { fellowshipId, createdBy } = dto;
+    const token = randomUUID();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+    const link = await this.prisma.memberRegistrationLink.create({
+      data: {
+        token,
+        fellowship_id: fellowshipId,
+        created_by: createdBy,
+        expires_at: new Date(expiresAt),
+      },
+    });
+
+    await this.auditService.log({
+      userId: createdBy,
+      action: 'member.registration_link.create',
+      entityType: 'member_registration_link',
+      entityId: link.id,
+      newValue: { token: link.token, fellowship_id: fellowshipId, expires_at: link.expires_at },
+      comment: 'Created member registration link',
+    });
+
+    return { token: link.token, expiresAt: link.expires_at };
+  }
+
+  async registerMemberViaLink(token: string, dto: RegisterMemberViaLinkDto): Promise<{ verificationId: string }> {
+    const link = await this.prisma.memberRegistrationLink.findUnique({ where: { token } });
+    if (!link) throw new NotFoundException('Invalid or expired registration link');
+    if (link.status !== 'pending') throw new BadRequestException('This link has already been used or is invalid');
+    if (new Date() > link.expires_at) {
+      await this.prisma.memberRegistrationLink.update({ where: { id: link.id }, data: { status: 'expired' } });
+      throw new BadRequestException('This registration link has expired');
+    }
+
+    // Check for duplicate member (by email or phone)
+    if (dto.email) {
+      const existingByEmail = await this.prisma.user.findFirst({
+        where: { email: dto.email.toLowerCase(), fellowship_id: link.fellowship_id },
+        include: { member: true },
+      });
+      if (existingByEmail?.member) {
+        throw new BadRequestException('A member with this email already exists in this fellowship');
+      }
+    }
+    if (dto.phone) {
+      const existingByPhone = await this.prisma.member.findFirst({
+        where: { phone: dto.phone, fellowship_id: link.fellowship_id, membership_status: 'active' },
+      });
+      if (existingByPhone) {
+        throw new BadRequestException('A member with this phone number already exists in this fellowship');
+      }
+    }
+
+    // Mark link as used
+    await this.prisma.memberRegistrationLink.update({
+      where: { id: link.id },
+      data: { status: 'used', used_at: new Date() },
+    });
+
+    // Create pending verification
+    const verification = await this.prisma.pendingMemberVerification.create({
+      data: {
+        fellowship_id: link.fellowship_id,
+        link_id: link.id,
+        first_name: dto.firstName,
+        last_name: dto.lastName,
+        email: dto.email?.toLowerCase() || null,
+        phone: dto.phone || null,
+        gender: dto.gender || null,
+        department_id: dto.departmentId || null,
+        submitted_data: dto as any,
+      },
+    });
+
+    await this.auditService.log({
+      userId: link.created_by,
+      action: 'member.registration_link.use',
+      entityType: 'pending_member_verification',
+      entityId: verification.id,
+      newValue: { firstName: dto.firstName, lastName: dto.lastName, email: dto.email, phone: dto.phone },
+      comment: 'Member registration submitted via link',
+    });
+
+    return { verificationId: verification.id };
+  }
+
+  async getPendingVerifications(fellowshipId: string, requester: any): Promise<any[]> {
+    const userId = requester.userId;
+    const roles = requester.roles || [];
+    const isSecretary = roles.includes('secretary') || roles.includes('assistant_secretary');
+    if (!isSecretary) throw new ForbiddenException('Only secretaries can view pending verifications');
+
+    return this.prisma.pendingMemberVerification.findMany({
+      where: { fellowship_id: fellowshipId, status: 'pending' },
+      orderBy: { created_at: 'asc' },
+    });
+  }
+
+  async verifyMember(verificationId: string, dto: VerifyMemberDto, requester: any): Promise<any> {
+    const verification = await this.prisma.pendingMemberVerification.findUnique({ where: { id: verificationId } });
+    if (!verification) throw new NotFoundException('Verification not found');
+    if (verification.status !== 'pending') throw new BadRequestException('This verification has already been processed');
+
+    const requesterRoles = requester.roles || [];
+    const isSecretary = requesterRoles.includes('secretary') || requesterRoles.includes('assistant_secretary');
+    if (!isSecretary) throw new ForbiddenException('Only secretaries can verify members');
+
+    // Check for duplicate
+    if (dto.email) {
+      const existingByEmail = await this.prisma.user.findFirst({
+        where: { email: dto.email.toLowerCase(), fellowship_id: verification.fellowship_id },
+        include: { member: true },
+      });
+      if (existingByEmail?.member) {
+        throw new BadRequestException('A member with this email already exists in this fellowship');
+      }
+    }
+    if (dto.phone) {
+      const existingByPhone = await this.prisma.member.findFirst({
+        where: { phone: dto.phone, fellowship_id: verification.fellowship_id, membership_status: 'active' },
+      });
+      if (existingByPhone) {
+        throw new BadRequestException('A member with this phone number already exists in this fellowship');
+      }
+    }
+
+    // Create the member
+    const memberCode = await this.generateMemberCode();
+    const currentYear = new Date().getFullYear();
+    const member = await this.prisma.member.create({
+      data: {
+        full_name: `${dto.firstName} ${dto.lastName}`,
+        member_code: await this.generateMemberCode(),
+        fellowship_id: verification.fellowship_id,
+        gender: dto.gender || 'other',
+        email: dto.email?.toLowerCase() || null,
+        phone: dto.phone || null,
+        expected_graduation_year: new Date().getFullYear() + 4,
+        expected_graduation_month: 6,
+        created_by: requester.userId,
+        departmentMemberships: dto.departmentId ? { create: { department_id: dto.departmentId } } : undefined,
+      },
+    });
+
+    // Update verification status
+    await this.prisma.pendingMemberVerification.update({
+      where: { id: verificationId },
+      data: { status: 'verified', reviewed_by: requester.userId, reviewed_at: new Date() },
+    });
+
+    await this.auditService.log({
+      userId: requester.userId,
+      action: 'member.verify',
+      entityType: 'member',
+      entityId: member.id,
+      newValue: { firstName: dto.firstName, lastName: dto.lastName, email: dto.email, phone: dto.phone, departmentId: dto.departmentId } as Record<string, unknown>,
+      comment: 'Member verified and added to fellowship',
+    });
+
+    return { memberId: member.id, memberCode };
+  }
+
+  async rejectMember(verificationId: string, dto: RejectMemberDto, requester: any): Promise<any> {
+    const verification = await this.prisma.pendingMemberVerification.findUnique({ where: { id: verificationId } });
+    if (!verification) throw new NotFoundException('Verification not found');
+    if (verification.status !== 'pending') throw new BadRequestException('This verification has already been processed');
+
+    const requesterRoles = requester.roles || [];
+    const isSecretary = requesterRoles.includes('secretary') || requesterRoles.includes('assistant_secretary');
+    if (!isSecretary) throw new ForbiddenException('Only secretaries can reject members');
+
+    const updateResult = await this.prisma.pendingMemberVerification.update({
+      where: { id: verificationId },
+      data: { status: 'rejected', reviewed_by: requester.userId, reviewed_at: new Date(), rejection_reason: dto.reason },
+    });
+
+    await this.auditService.log({
+      userId: requester.userId,
+      action: 'member.reject',
+      entityType: 'pending_member_verification',
+      entityId: verificationId,
+      newValue: { reason: dto.reason },
+      comment: 'Member registration rejected',
+    });
+
+    return { success: true };
+  }
+
+  async editPendingVerification(verificationId: string, dto: VerifyMemberDto, requester: any): Promise<any> {
+    const verification = await this.prisma.pendingMemberVerification.findUnique({ where: { id: verificationId } });
+    if (!verification) throw new NotFoundException('Verification not found');
+    if (verification.status !== 'pending') throw new BadRequestException('This verification has already been processed');
+
+    const requesterRoles = requester.roles || [];
+    const isSecretary = requesterRoles.includes('secretary') || requesterRoles.includes('assistant_secretary');
+    if (!isSecretary) throw new ForbiddenException('Only secretaries can edit pending verifications');
+
+    await this.prisma.pendingMemberVerification.update({
+      where: { id: verificationId },
+      data: {
+        first_name: dto.firstName,
+        last_name: dto.lastName,
+        email: dto.email?.toLowerCase() || null,
+        phone: dto.phone || null,
+        gender: dto.gender || null,
+        department_id: dto.departmentId || null,
+        submitted_data: dto as any,
+      },
+    });
+
+    await this.auditService.log({
+      userId: requester.userId,
+      action: 'member.verification_edit',
+      entityType: 'pending_member_verification',
+      entityId: verificationId,
+      newValue: dto as unknown as Record<string, unknown>,
+      comment: 'Pending member verification edited',
+    });
+
+    return { success: true };
+  }
+
+  async exportMembers(fellowshipId: string, dto: ExportMembersDto, requester: any): Promise<Buffer> {
+    const requesterRoles = requester.roles || [];
+    const isSecretary = requesterRoles.includes('secretary') || requesterRoles.includes('assistant_secretary');
+    if (!isSecretary) throw new ForbiddenException('Only secretaries can export members');
+
+    const where: any = { fellowship_id: fellowshipId };
+    if (dto.status) where.membership_status = dto.status;
+    if (dto.departmentId) where.departmentMemberships = { some: { department_id: dto.departmentId } };
+    if (dto.gender) where.gender = dto.gender;
+    if (dto.startDate) where.created_at = { gte: new Date(dto.startDate) };
+    if (dto.endDate) where.created_at = { ...where.created_at, lte: new Date(dto.endDate) };
+
+    const members = await this.prisma.member.findMany({
+      where,
+      include: { departmentMemberships: { include: { department: true } } },
+      orderBy: { created_at: 'desc' },
+    });
+
+    const headers = ['Member Code', 'Full Name', 'Status', 'Email', 'Phone', 'Gender', 'Departments', 'Created At'];
+    const rows = members.map(m => [
+      m.member_code,
+      m.full_name,
+      m.membership_status,
+      m.email || '',
+      m.phone || '',
+      m.gender,
+      m.departmentMemberships?.map(d => d.department?.name).join('; ') || '',
+      m.created_at.toISOString().split('T')[0],
+    ]);
+
+    if (dto.format === 'csv') {
+      const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))].join('\n');
+      return Buffer.from(csv, 'utf-8');
+    }
+
+    // For xlsx/pdf, we'd need additional libraries. Return CSV as fallback.
+    const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))].join('\n');
+    return Buffer.from(csv, 'utf-8');
+  }
 }
 
 export interface CreateMemberDto {
@@ -716,4 +981,40 @@ export interface UpdateMemberDto {
   university?: string;
   expectedGraduationYear?: number;
   expectedGraduationMonth?: number;
+}
+
+export interface CreateRegistrationLinkDto {
+  fellowshipId: string;
+  createdBy: string; // Secretary user_id
+}
+
+export interface RegisterMemberViaLinkDto {
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone?: string;
+  gender?: string;
+  departmentId?: string;
+}
+
+export interface VerifyMemberDto {
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone?: string;
+  gender?: string;
+  departmentId?: string;
+}
+
+export interface RejectMemberDto {
+  reason: string;
+}
+
+export interface ExportMembersDto {
+  format: 'csv' | 'xlsx' | 'pdf';
+  status?: string;
+  departmentId?: string;
+  gender?: string;
+  startDate?: string;
+  endDate?: string;
 }

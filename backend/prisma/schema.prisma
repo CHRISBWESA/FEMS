@@ -355,6 +355,19 @@ enum RegistrationStatus {
   rejected
 }
 
+enum MemberRegistrationLinkStatus {
+  pending
+  used
+  expired
+  cancelled
+}
+
+enum MemberVerificationStatus {
+  pending
+  verified
+  rejected
+}
+
 // A request to join the platform, submitted by a prospective fellowship owner from the public signup form.
 // It exists BEFORE any account does, so it carries its own copy of the contact details rather than a user_id.
 // Nothing here grants access: approval is a platform decision that runs the normal onboarding service.
@@ -381,10 +394,53 @@ model FellowshipRegistration {
   created_at           DateTime           @default(now())
   updated_at           DateTime           @updatedAt
 
-  @@index([status, created_at])
+@@index([status, created_at])
   @@index([email])
   @@index([created_fellowship_id])
   @@map("fellowship_registrations")
+}
+
+// A temporary link created by a Secretary for member registration. The link expires after 15 minutes
+// and can only be used once. When used, it creates a PendingMemberVerification entry.
+model MemberRegistrationLink {
+  id                  String                         @id @default(uuid()) @db.Uuid
+  fellowship_id       String                         @db.Uuid
+  token               String                         @unique @db.Uuid
+  created_by          String                         @db.Uuid // Secretary user_id
+  status              MemberRegistrationLinkStatus   @default(pending)
+  expires_at          DateTime
+  used_at             DateTime?
+  created_at          DateTime                       @default(now())
+  updated_at          DateTime                       @updatedAt
+
+  @@index([fellowship_id, status])
+  @@index([token])
+  @@map("member_registration_links")
+}
+
+// A pending member verification created when a MemberRegistrationLink is used.
+// The Secretary must verify/reject/edit the member details before they are added to the fellowship.
+model PendingMemberVerification {
+  id                  String                       @id @default(uuid()) @db.Uuid
+  fellowship_id       String                       @db.Uuid
+  link_id             String?                      @db.Uuid
+  first_name          String
+  last_name           String
+  email               String?
+  phone               String?
+  gender              String?                      // male, female, other
+  department_id       String?                      @db.Uuid
+  status              MemberVerificationStatus     @default(pending)
+  submitted_data      Json                         // Original submitted data for audit
+  reviewed_by         String?                      @db.Uuid // Secretary user_id
+  reviewed_at         DateTime?
+  rejection_reason    String?
+  created_at          DateTime                     @default(now())
+  updated_at          DateTime                     @updatedAt
+
+  @@index([fellowship_id, status])
+  @@index([link_id])
+  @@map("pending_member_verifications")
 }
 
 // ---------- Members & Departments ----------
