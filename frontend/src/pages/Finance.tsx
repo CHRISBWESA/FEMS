@@ -7,8 +7,8 @@ import FinanceCampaignsTab from '../components/finance/FinanceCampaignsTab';
 import FinancePeriodsTab from '../components/finance/FinancePeriodsTab';
 import FinancePledgesTab from '../components/finance/FinancePledgesTab';
 import FinanceReportsTab from '../components/finance/FinanceReportsTab';
-import { ErrorBox, Modal, errMsg } from '../components/finance/common';
-import { PageLoader } from '../components/ui';
+import { errMsg } from '../components/finance/common';
+import { EmptyState, PageLoader, Alert, Modal } from '../components/ui';
 
 const CONTRIBUTION_TYPES = ['tithe', 'offering', 'thanksgiving', 'pledge', 'project', 'other'];
 const RELEASE_METHODS = ['cash', 'bank_transfer', 'mobile_money', 'cheque', 'other'];
@@ -166,10 +166,8 @@ export default function Finance() {
   };
 
   const handleApprove = async (type: string, id: string, decision: string) => {
-    const comment = decision === 'rejected' ? (prompt('Rejection reason:') || '') : 'Reviewed';
-    if (decision === 'rejected' && !comment) return;
     try {
-      await axios.post(`/finance/${type}/${id}/approve`, { decision, comment }, { withCredentials: true });
+      await axios.post(`/finance/${type}/${id}/approve`, { decision, comment: 'Reviewed' }, { withCredentials: true });
       fetchTab();
     } catch (err: any) {
       alert(errMsg(err, 'Failed'));
@@ -293,13 +291,7 @@ export default function Finance() {
       {!LIST_TABS.includes(activeTab) ? null : loading ? (
         <PageLoader rows={2} />
       ) : Array.isArray(data) && data.length === 0 ? (
-        <div className="empty-state">
-          <div className="stat-icon bg-surface-sunken text-ink-subtle">
-            <CurrencyDollarIcon className="h-6 w-6" />
-          </div>
-          <p className="empty-title">No records found</p>
-          <p className="empty-desc">No {activeTab.replace('-', ' ')} records yet.</p>
-        </div>
+        <EmptyState title="No records found" description={`No ${activeTab.replace('-', ' ')} records yet.`} />
       ) : Array.isArray(data) ? (
         <div className="table-wrap overflow-x-auto">
           <table className="table">
@@ -572,9 +564,9 @@ export default function Finance() {
       )}
 
       {releasing && (
-        <Modal title="Release funds" onClose={() => setReleasing(null)}>
+        <Modal open title="Release funds" onClose={() => setReleasing(null)}>
           <form onSubmit={submitRelease} className="space-y-4">
-            <ErrorBox text={error} />
+            <Alert tone="danger">{error}</Alert>
             <p className="text-sm text-ink-muted">
               Record that <span className="font-medium">${Number(releasing.amount).toLocaleString()}</span> for "{releasing.title}" has been paid out.
               This can be done only once and cannot be undone here.
