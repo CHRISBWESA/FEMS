@@ -294,7 +294,7 @@ Estimated completion: **38%**
 | P2 - DataTable | DONE. X-Total-Count-aware server paging, boundedNotice, row actions, selection, client/server sort, and a mobile card layout with mobile=scroll opt-out |
 | P2 - Missing primitives | DONE. Pagination, SearchInput, Progress, Dropdown, Tooltip, Breadcrumb, StatCard/StatGrid, IconButton, Radio, Switch, MultiSelect, DatePicker, FileUploader, Timeline, Stepper and ToastProvider added; ui.tsx now exports 33 |
 | P1 - Platform admin | PARTIAL. Shell redesigned, Dashboard rebuilt on StatGrid/Alert/DataTable, Fellowships/Audit/Support migrated to DataTable. **This session**: Billing.tsx, PlatformTenant.tsx, AdminAccounts.tsx migrated to primitives |
-| P4 - Module pages | PARTIAL. **This session**: FinancePeriodsTab, AssetDetail, Appointments, ForcePasswordChange, MemberGroups, Programmes, PublicSiteAdmin (PostsTab), RecycleBin, SupportAccess, Users, VolunteerOpportunity migrated to DataTable/ui primitives and ConfirmDialog |
+| P4 - Module pages | PARTIAL. **This session**: FinancePeriodsTab, AssetDetail, Appointments, ForcePasswordChange, MemberGroups, Programmes, PublicSiteAdmin (PostsTab), RecycleBin, SupportAccess, Users, VolunteerOpportunity, MyLoans, Audit, Backups, Volunteering, Analytics, DepartmentDetail, Finance (EmptyState/Alert/Modal), Members migrated to DataTable/ui primitives and ConfirmDialog. Server-side paging on Audit, Members. |
 | P5 - Public fellowship site | NOT DONE |
 | P6 - Marketing beyond hero | NOT DONE |
 | P7 - Form migration | NOT DONE |

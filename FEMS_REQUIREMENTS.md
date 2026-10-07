@@ -16,6 +16,7 @@ UI/UX Transformation progress (this session):
 - P8 ConfirmDialog/Toast: All 17 window.confirm replaced with ConfirmDialog; ToastProvider wired in main.tsx
 - P9 Accessibility: Skip link added, drawer Escape handler, aria-expanded on menu button, focus trap in drawer
 - P4 Module pages (partial): FinancePeriodsTab, AssetDetail, Appointments, ForcePasswordChange, MemberGroups, Programmes, PublicSiteAdmin (PostsTab), RecycleBin, SupportAccess, Users, VolunteerOpportunity migrated to primitives/ConfirmDialog
+- P4 Module pages (additional): MyLoans, Audit, Backups, Volunteering, Analytics, DepartmentDetail, Finance (partial: EmptyState/Alert/Modal), Members migrated to DataTable/ui primitives with server-side paging
 
 General rule for the next session: backend gets provider envs; everything else is frontend and must be
 implemented and verified (tsc + eslint + build + jest). Do not claim delivery for SMS/email until a provider key is present.
