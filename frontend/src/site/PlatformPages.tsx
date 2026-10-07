@@ -5,6 +5,7 @@ import {
   HandRaisedIcon, GlobeAltIcon, ShieldCheckIcon, ArchiveBoxIcon, ChartBarIcon, BellIcon,
 } from '@heroicons/react/24/outline';
 import { HERO, FEATURES, SOLUTIONS, FAQS, RESOURCES } from './site-copy';
+import { Card, StatCard, StatGrid } from '../components/ui';
 
 type IconComponent = typeof UsersIcon;
 
@@ -83,14 +84,11 @@ export function LiveStats() {
 
   return (
     <Section>
-      <dl className="grid gap-px overflow-hidden rounded-card border border-hairline bg-hairline sm:grid-cols-3">
+      <StatGrid>
         {tiles.map((t) => (
-          <div key={t.label} className="bg-surface px-8 py-7">
-            <dd className="text-4xl font-semibold tabular-nums tracking-tight text-ink">{t.value.toLocaleString()}</dd>
-            <dt className="mt-1.5 text-sm text-ink-muted">{t.label}</dt>
-          </div>
+          <StatCard key={t.label} value={t.value.toLocaleString()} label={t.label} />
         ))}
-      </dl>
+      </StatGrid>
     </Section>
   );
 }
@@ -178,13 +176,13 @@ export function PlatformHome() {
           {FEATURES.map((f) => {
             const Icon = ICONS[f.icon] ?? Squares2X2Icon;
             return (
-              <div key={f.title} className="card card-hover p-6">
+              <Card key={f.title} className="card-hover p-6">
                 <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-control bg-primary-light text-primary">
                   <Icon className="h-5 w-5" />
                 </div>
                 <h3 className="text-base font-semibold text-ink">{f.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-ink-muted">{f.body}</p>
-              </div>
+              </Card>
             );
           })}
         </div>
@@ -198,7 +196,7 @@ export function PlatformHome() {
         />
         <div className="mt-12 grid gap-5 lg:grid-cols-3">
           {SOLUTIONS.map((s) => (
-            <div key={s.audience} className="card p-6">
+            <Card key={s.audience} className="p-6">
               <p className="eyebrow">{s.audience}</p>
               <h3 className="mt-2 text-lg font-semibold text-ink">{s.title}</h3>
               <p className="mt-3 text-sm leading-relaxed text-ink-muted">{s.body}</p>
@@ -210,7 +208,7 @@ export function PlatformHome() {
                   </li>
                 ))}
               </ul>
-            </div>
+            </Card>
           ))}
         </div>
       </Section>
@@ -303,9 +301,9 @@ export function PlatformAbout() {
         />
       </Section>
 
-      <Section>
+<Section>
         <div className="grid gap-10 lg:grid-cols-2">
-          <div className="card p-8">
+          <Card className="p-8">
             <h3 className="text-lg font-semibold text-ink">The problem it solves</h3>
             <p className="mt-3 text-sm leading-relaxed text-ink-muted">
               Fellowships outgrow paper by outgrowing the people who remember it. Membership moves to one book,
@@ -315,8 +313,8 @@ export function PlatformAbout() {
               This puts the register, the ledger, the calendar and the public face of a congregation in one place,
               and keeps the boundaries between congregations enforced by the server rather than by convention.
             </p>
-          </div>
-          <div className="card p-8">
+          </Card>
+          <Card className="p-8">
             <h3 className="text-lg font-semibold text-ink">The offices it models</h3>
             <ul className="mt-3 space-y-2.5 text-sm text-ink-muted">
               {[
@@ -324,15 +322,15 @@ export function PlatformAbout() {
                 ['Assistant Secretary', 'the same, minus the Secretary-only actions.'],
                 ['Chairperson', 'approvals and oversight.'],
                 ['Treasurer', 'contributions, expenses, budgets and money requests.'],
-                ['IT', 'content manager for the fellowship’s public site — and nothing else.'],
-                ['Ordinary member', 'sees only their own details and their fellowship’s shared items.'],
+                ['IT', 'content manager for the fellowship\'s public site — and nothing else.'],
+                ['Ordinary member', 'sees only their own details and their fellowship\'s shared items.'],
               ].map(([role, body]) => (
                 <li key={role}>
                   <span className="font-medium text-ink">{role}.</span> {body}
                 </li>
               ))}
             </ul>
-          </div>
+          </Card>
         </div>
       </Section>
 
@@ -359,13 +357,13 @@ export function PlatformFeatures() {
           {FEATURES.map((f) => {
             const Icon = ICONS[f.icon] ?? Squares2X2Icon;
             return (
-              <div key={f.title} className="card p-6">
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary-light text-primary">
+              <Card key={f.title} className="p-6">
+                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-control bg-primary-light text-primary">
                   <Icon className="h-5 w-5" />
                 </div>
                 <h3 className="text-base font-semibold text-ink">{f.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-ink-muted">{f.body}</p>
-              </div>
+              </Card>
             );
           })}
         </div>
@@ -390,7 +388,7 @@ export function PlatformSolutions() {
       <Section>
         <div className="space-y-6">
           {SOLUTIONS.map((s) => (
-            <div key={s.audience} className="card p-8">
+            <Card key={s.audience} className="p-8">
               <p className="text-xs font-semibold uppercase tracking-wider text-primary">{s.audience}</p>
               <h3 className="mt-2 text-xl font-semibold text-ink">{s.title}</h3>
               <p className="mt-3 max-w-3xl text-sm leading-relaxed text-ink-muted">{s.body}</p>
@@ -402,7 +400,7 @@ export function PlatformSolutions() {
                   </li>
                 ))}
               </ul>
-            </div>
+            </Card>
           ))}
         </div>
       </Section>
@@ -426,10 +424,10 @@ export function PlatformResources() {
       <Section>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {RESOURCES.map((r) => (
-            <div key={r.title} className="card card-hover p-6">
+            <Card key={r.title} className="card-hover p-6">
               <h3 className="text-base font-semibold text-ink">{r.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-ink-muted">{r.body}</p>
-            </div>
+            </Card>
           ))}
         </div>
       </Section>
