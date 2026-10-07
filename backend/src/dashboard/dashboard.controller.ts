@@ -1,4 +1,4 @@
-import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Put, Req, UseGuards, Body } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { AllowWhenPasswordChangeRequired } from '../shared/authorization/must-change-password.guard';
@@ -6,6 +6,9 @@ import { PlatformAccess } from '../shared/decorators/platform.decorators';
 import { TenantScopeService } from '../shared/tenant/tenant-scope.service';
 import { isPlatformPrincipal } from '../shared/authorization/platform-boundary.guard';
 import { ModuleAvailabilityService } from '../shared/modules/module-availability.service';
+import { AuditService } from '../shared/audit/audit.service';
+import { validateText } from '../shared/utils/validation.util';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 @PlatformAccess()
 @Controller('dashboard')
@@ -81,7 +84,11 @@ export class DashboardController {
 @UseGuards(JwtAuthGuard)
 @Controller('profile')
 export class ProfileController {
-  constructor(private modules: ModuleAvailabilityService) {}
+  constructor(
+    private modules: ModuleAvailabilityService,
+    private prisma: PrismaService,
+    private auditService: AuditService,
+  ) {}
 
   // Previously had no @Get() at all, so GET /profile answered 404 and the client silently fell back.
   @Get()
@@ -97,6 +104,74 @@ export class ProfileController {
       isActive: true,
       mustChangePassword: req.user.mustChangePassword,
       disabledModules: Array.from(await this.modules.disabledModules(req.user.fellowshipId)),
+    };
+  }
+
+  @Put()
+  @AllowWhenPasswordChangeRequired()
+  async updateProfile(@Req() req, @Body() body: { firstName?: string; lastName?: string; email?: string }) {
+    const userId = req.user.userId;
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    const changes: Record<string, any> = {};
+    const oldValue: Record<string, any> = {};
+
+    if (body.firstName !== undefined) {
+      const firstName = validateText('firstName', body.firstName, 100, true);
+      if (firstName !== user.first_name) {
+        changes.first_name = firstName;
+        oldValue.firstName = user.first_name;
+      }
+    }
+
+    if (body.lastName !== undefined) {
+      const lastName = validateText('lastName', body.lastName, 100, true);
+      if (lastName !== user.last_name) {
+        changes.last_name = lastName;
+        oldValue.lastName = user.last_name;
+      }
+    }
+
+    if (body.email !== undefined) {
+      const email = validateText('email', body.email, 254, true)!.toLowerCase();
+      if (email !== user.email) {
+        const existing = await this.prisma.user.findFirst({
+          where: { email, NOT: { id: userId } },
+        });
+        if (existing) {
+          throw new BadRequestException('A user with this email already exists');
+        }
+        changes.email = email;
+        oldValue.email = user.email;
+      }
+    }
+
+    if (Object.keys(changes).length === 0) {
+      throw new BadRequestException('No fields to update');
+    }
+
+    const updated = await this.prisma.user.update({ where: { id: userId }, data: changes });
+
+    await this.auditService.log({
+      userId,
+      action: 'profile.update',
+      entityType: 'user',
+      entityId: userId,
+      oldValue,
+      newValue: changes,
+      comment: 'User updated their own profile',
+    });
+
+    return {
+      id: updated.id,
+      email: updated.email,
+      firstName: updated.first_name,
+      lastName: updated.last_name,
+      roles: updated.roles,
+      permissions: updated.permissions,
+      isActive: updated.is_active,
+      mustChangePassword: updated.must_change_password,
     };
   }
 }
