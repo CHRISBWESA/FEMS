@@ -8,7 +8,7 @@ import FinancePeriodsTab from '../components/finance/FinancePeriodsTab';
 import FinancePledgesTab from '../components/finance/FinancePledgesTab';
 import FinanceReportsTab from '../components/finance/FinanceReportsTab';
 import { errMsg } from '../components/finance/common';
-import { EmptyState, PageLoader, Alert, Modal } from '../components/ui';
+import { EmptyState, PageLoader, Alert, Modal, Field, Input, Select, Textarea } from '../components/ui';
 
 const CONTRIBUTION_TYPES = ['tithe', 'offering', 'thanksgiving', 'pledge', 'project', 'other'];
 const RELEASE_METHODS = ['cash', 'bank_transfer', 'mobile_money', 'cheque', 'other'];
@@ -382,170 +382,164 @@ export default function Finance() {
             <div className="space-y-4">
               {activeTab === 'contributions' && (
                 <>
-                  <div>
-                    <label className="label">Member *</label>
-                    <select required className="select" value={form.memberId} onChange={(e) => setForm({ ...form, memberId: e.target.value })}>
-                      <option value="">Select member…</option>
-                      {members.map((m) => <option key={m.id} value={m.id}>{m.full_name} ({m.member_code})</option>)}
-                    </select>
-                  </div>
+                  <Field label="Member *">
+                    <Select
+                      required
+                      value={form.memberId}
+                      onChange={(e) => setForm({ ...form, memberId: e.target.value })}
+                      options={[{ value: '', label: 'Select member…' }, ...members.map((m) => ({ value: m.id, label: `${m.full_name} (${m.member_code})` }))]}
+                    />
+                  </Field>
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="label">Amount *</label>
-                      <input type="number" min="0" step="0.01" required className="input" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
-                    </div>
-                    <div>
-                      <label className="label">Type *</label>
-                      <select required className="select" value={form.contributionType} onChange={(e) => setForm({ ...form, contributionType: e.target.value })}>
-                        {CONTRIBUTION_TYPES.map(t => <option key={t} value={t} className="capitalize">{t}</option>)}
-                      </select>
-                    </div>
+                    <Field label="Amount *">
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        required
+                        value={form.amount}
+                        onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                      />
+                    </Field>
+                    <Field label="Type *">
+                      <Select
+                        required
+                        value={form.contributionType}
+                        onChange={(e) => setForm({ ...form, contributionType: e.target.value })}
+                        options={CONTRIBUTION_TYPES.map(t => ({ value: t, label: t.charAt(0).toUpperCase() + t.slice(1) }))}
+                      />
+                    </Field>
                   </div>
-                  <div>
-                    <label className="label">Date *</label>
-                    <input type="date" required max={today()} className="input" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
-                  </div>
+                  <Field label="Date *">
+                    <Input type="date" required max={today()} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+                  </Field>
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="label">Campaign</label>
-                      <select className="select" value={form.campaignId} onChange={(e) => setForm({ ...form, campaignId: e.target.value })}>
-                        <option value="">None</option>
-                        {campaigns.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="label">Category</label>
-                      <select className="select" value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })}>
-                        <option value="">None</option>
-                        {categories.filter((c) => c.kind === 'contribution').map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                    </div>
+                    <Field label="Campaign">
+                      <Select
+                        value={form.campaignId}
+                        onChange={(e) => setForm({ ...form, campaignId: e.target.value })}
+                        options={[{ value: '', label: 'None' }, ...campaigns.map((c) => ({ value: c.id, label: c.name }))]}
+                      />
+                    </Field>
+                    <Field label="Category">
+                      <Select
+                        value={form.categoryId}
+                        onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
+                        options={[{ value: '', label: 'None' }, ...categories.filter((c) => c.kind === 'contribution').map((c) => ({ value: c.id, label: c.name }))]}
+                      />
+                    </Field>
                   </div>
-                  <div>
-                    <label className="label">Receipt (optional)</label>
-                    <select className="select" value={form.receiptDocumentId} onChange={(e) => setForm({ ...form, receiptDocumentId: e.target.value })}>
-                      <option value="">No receipt attached</option>
-                      {documents.map((d) => <option key={d.id} value={d.id}>{d.title}</option>)}
-                    </select>
+                  <Field label="Receipt (optional)">
+                    <Select
+                      value={form.receiptDocumentId}
+                      onChange={(e) => setForm({ ...form, receiptDocumentId: e.target.value })}
+                      options={[{ value: '', label: 'No receipt attached' }, ...documents.map((d) => ({ value: d.id, label: d.title }))]}
+                    />
                     <p className="mt-1 text-xs text-ink-subtle">Receipts are documents uploaded under IT Content.</p>
-                  </div>
-                  <div>
-                    <label className="label">Notes</label>
-                    <input className="input" maxLength={500} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-                  </div>
+                  </Field>
+                  <Field label="Notes">
+                    <Input maxLength={500} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+                  </Field>
                 </>
               )}
 
               {activeTab === 'expenses' && (
                 <>
-                  <div>
-                    <label className="label">Title *</label>
-                    <input required className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-                  </div>
-                  <div>
-                    <label className="label">Description</label>
-                    <textarea rows={2} className="input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-                  </div>
+                  <Field label="Title *">
+                    <Input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+                  </Field>
+                  <Field label="Description">
+                    <Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                  </Field>
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="label">Amount *</label>
-                      <input type="number" min="0" step="0.01" required className="input" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
-                    </div>
-                    <div>
-                      <label className="label">Date *</label>
-                      <input type="date" required className="input" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
-                    </div>
+                    <Field label="Amount *">
+                      <Input type="number" min="0" step="0.01" required value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+                    </Field>
+                    <Field label="Date *">
+                      <Input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+                    </Field>
                   </div>
-                  <div>
-                    <label className="label">Purpose *</label>
-                    <input required className="input" placeholder="What was this spent on?" value={form.purpose} onChange={(e) => setForm({ ...form, purpose: e.target.value })} />
-                  </div>
+                  <Field label="Purpose *" hint="What was this spent on?">
+                    <Input required value={form.purpose} onChange={(e) => setForm({ ...form, purpose: e.target.value })} />
+                  </Field>
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="label">Department</label>
-                      <select className="select" value={form.departmentId} onChange={(e) => setForm({ ...form, departmentId: e.target.value })}>
-                        <option value="">Fellowship-wide</option>
-                        {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="label">Category</label>
-                      <select className="select" value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })}>
-                        <option value="">None</option>
-                        {categories.filter((c) => c.kind === 'expense').map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                    </div>
+                    <Field label="Department">
+                      <Select
+                        value={form.departmentId}
+                        onChange={(e) => setForm({ ...form, departmentId: e.target.value })}
+                        options={[{ value: '', label: 'Fellowship-wide' }, ...departments.map((d) => ({ value: d.id, label: d.name }))]}
+                      />
+                    </Field>
+                    <Field label="Category">
+                      <Select
+                        value={form.categoryId}
+                        onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
+                        options={[{ value: '', label: 'None' }, ...categories.filter((c) => c.kind === 'expense').map((c) => ({ value: c.id, label: c.name }))]}
+                      />
+                    </Field>
                   </div>
-                  <div>
-                    <label className="label">Receipt (optional)</label>
-                    <select className="select" value={form.receiptDocumentId} onChange={(e) => setForm({ ...form, receiptDocumentId: e.target.value })}>
-                      <option value="">No receipt attached</option>
-                      {documents.map((d) => <option key={d.id} value={d.id}>{d.title}</option>)}
-                    </select>
-                  </div>
+                  <Field label="Receipt (optional)">
+                    <Select
+                      value={form.receiptDocumentId}
+                      onChange={(e) => setForm({ ...form, receiptDocumentId: e.target.value })}
+                      options={[{ value: '', label: 'No receipt attached' }, ...documents.map((d) => ({ value: d.id, label: d.title }))]}
+                    />
+                  </Field>
                 </>
               )}
 
               {activeTab === 'budgets' && (
                 <>
-                  <div>
-                    <label className="label">Title *</label>
-                    <input required className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-                  </div>
-                  <div>
-                    <label className="label">Description</label>
-                    <textarea rows={2} className="input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-                  </div>
+                  <Field label="Title *">
+                    <Input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+                  </Field>
+                  <Field label="Description">
+                    <Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                  </Field>
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="label">Amount *</label>
-                      <input type="number" min="0" step="0.01" required className="input" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
-                    </div>
-                    <div>
-                      <label className="label">Fiscal Year *</label>
-                      <input type="number" min="2020" max="2100" required className="input" value={form.fiscalYear} onChange={(e) => setForm({ ...form, fiscalYear: e.target.value })} />
-                    </div>
+                    <Field label="Amount *">
+                      <Input type="number" min="0" step="0.01" required value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+                    </Field>
+                    <Field label="Fiscal Year *">
+                      <Input type="number" min="2020" max="2100" required value={form.fiscalYear} onChange={(e) => setForm({ ...form, fiscalYear: e.target.value })} />
+                    </Field>
                   </div>
-                  <div>
-                    <label className="label">Department</label>
-                    <select className="select" value={form.departmentId} onChange={(e) => setForm({ ...form, departmentId: e.target.value })}>
-                      <option value="">Fellowship-wide</option>
-                      {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                    </select>
-                  </div>
+                  <Field label="Department">
+                    <Select
+                      value={form.departmentId}
+                      onChange={(e) => setForm({ ...form, departmentId: e.target.value })}
+                      options={[{ value: '', label: 'Fellowship-wide' }, ...departments.map((d) => ({ value: d.id, label: d.name }))]}
+                    />
+                  </Field>
                 </>
               )}
 
               {activeTab === 'money-requests' && (
                 <>
-                  <div>
-                    <label className="label">Title *</label>
-                    <input required className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-                  </div>
-                  <div>
-                    <label className="label">Description</label>
-                    <textarea rows={2} className="input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-                  </div>
+                  <Field label="Title *">
+                    <Input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+                  </Field>
+                  <Field label="Description">
+                    <Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                  </Field>
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="label">Amount *</label>
-                      <input type="number" min="0" step="0.01" required className="input" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
-                    </div>
-                    <div>
-                      <label className="label">Purpose *</label>
-                      <input required className="input" placeholder="Why is it needed?" value={form.purpose} onChange={(e) => setForm({ ...form, purpose: e.target.value })} />
-                    </div>
+                    <Field label="Amount *">
+                      <Input type="number" min="0" step="0.01" required value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+                    </Field>
+                    <Field label="Purpose *" hint="Why is it needed?">
+                      <Input required value={form.purpose} onChange={(e) => setForm({ ...form, purpose: e.target.value })} />
+                    </Field>
                   </div>
                   {isDeptLeader ? (
                     <p className="text-xs text-ink-muted">This request is raised for your own department.</p>
                   ) : (
-                    <div>
-                      <label className="label">Department</label>
-                      <select className="select" value={form.departmentId} onChange={(e) => setForm({ ...form, departmentId: e.target.value })}>
-                        <option value="">Fellowship-wide</option>
-                        {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                      </select>
-                    </div>
+                    <Field label="Department">
+                      <Select
+                        value={form.departmentId}
+                        onChange={(e) => setForm({ ...form, departmentId: e.target.value })}
+                        options={[{ value: '', label: 'Fellowship-wide' }, ...departments.map((d) => ({ value: d.id, label: d.name }))]}
+                      />
+                    </Field>
                   )}
                 </>
               )}
