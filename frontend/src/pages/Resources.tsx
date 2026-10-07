@@ -289,7 +289,7 @@ function ReportsTab() {
   const Card = ({ title, children }: { title: string; children: React.ReactNode }) => <div className="card"><h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">{title}</h3>{children}</div>;
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[['Available', data.totals.available ?? 0], ['On loan', data.totals.checked_out ?? 0], ['In maintenance', data.totals.in_maintenance ?? 0], ['Overdue loans', data.loans.overdue]].map(([l, v]) => (
           <div key={l as string} className="card"><p className="text-sm text-ink-muted">{l}</p><p className="text-2xl font-semibold text-ink">{v}</p></div>
         ))}

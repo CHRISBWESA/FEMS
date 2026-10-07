@@ -81,7 +81,7 @@ export default function MemberInsights() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { label: 'Members', value: data.totals.total, icon: UsersIcon, color: 'bg-primary-light text-primary' },
           { label: 'Active', value: data.totals.active, icon: UserPlusIcon, color: 'bg-emerald-50 text-success' },

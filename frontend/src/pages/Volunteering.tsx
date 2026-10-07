@@ -137,7 +137,7 @@ function MineTab() {
   ];
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[['Times served', data.totals.attended], ['Hours served', data.totals.hoursServed], ['Upcoming', data.totals.upcoming], ['Missed', data.totals.noShow]].map(([l, v]) => (
           <div key={l as string} className="card"><p className="text-sm text-ink-muted">{l}</p><p className="text-2xl font-semibold text-ink">{v}</p></div>
         ))}

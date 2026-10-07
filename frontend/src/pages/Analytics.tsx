@@ -116,7 +116,7 @@ function OverviewTab({ data, go }: { data: any; go: (s: Section) => void }) {
       {shown.map(([section, items]) => (
         <div key={section}>
           <div className="mb-2 flex items-center justify-between"><h2 className="text-sm font-semibold uppercase tracking-wider text-ink-subtle">{LABEL[section]}</h2><button className="text-sm font-medium text-primary hover:underline" onClick={() => go(section)}>Details →</button></div>
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">{items.map(([l, v, h]) => <Stat key={l} label={l} value={v} hint={h} />)}</div>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">{items.map(([l, v, h]) => <Stat key={l} label={l} value={v} hint={h} />)}</div>
         </div>
       ))}
       {data.unavailable?.length > 0 && <p className="text-sm text-amber-700">Some figures could not be loaded: {data.unavailable.map((s: Section) => LABEL[s]).join(', ')}.</p>}
@@ -152,7 +152,7 @@ function SectionTab({ section, query }: { section: Section; query: string }) {
 function Membership({ d }: { d: any }) {
   return (
     <>
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Members" value={d.totals.total} /><Stat label="Active" value={d.totals.active} /><Stat label="Inactive" value={d.totals.inactive} /><Stat label="Graduated" value={d.totals.graduated} />
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
@@ -184,7 +184,7 @@ function Participation({ d, onEvent, eventId }: { d: any; onEvent: (id: string) 
   const t = d.totals;
   return (
     <>
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Events" value={t.events} /><Stat label="Unique attendees" value={t.uniqueAttendees} hint={`of ${t.activeMembers} active members`} />
         <Stat label="Participation rate" value={pct(t.participationRate)} /><Stat label="Average per event" value={t.averagePerEvent} />
       </div>
@@ -228,7 +228,7 @@ function Finance({ d }: { d: any }) {
   return (
     <>
       {d.period && <p className="text-sm text-ink-muted">Financial period: <span className="font-medium">{d.period.name}</span></p>}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {c && <Stat label="Contributions" value={money(c.total)} hint={`${c.count} record${c.count === 1 ? '' : 's'}`} />}
         {d.income && <Stat label="Other income" value={money(d.income.total)} />}
         <Stat label="Approved expenses" value={money(d.expenses.approvedTotal)} hint={`${d.expenses.pendingApprovalCount} awaiting approval`} />
@@ -263,7 +263,7 @@ function Finance({ d }: { d: any }) {
 function Youth({ d }: { d: any }) {
   return (
     <>
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4"><Stat label="Participants" value={d.totalParticipants} /><Stat label="Active" value={d.activeParticipants} /></div>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4"><Stat label="Participants" value={d.totalParticipants} /><Stat label="Active" value={d.activeParticipants} /></div>
       <div className="grid gap-6 lg:grid-cols-2">
         <Card title="By age group"><Bars rows={d.byAgeGroup} label={(r) => r.ageGroupName} value={(r) => r.count} /></Card>
         <Card title="By status"><Bars rows={d.byStatus} label={(r) => r.status} value={(r) => r.count} /></Card>
@@ -276,7 +276,7 @@ function Resources({ d }: { d: any }) {
   const t = d.totals || {};
   return (
     <>
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Available" value={t.available ?? 0} /><Stat label="On loan" value={t.checked_out ?? 0} hint={`${d.loans.overdue} overdue`} /><Stat label="In maintenance" value={t.in_maintenance ?? 0} hint={`${d.maintenance.overdue} overdue`} />
         {d.acquisitionValue != null && <Stat label="Acquisition value" value={money(d.acquisitionValue)} />}
       </div>
@@ -295,7 +295,7 @@ function Volunteers({ d }: { d: any }) {
   const p = d.participation;
   return (
     <>
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Stat label="Volunteers" value={p.volunteers} /><Stat label="Hours served" value={p.hoursServed} /><Stat label="Attendance rate" value={pct(p.attendanceRate)} /><Stat label="Shifts filled" value={pct(p.fillRate)} /><Stat label="Unfilled (14 days)" value={`${d.upcoming.unfilled} of ${d.upcoming.next14Days}`} />
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
