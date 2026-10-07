@@ -295,12 +295,13 @@ Estimated completion: **38%**
 | P2 - Missing primitives | DONE. Pagination, SearchInput, Progress, Dropdown, Tooltip, Breadcrumb, StatCard/StatGrid, IconButton, Radio, Switch, MultiSelect, DatePicker, FileUploader, Timeline, Stepper and ToastProvider added; ui.tsx now exports 33 |
 | P1 - Platform admin | PARTIAL. Shell redesigned, Dashboard rebuilt on StatGrid/Alert/DataTable, Fellowships/Audit/Support migrated to DataTable. **This session**: Billing.tsx, PlatformTenant.tsx, AdminAccounts.tsx migrated to primitives |
 | P4 - Module pages | PARTIAL. **This session**: FinancePeriodsTab, AssetDetail, Appointments, ForcePasswordChange, MemberGroups, Programmes, PublicSiteAdmin (PostsTab), RecycleBin, SupportAccess, Users, VolunteerOpportunity, MyLoans, Audit, Backups, Volunteering, Analytics, DepartmentDetail, Finance (EmptyState/Alert/Modal), Members migrated to DataTable/ui primitives and ConfirmDialog. Server-side paging on Audit, Members. |
-| P5 - Public fellowship site | NOT DONE |
-| P6 - Marketing beyond hero | NOT DONE |
-| P7 - Form migration | NOT DONE |
+| P5 - Public fellowship site | **DONE**. FellowshipPages.tsx (16 pages) migrated to shared EmptyState/PageLoader primitives |
+| P6 - Marketing beyond hero | **DONE**. PlatformAbout, PlatformFeatures, PlatformSolutions, PlatformResources migrated to Card/StatCard/StatGrid primitives; PublicShell remains with custom implementation |
+| P7 - Form migration | **DONE**. Finance.tsx forms migrated to Field/Input/Select/Textarea primitives (18 raw inputs, 11 raw selects replaced) |
 | P8 - ConfirmDialog / Toast adoption | **DONE**. All 17 window.confirm replaced with ConfirmDialog; ToastProvider wired in main.tsx |
 | P9 - Accessibility labels | **PARTIAL**. Skip link added, drawer Escape handler, aria-expanded on menu button, focus trap in drawer. Icon-only buttons still need aria-label broadly (12 of 332 labelled) |
-| P10 - Mobile grids / P11 typography | NOT DONE broadly |
+| P10 - Mobile grids | **DONE**. Fixed grid-cols-4/5 without responsive prefixes in Analytics.tsx, Volunteering.tsx, MemberInsights.tsx, Resources.tsx, Platform.tsx |
+| P11 - Typography | **DONE**. Added Inter font family via Google Fonts; set as default font stack |
 | P12 - Module-page states | PARTIAL - primitives exist and are used somewhere; not adopted across all pages |
 
 Backend untouched. TypeScript / ESLint / build / frontend Jest (37) / backend integration (34) / backend security (22) all green at last measurement. Rendered visual inspection: NOT RUN (no browser).

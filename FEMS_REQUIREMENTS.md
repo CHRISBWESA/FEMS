@@ -15,8 +15,14 @@ UI/UX Transformation progress (this session):
 - P1 Platform admin: Migrated Billing.tsx, PlatformTenant.tsx, AdminAccounts.tsx to DataTable/ui primitives
 - P8 ConfirmDialog/Toast: All 17 window.confirm replaced with ConfirmDialog; ToastProvider wired in main.tsx
 - P9 Accessibility: Skip link added, drawer Escape handler, aria-expanded on menu button, focus trap in drawer
-- P4 Module pages (partial): FinancePeriodsTab, AssetDetail, Appointments, ForcePasswordChange, MemberGroups, Programmes, PublicSiteAdmin (PostsTab), RecycleBin, SupportAccess, Users, VolunteerOpportunity migrated to primitives/ConfirmDialog
-- P4 Module pages (additional): MyLoans, Audit, Backups, Volunteering, Analytics, DepartmentDetail, Finance (partial: EmptyState/Alert/Modal), Members migrated to DataTable/ui primitives with server-side paging
+- P4 Module pages (partial): FinancePeriodsTab, AssetDetail, Appointments, ForcePasswordChange, MemberGroups, Programmes, PublicSiteAdmin (PostsTab), RecycleBin, SupportAccess, Users, VolunteerOpportunity, MyLoans, Audit, Backups, Volunteering, Analytics, DepartmentDetail, Finance (EmptyState/Alert/Modal), Members migrated to DataTable/ui primitives with server-side paging
+- P5 Public fellowship site redesign: FellowshipPages.tsx (16 pages) migrated to shared EmptyState/PageLoader primitives
+- P6 Marketing pages beyond hero + PublicShell: PlatformAbout, PlatformFeatures, PlatformSolutions, PlatformResources migrated to Card/StatCard/StatGrid primitives
+- P7 Form migration onto Field/Input/Select: Finance.tsx forms migrated to Field/Input/Select/Textarea primitives (18 raw inputs, 11 raw selects replaced)
+- P8 ConfirmDialog/Toast: All 17 window.confirm replaced with ConfirmDialog; ToastProvider wired in main.tsx
+- P9 Accessibility: Skip link added, drawer Escape handler, aria-expanded on menu button, focus trap in drawer
+- P10 Mobile grids: Fixed grid-cols-4/5 without responsive prefixes in Analytics.tsx, Volunteering.tsx, MemberInsights.tsx, Resources.tsx, Platform.tsx
+- P11 Typography: Added Inter font family via Google Fonts; set as default font stack
 
 General rule for the next session: backend gets provider envs; everything else is frontend and must be
 implemented and verified (tsc + eslint + build + jest). Do not claim delivery for SMS/email until a provider key is present.
