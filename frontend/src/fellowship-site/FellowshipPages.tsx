@@ -4,6 +4,7 @@ import {
   HandRaisedIcon, BanknotesIcon, InformationCircleIcon, ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline';
 import { useFellowshipList, type FellowshipSite, type PublicPage } from './api';
+import { EmptyState, PageLoader } from '../components/ui';
 
 /** Short, predictable date format. The fellowship's own locale is not known to us. */
 const longDate = (value: string | Date | null) =>
@@ -39,20 +40,7 @@ export function PageBody({ children }: { children: React.ReactNode }) {
   return <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">{children}</div>;
 }
 
-/** One place for "there is nothing here yet", so twelve lists do not invent twelve versions of it. */
-function EmptyState({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="rounded-2xl border border-dashed border-hairline bg-white px-6 py-14 text-center">
-      <InformationCircleIcon className="mx-auto h-8 w-8 text-white/70" />
-      <p className="mt-3 text-sm font-medium text-ink">{title}</p>
-      <p className="mx-auto mt-1 max-w-md text-sm text-ink-muted">{body}</p>
-    </div>
-  );
-}
 
-function Loading() {
-  return <p className="text-sm text-ink-muted">Loading…</p>;
-}
 
 // ---------------------------------------------------------------- home
 
@@ -98,9 +86,9 @@ export function FellowshipHome({ site }: { site: FellowshipSite }) {
               <CalendarDaysIcon className="h-5 w-5 text-primary" /> What&rsquo;s coming up
             </h2>
             <div className="mt-4">
-              {events.loading && <Loading />}
+              {events.loading && <PageLoader rows={2} />}
               {!events.loading && upcoming.length === 0 && (
-                <EmptyState title="Nothing scheduled yet" body="When activities are added to the calendar they appear here." />
+                <EmptyState title="Nothing scheduled yet" description="When activities are added to the calendar they appear here." />
               )}
               {upcoming.map((e) => (
                 <div key={e.title + e.date} className="card mb-3 p-5">
@@ -123,9 +111,9 @@ export function FellowshipHome({ site }: { site: FellowshipSite }) {
               <SparklesIcon className="h-5 w-5 text-primary" /> Latest news
             </h2>
             <div className="mt-4">
-              {news.loading && <Loading />}
+              {news.loading && <PageLoader rows={2} />}
               {!news.loading && latestNews.length === 0 && (
-                <EmptyState title="No announcements yet" body="Announcements appear here once they have been approved." />
+                <EmptyState title="No announcements yet" description="Announcements appear here once they have been approved." />
               )}
               {latestNews.map((n) => (
                 <div key={n.id} className="card mb-3 p-5">
@@ -174,7 +162,7 @@ export function FellowshipAbout({ site, page }: { site: FellowshipSite; page: Pu
             ) : (
               <EmptyState
                 title="This fellowship has not written its story yet"
-                body="The content manager for this site can add it from the landing page editor."
+                description="The content manager for this site can add it from the landing page editor."
               />
             )}
           </div>
@@ -234,9 +222,9 @@ export function LeadershipPage({ page }: { page: PublicPage | undefined }) {
     <>
       <PageHeader page={page} />
       <PageBody>
-        {loading && <Loading />}
+        {loading && <PageLoader rows={2} />}
         {data && data.length === 0 && (
-          <EmptyState title="No office holders published" body="This fellowship has not published its leadership yet." />
+          <EmptyState title="No office holders published" description="This fellowship has not published its leadership yet." />
         )}
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {(data ?? []).map((person) => (
@@ -261,9 +249,9 @@ export function DepartmentsPage({ page }: { page: PublicPage | undefined }) {
     <>
       <PageHeader page={page} />
       <PageBody>
-        {loading && <Loading />}
+        {loading && <PageLoader rows={2} />}
         {data && data.length === 0 && (
-          <EmptyState title="No departments yet" body="The Secretary adds departments, and they appear here." />
+          <EmptyState title="No departments yet" description="The Secretary adds departments, and they appear here." />
         )}
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {(data ?? []).map((d) => (
@@ -288,9 +276,9 @@ export function MinistriesPage({ page }: { page: PublicPage | undefined }) {
     <>
       <PageHeader page={page} />
       <PageBody>
-        {loading && <Loading />}
+        {loading && <PageLoader rows={2} />}
         {data && data.length === 0 && (
-          <EmptyState title="No ministries listed yet" body="Ministries and programmes added to this fellowship appear here." />
+          <EmptyState title="No ministries listed yet" description="Ministries and programmes added to this fellowship appear here." />
         )}
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {(data ?? []).map((m) => (
@@ -312,9 +300,9 @@ export function EventsPage({ page }: { page: PublicPage | undefined }) {
     <>
       <PageHeader page={page} />
       <PageBody>
-        {loading && <Loading />}
+        {loading && <PageLoader rows={2} />}
         {data && data.length === 0 && (
-          <EmptyState title="Nothing coming up" body="Activities added to this fellowship's calendar will appear here." />
+          <EmptyState title="Nothing coming up" description="Activities added to this fellowship's calendar will appear here." />
         )}
         <div className="space-y-4">
           {(data ?? []).map((e) => (
@@ -343,9 +331,9 @@ export function NewsPage({ page }: { page: PublicPage | undefined }) {
     <>
       <PageHeader page={page} />
       <PageBody>
-        {loading && <Loading />}
+        {loading && <PageLoader rows={2} />}
         {data && data.length === 0 && (
-          <EmptyState title="No announcements yet" body="Announcements appear here once they have been approved for publication." />
+          <EmptyState title="No announcements yet" description="Announcements appear here once they have been approved for publication." />
         )}
         <div className="mx-auto max-w-3xl space-y-5">
           {(data ?? []).map((n) => (
@@ -374,9 +362,9 @@ export function PublicationsPage({ page }: { page: PublicPage | undefined }) {
     <>
       <PageHeader page={page} />
       <PageBody>
-        {loading && <Loading />}
+        {loading && <PageLoader rows={2} />}
         {data && data.length === 0 && (
-          <EmptyState title="No publications yet" body="Documents marked for the website appear here once approved." />
+          <EmptyState title="No publications yet" description="Documents marked for the website appear here once approved." />
         )}
         <div className="space-y-3">
           {(data ?? []).map((d) => (
@@ -426,9 +414,9 @@ export function GalleryPage({ page }: { page: PublicPage | undefined }) {
     <>
       <PageHeader page={page} />
       <PageBody>
-        {(library.loading || photos.loading) && <Loading />}
+        {(library.loading || photos.loading) && <PageLoader rows={2} />}
         {!library.loading && !photos.loading && all.length === 0 && (
-          <EmptyState title="No photographs yet" body="Photographs added by the fellowship's content manager appear here." />
+          <EmptyState title="No photographs yet" description="Photographs added by the fellowship's content manager appear here." />
         )}
 
         {all.length > 0 && (
@@ -461,8 +449,8 @@ function PostsPage({ page, path, empty }: { page: PublicPage | undefined; path: 
     <>
       <PageHeader page={page} />
       <PageBody>
-        {loading && <Loading />}
-        {data && data.length === 0 && <EmptyState title={empty.title} body={empty.body} />}
+        {loading && <PageLoader rows={2} />}
+        {data && data.length === 0 && <EmptyState title={empty.title} description={empty.body} />}
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {(data ?? []).map((p) => (
             <article key={p.id} className="card flex flex-col p-6">
@@ -499,9 +487,9 @@ export function ProjectsPage({ page }: { page: PublicPage | undefined }) {
     <>
       <PageHeader page={page} />
       <PageBody>
-        {projects.loading && <Loading />}
+        {projects.loading && <PageLoader rows={2} />}
         {projects.data && list.length === 0 && opportunities.data && opportunities.data.length === 0 && (
-          <EmptyState title="No projects yet" body="Projects and activities the fellowship runs appear here." />
+          <EmptyState title="No projects yet" description="Projects and activities the fellowship runs appear here." />
         )}
 
         {list.length > 0 && (
@@ -547,11 +535,11 @@ export function GetInvolvedPage({ page }: { page: PublicPage | undefined }) {
     <>
       <PageHeader page={page} />
       <PageBody>
-        {loading && <Loading />}
+        {loading && <PageLoader rows={2} />}
         {data && data.length === 0 && (
           <EmptyState
             title="No open opportunities right now"
-            body="When the fellowship opens a service opportunity it will be listed here."
+            description="When the fellowship opens a service opportunity it will be listed here."
           />
         )}
         <div className="grid gap-5 sm:grid-cols-2">
@@ -588,9 +576,9 @@ export function GivingPage({ page, extra }: { page: PublicPage | undefined; extr
     <>
       <PageHeader page={page} />
       <PageBody>
-        {loading && <Loading />}
+        {loading && <PageLoader rows={2} />}
         {data && data.length === 0 && (
-          <EmptyState title="No open campaigns" body="Active giving campaigns appear here with the progress recorded against them." />
+          <EmptyState title="No open campaigns" description="Active giving campaigns appear here with the progress recorded against them." />
         )}
         <div className="grid gap-5 sm:grid-cols-2">
           {(data ?? []).map((c) => {
