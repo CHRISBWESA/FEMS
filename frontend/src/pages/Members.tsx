@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
-import { PageLoader } from '../components/ui';
+import { DataTable, type Column } from '../components/DataTable';
+import { EmptyState, PageLoader, Alert } from '../components/ui';
 import {
   UsersIcon, MagnifyingGlassIcon, ChevronLeftIcon, ChevronRightIcon, FunnelIcon,
   PlusIcon, XMarkIcon, UserPlusIcon, CloudArrowUpIcon, DocumentArrowDownIcon,
@@ -306,76 +307,28 @@ export default function Members() {
       {loading ? (
         <PageLoader rows={2} />
       ) : members.length === 0 ? (
-        <div className="empty-state">
-          <div className="stat-icon bg-surface-sunken text-ink-subtle">
-            <UsersIcon className="h-6 w-6" />
-          </div>
-          <p className="empty-title">No members found</p>
-          <p className="empty-desc">Try adjusting your search or filter.</p>
-        </div>
+        <EmptyState title="No members found" description="Try adjusting your search or filter." />
       ) : (
-        <div className="table-wrap overflow-x-auto">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Member Code</th>
-                <th>Status</th>
-                <th>Department</th>
-                {canFilterProfile && <th>Skills</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {members.map((m: any) => (
-                <tr key={m.id} className="cursor-pointer" onClick={() => navigate(`/members/${m.id}`)}>
-                  <td className="font-medium text-ink">{m.full_name}</td>
-                  <td className="font-mono text-xs">{m.member_code}</td>
-                  <td>
-                    <span className={`status-badge ${getStatusClass(m.membership_status)}`}>
-                      {m.membership_status}
-                    </span>
-                  </td>
-                  <td className="text-ink-muted">
-                    {m.departments?.filter((d: any) => !d.removed).map((d: any) => d.department_id || '').join(', ') || '—'}
-                  </td>
-                  {canFilterProfile && (
-                    <td className="text-ink-muted">
-                      {m.profile?.skills?.length ? m.profile.skills.slice(0, 3).join(', ') : '—'}
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          columns={[
+            { key: 'name', header: 'Name', priority: 'primary', render: (m: any) => <span className="font-medium text-ink">{m.full_name}</span> },
+            { key: 'code', header: 'Member Code', priority: 'secondary', render: (m: any) => <span className="font-mono text-xs">{m.member_code}</span> },
+            { key: 'status', header: 'Status', render: (m: any) => <span className={`status-badge ${getStatusClass(m.membership_status)}`}>{m.membership_status}</span> },
+            { key: 'departments', header: 'Department', render: (m: any) => <span className="text-ink-muted">{m.departments?.filter((d: any) => !d.removed).map((d: any) => d.department_id || '').join(', ') || '—'}</span> },
+            ...(canFilterProfile ? [{ key: 'skills', header: 'Skills', render: (m: any) => <span className="text-ink-muted">{m.profile?.skills?.length ? m.profile.skills.slice(0, 3).join(', ') : '—'}</span> }] : []),
+          ] as Column<any>[]}
+          rows={members}
+          rowKey={(m) => m.id}
+          caption="Members"
+          empty={{ title: 'No members found', description: 'Try adjusting your search or filter.' }}
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={setPage}
+        />
       )}
 
-      {total > 0 && (
-        <div className="mt-4 flex items-center justify-between">
-          <p className="text-sm text-ink-muted">
-            Showing {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, total)} of {total}
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="btn btn-secondary btn-sm"
-            >
-              <ChevronLeftIcon className="h-4 w-4" />
-              Prev
-            </button>
-            <span className="text-sm text-ink-muted">Page {page} of {totalPages || 1}</span>
-            <button
-              onClick={() => setPage((p) => p + 1)}
-              disabled={page >= totalPages}
-              className="btn btn-secondary btn-sm"
-            >
-              Next
-              <ChevronRightIcon className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      )}
+      
 
       {showCreate && (
         <div className="modal-backdrop" onClick={() => setShowCreate(false)}>
@@ -399,11 +352,7 @@ export default function Members() {
               </button>
             </div>
 
-            {error && (
-              <div className="alert alert-danger mb-4" role="alert">
-                {error}
-              </div>
-            )}
+            {error && <Alert tone="danger" className="mb-4">{error}</Alert>}
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
