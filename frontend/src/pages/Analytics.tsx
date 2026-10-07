@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
-import { Bar, Empty, Spinner, errMsg, isoDay, money } from '../components/finance/common';
+import { Bar, errMsg, isoDay, money } from '../components/finance/common';
 import { CsvTable, downloadCsv } from '../lib/csv';
+import { DataTable, type Column } from '../components/DataTable';
+import { EmptyState, PageLoader, Alert } from '../components/ui';
 
 type Section = 'membership' | 'participation' | 'finance' | 'youth' | 'resources' | 'volunteers';
 const LABEL: Record<Section, string> = { membership: 'Membership', participation: 'Participation', finance: 'Finance', youth: 'Youth', resources: 'Resources', volunteers: 'Volunteers' };
@@ -47,7 +49,7 @@ export default function Analytics() {
     axios.get('/finance/periods', { withCredentials: true }).then((r) => setPeriods(Array.isArray(r.data) ? r.data : [])).catch(() => {});
   }, []);
 
-  if (error) return <div className="mx-auto max-w-7xl"><Empty text={error} /></div>;
+  if (error) return <div className="mx-auto max-w-7xl"><Alert tone="danger">{error}</Alert></div>;
   const available: Section[] = overview?.available ?? [];
 
   return (
@@ -81,7 +83,7 @@ export default function Analytics() {
         <button className="btn btn-primary" type="submit">Apply</button>
       </form>
 
-      {!overview ? <Spinner /> : (
+      {!overview ? <PageLoader /> : (
         <>
           {overview.scope === 'department' && <p className="mb-3 text-sm text-ink-muted">Showing your department only.</p>}
           <div className="tabs mb-4">
@@ -108,7 +110,7 @@ function OverviewTab({ data, go }: { data: any; go: (s: Section) => void }) {
     ['volunteers', k.volunteers ? [['Volunteers', k.volunteers.volunteers], ['Hours served', k.volunteers.hoursServed], ['Attendance rate', pct(k.volunteers.attendanceRate)], ['Unfilled shifts (14d)', k.volunteers.unfilledShifts]] : []],
   ];
   const shown = groups.filter(([, items]) => items.length > 0);
-  if (shown.length === 0) return <Empty text="No analytics are available for your role." />;
+  if (shown.length === 0) return <EmptyState title="No analytics are available for your role." />;
   return (
     <div className="space-y-6">
       {shown.map(([section, items]) => (
@@ -131,8 +133,8 @@ function SectionTab({ section, query }: { section: Section; query: string }) {
     const extra = section === 'participation' && eventId ? `&activityId=${eventId}` : '';
     axios.get(`/analytics/${section}?${query}${extra}`, { withCredentials: true }).then((r) => { setData(r.data); setError(''); }).catch((e) => setError(errMsg(e, 'Could not load this section')));
   }, [section, query, eventId]);
-  if (error) return <Empty text={error} />;
-  if (!data) return <Spinner />;
+  if (error) return <Alert tone="danger">{error}</Alert>;
+  if (!data) return <PageLoader />;
   const tables = exportTables(section, data);
   return (
     <div className="space-y-6">
@@ -161,8 +163,18 @@ function Membership({ d }: { d: any }) {
         </Card>
       </div>
       <Card title="Status changes by month">
-        <div className="overflow-x-auto"><table className="table"><thead><tr><th>Month</th><th>Registered</th><th>Deactivated</th><th>Graduated</th><th>Reactivated</th></tr></thead>
-          <tbody>{d.growth.map((g: any) => <tr key={g.month}><td>{g.month}</td><td>{g.registered}</td><td>{g.deactivated}</td><td>{g.graduated}</td><td>{g.reactivated}</td></tr>)}</tbody></table></div>
+        <DataTable
+          columns={[
+            { key: 'month', header: 'Month', priority: 'primary' },
+            { key: 'registered', header: 'Registered', tabular: true },
+            { key: 'deactivated', header: 'Deactivated', tabular: true },
+            { key: 'graduated', header: 'Graduated', tabular: true },
+            { key: 'reactivated', header: 'Reactivated', tabular: true },
+          ] as Column<any>[]}
+          rows={d.growth}
+          rowKey={(g) => g.month}
+          caption="Status changes by month"
+        />
       </Card>
     </>
   );
@@ -186,9 +198,19 @@ function Participation({ d, onEvent, eventId }: { d: any; onEvent: (id: string) 
       </div>
       <Card title="Recent events">
         {d.recentEvents.length === 0 ? <p className="text-sm text-ink-muted">No events in this period.</p> : (
-          <div className="overflow-x-auto"><table className="table"><thead><tr><th>Event</th><th>Date</th><th>Department</th><th>Members</th><th>Name only</th><th /></tr></thead>
-            <tbody>{d.recentEvents.map((e: any) => <tr key={e.id}><td className="font-medium text-ink">{e.title}</td><td>{new Date(e.date).toLocaleDateString()}</td><td>{e.department || '—'}</td><td>{e.memberLinked}</td><td>{e.nameOnly}</td>
-              <td className="text-right"><button className="btn btn-secondary btn-sm" onClick={() => onEvent(eventId === e.id ? '' : e.id)}>{eventId === e.id ? 'Hide' : 'Details'}</button></td></tr>)}</tbody></table></div>
+          <DataTable
+            columns={[
+              { key: 'title', header: 'Event', priority: 'primary', render: (e: any) => <span className="font-medium text-ink">{e.title}</span> },
+              { key: 'date', header: 'Date', priority: 'secondary', render: (e: any) => new Date(e.date).toLocaleDateString() },
+              { key: 'department', header: 'Department', render: (e: any) => e.department || '—' },
+              { key: 'memberLinked', header: 'Members', tabular: true },
+              { key: 'nameOnly', header: 'Name only', tabular: true },
+              { key: 'actions', header: '', render: (e: any) => <button className="btn btn-secondary btn-sm" onClick={() => onEvent(eventId === e.id ? '' : e.id)}>{eventId === e.id ? 'Hide' : 'Details'}</button> },
+            ] as Column<any>[]}
+            rows={d.recentEvents}
+            rowKey={(e) => e.id}
+            caption="Recent events"
+          />
         )}
       </Card>
       {d.event && (
@@ -220,8 +242,18 @@ function Finance({ d }: { d: any }) {
       </div>
       {d.budgetVsActual.length > 0 && (
         <Card title="Budget vs actual">
-          <div className="overflow-x-auto"><table className="table"><thead><tr><th>Fiscal year</th><th>Department</th><th>Budgeted</th><th>Spent</th><th>Remaining</th></tr></thead>
-            <tbody>{d.budgetVsActual.map((b: any, i: number) => <tr key={i}><td>{b.fiscalYear}</td><td>{b.departmentName || 'Fellowship-wide'}</td><td>{money(b.budgeted)}</td><td>{money(b.spent)}</td><td className={Number(b.remaining) < 0 ? 'text-rose-700' : ''}>{money(b.remaining)}</td></tr>)}</tbody></table></div>
+          <DataTable
+            columns={[
+              { key: 'fiscalYear', header: 'Fiscal year', priority: 'primary' },
+              { key: 'departmentName', header: 'Department', priority: 'secondary', render: (b) => b.departmentName || 'Fellowship-wide' },
+              { key: 'budgeted', header: 'Budgeted', tabular: true, render: (b) => money(b.budgeted) },
+              { key: 'spent', header: 'Spent', tabular: true, render: (b) => money(b.spent) },
+              { key: 'remaining', header: 'Remaining', tabular: true, render: (b) => <span className={Number(b.remaining) < 0 ? 'text-rose-700' : ''}>{money(b.remaining)}</span> },
+            ] as Column<any>[]}
+            rows={d.budgetVsActual}
+            rowKey={(b: any) => `${b.fiscalYear}-${b.departmentName || 'fellowship'}`}
+            caption="Budget vs actual"
+          />
         </Card>
       )}
     </>
@@ -272,8 +304,18 @@ function Volunteers({ d }: { d: any }) {
       </div>
       <Card title="By opportunity">
         {d.byOpportunity.length === 0 ? <p className="text-sm text-ink-muted">Nothing in this period.</p> : (
-          <div className="overflow-x-auto"><table className="table"><thead><tr><th>Opportunity</th><th>Shifts</th><th>Attended</th><th>No-show</th><th>Hours</th></tr></thead>
-            <tbody>{d.byOpportunity.map((o: any) => <tr key={o.id}><td className="font-medium text-ink">{o.title}</td><td>{o.shifts}</td><td>{o.attended}</td><td>{o.no_show}</td><td>{o.hours}</td></tr>)}</tbody></table></div>
+          <DataTable
+            columns={[
+              { key: 'title', header: 'Opportunity', priority: 'primary', render: (o) => <span className="font-medium text-ink">{o.title}</span> },
+              { key: 'shifts', header: 'Shifts', tabular: true },
+              { key: 'attended', header: 'Attended', tabular: true },
+              { key: 'no_show', header: 'No-show', tabular: true },
+              { key: 'hours', header: 'Hours', tabular: true },
+            ] as Column<any>[]}
+            rows={d.byOpportunity}
+            rowKey={(o) => o.id}
+            caption="By opportunity"
+          />
         )}
       </Card>
     </>

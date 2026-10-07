@@ -4,7 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { HandRaisedIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../App';
 import FormModal from '../components/resources/FormModal';
-import { Bar, Empty, Spinner, errMsg, isoDay } from '../components/finance/common';
+import { Bar, errMsg, isoDay } from '../components/finance/common';
+import { DataTable, type Column } from '../components/DataTable';
+import { EmptyState, PageLoader, Alert } from '../components/ui';
 
 const badge = (s: string) => (s === 'open' ? 'status-active' : s === 'cancelled' ? 'status-rejected' : s === 'closed' ? 'status-inactive' : 'status-draft');
 type Tab = 'opportunities' | 'mine' | 'roles' | 'reports';
@@ -78,7 +80,7 @@ function OpportunitiesTab({ canCreate }: { canCreate: boolean }) {
         </form>
         {canCreate && <button className="btn btn-primary" onClick={() => setCreating(true)}><PlusIcon className="h-4 w-4" /> New opportunity</button>}
       </div>
-      {error ? <Empty text={error} /> : !rows ? <Spinner /> : rows.length === 0 ? <Empty text="No opportunities to show yet" /> : (
+      {error ? <Alert tone="danger">{error}</Alert> : !rows ? <PageLoader /> : rows.length === 0 ? <EmptyState title="No opportunities to show yet" /> : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {rows.map((o) => (
             <button key={o.id} onClick={() => navigate(`/volunteering/${o.id}`)} className="card text-left transition hover:shadow-md">
@@ -125,8 +127,14 @@ function MineTab() {
   useEffect(() => {
     axios.get('/volunteers/my-service', { withCredentials: true }).then((r) => setData(r.data)).catch((e) => setError(e.response?.status === 404 ? 'No member profile is linked to your account.' : errMsg(e, 'Could not load your service history')));
   }, []);
-  if (error) return <Empty text={error} />;
-  if (!data) return <Spinner />;
+  if (error) return <Alert tone="danger">{error}</Alert>;
+  if (!data) return <PageLoader />;
+  const myColumns: Column<any>[] = [
+    { key: 'when', header: 'When', priority: 'primary', render: (i) => new Date(i.startsAt).toLocaleString() },
+    { key: 'opportunity', header: 'Opportunity', priority: 'secondary', render: (i) => <span className="font-medium text-ink">{i.opportunity.title}{i.location && <span className="ml-2 text-xs text-ink-subtle">{i.location}</span>}</span> },
+    { key: 'role', header: 'Role', render: (i) => i.role || '—' },
+    { key: 'status', header: 'Status', render: (i) => <span className="capitalize">{i.status.replace('_', ' ')}{i.hours > 0 && <span className="ml-2 text-xs text-ink-subtle">{i.hours}h</span>}</span> },
+  ];
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -134,23 +142,13 @@ function MineTab() {
           <div key={l as string} className="card"><p className="text-sm text-ink-muted">{l}</p><p className="text-2xl font-semibold text-ink">{v}</p></div>
         ))}
       </div>
-      {data.items.length === 0 ? <Empty text="You have not signed up for any service yet" /> : (
-        <div className="table-wrap overflow-x-auto">
-          <table className="table">
-            <thead><tr><th>When</th><th>Opportunity</th><th>Role</th><th>Status</th></tr></thead>
-            <tbody>
-              {data.items.map((i: any) => (
-                <tr key={i.id}>
-                  <td>{new Date(i.startsAt).toLocaleString()}</td>
-                  <td className="font-medium text-ink">{i.opportunity.title}{i.location && <span className="ml-2 text-xs text-ink-subtle">{i.location}</span>}</td>
-                  <td>{i.role || '—'}</td>
-                  <td className="capitalize">{i.status.replace('_', ' ')}{i.hours > 0 && <span className="ml-2 text-xs text-ink-subtle">{i.hours}h</span>}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <DataTable
+        columns={myColumns}
+        rows={data.items}
+        rowKey={(i) => i.id}
+        caption="My service"
+        empty={{ title: 'You have not signed up for any service yet' }}
+      />
     </div>
   );
 }
@@ -169,22 +167,18 @@ function RolesTab() {
         <p className="text-sm text-ink-muted">Roles are the kinds of service people can do (usher, sound desk…). Required skills are matched against member profiles to suggest volunteers.</p>
         <button className="btn btn-primary" onClick={() => setDialog({})}><PlusIcon className="h-4 w-4" /> New role</button>
       </div>
-      {!rows ? <Spinner /> : rows.length === 0 ? <Empty text="No roles yet" /> : (
-        <div className="table-wrap overflow-x-auto">
-          <table className="table">
-            <thead><tr><th>Role</th><th>Required skills</th><th>Status</th><th /></tr></thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id}>
-                  <td className="font-medium text-ink">{r.name}{r.description && <p className="text-xs font-normal text-ink-muted">{r.description}</p>}</td>
-                  <td>{r.required_skills.length ? r.required_skills.join(', ') : '—'}</td>
-                  <td><span className={`status-badge ${r.is_active ? 'status-active' : 'status-inactive'}`}>{r.is_active ? 'Active' : 'Inactive'}</span></td>
-                  <td className="space-x-2 text-right"><button className="btn btn-secondary btn-sm" onClick={() => setDialog({ row: r })}>Edit</button><button className="btn btn-secondary btn-sm" onClick={() => toggle(r)}>{r.is_active ? 'Deactivate' : 'Activate'}</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {!rows ? <PageLoader /> : rows.length === 0 ? <EmptyState title="No roles yet" /> : (
+        <DataTable
+          columns={[
+            { key: 'name', header: 'Role', priority: 'primary', render: (r) => <span className="font-medium text-ink">{r.name}{r.description && <p className="text-xs font-normal text-ink-muted">{r.description}</p>}</span> },
+            { key: 'skills', header: 'Required skills', priority: 'secondary', render: (r) => r.required_skills.length ? r.required_skills.join(', ') : '—' },
+            { key: 'status', header: 'Status', render: (r) => <span className={`status-badge ${r.is_active ? 'status-active' : 'status-inactive'}`}>{r.is_active ? 'Active' : 'Inactive'}</span> },
+          ]}
+          rows={rows}
+          rowKey={(r) => r.id}
+          caption="Volunteer roles"
+          rowActions={(r) => <span className="space-x-2"><button className="btn btn-secondary btn-sm" onClick={() => setDialog({ row: r })}>Edit</button><button className="btn btn-secondary btn-sm" onClick={() => toggle(r)}>{r.is_active ? 'Deactivate' : 'Activate'}</button></span>}
+        />
       )}
       {dialog && (
         <FormModal
@@ -214,6 +208,14 @@ function ReportsTab() {
     axios.get(`/volunteers/reports/summary?from=${from}T00:00:00.000Z&to=${to}T23:59:59.999Z`, { withCredentials: true }).then((r) => { setData(r.data); setError(''); }).catch((e) => setError(errMsg(e, 'Could not load the report')));
   };
   useEffect(load, []);
+  const oppColumns: Column<any>[] = [
+    { key: 'title', header: 'Opportunity', priority: 'primary', render: (o) => <span className="font-medium text-ink">{o.title}</span> },
+    { key: 'department', header: 'Department', priority: 'secondary', render: (o) => o.department || '—' },
+    { key: 'shifts', header: 'Shifts', tabular: true, render: (o) => o.shifts },
+    { key: 'attended', header: 'Attended', tabular: true, render: (o) => o.attended },
+    { key: 'noShow', header: 'No-show', tabular: true, render: (o) => o.no_show },
+    { key: 'hours', header: 'Hours', tabular: true, render: (o) => o.hours },
+  ];
   return (
     <div className="space-y-6">
       <form onSubmit={(e) => { e.preventDefault(); load(); }} className="flex flex-wrap items-end gap-3">
@@ -221,7 +223,7 @@ function ReportsTab() {
         <div><label className="label">To</label><input type="date" className="input" value={to} onChange={(e) => setTo(e.target.value)} /></div>
         <button className="btn btn-secondary" type="submit">Update</button>
       </form>
-      {error ? <Empty text={error} /> : !data ? <Spinner /> : (
+      {error ? <Alert tone="danger">{error}</Alert> : !data ? <PageLoader /> : (
         <>
           {data.scope === 'department' && <p className="text-sm text-ink-muted">Showing your department only.</p>}
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
@@ -256,8 +258,12 @@ function ReportsTab() {
           <div className="card">
             <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">By opportunity</h3>
             {data.byOpportunity.length === 0 ? <p className="text-sm text-ink-muted">Nothing in this period.</p> : (
-              <div className="overflow-x-auto"><table className="table"><thead><tr><th>Opportunity</th><th>Department</th><th>Shifts</th><th>Attended</th><th>No-show</th><th>Hours</th></tr></thead>
-                <tbody>{data.byOpportunity.map((o: any) => <tr key={o.id}><td className="font-medium text-ink">{o.title}</td><td>{o.department || '—'}</td><td>{o.shifts}</td><td>{o.attended}</td><td>{o.no_show}</td><td>{o.hours}</td></tr>)}</tbody></table></div>
+              <DataTable
+                columns={oppColumns}
+                rows={data.byOpportunity}
+                rowKey={(o) => o.id}
+                caption="By opportunity"
+              />
             )}
           </div>
           <div className="flex items-center gap-2 text-xs text-ink-subtle"><HandRaisedIcon className="h-4 w-4" /> Figures are aggregates only; individual service history is visible just to the member and to authorised leaders.</div>

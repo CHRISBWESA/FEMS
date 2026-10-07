@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { ShieldCheckIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { DataTable, type Column } from '../components/DataTable';
+import { Alert } from '../components/ui';
 
 // Renders a capability flag exactly as the API reports it, so the screen never claims more than the backend does.
 const flag = (value: boolean, whenTrue: string, whenFalse: string) => (value ? whenTrue : whenFalse);
@@ -23,7 +25,7 @@ export default function Backups() {  const [stats, setStats] = useState<any>(nul
         </div>
       </div>
 
-      {error && <div className="alert alert-danger" role="alert">{error}</div>}
+      {error && <Alert tone="danger">{error}</Alert>}
 
       <div className="card space-y-4">
         <div className="flex items-start gap-3">
@@ -67,31 +69,25 @@ export default function Backups() {  const [stats, setStats] = useState<any>(nul
         </div>
       </div>
 
-      {stats && (
-        <div className="card">
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Recorded metadata rows</h2>
-          <p className="text-sm text-ink-muted">
-            {stats.total} row{stats.total === 1 ? '' : 's'}. These are metadata only and are not evidence of a dump or a restore.
-          </p>
-          {Array.isArray(stats.recent) && stats.recent.length > 0 && (
-            <div className="mt-3 overflow-x-auto">
-              <table className="table">
-                <thead><tr><th>Recorded</th><th>Type</th><th>Status</th><th className="text-right">Size</th></tr></thead>
-                <tbody>
-                  {stats.recent.map((b: any) => (
-                    <tr key={b.id}>
-                      <td className="whitespace-nowrap text-xs">{new Date(b.created_at ?? b.createdAt).toLocaleString()}</td>
-                      <td className="text-xs">{b.backup_type ?? b.type ?? '—'}</td>
-                      <td><span className={`status-badge ${b.status === 'success' ? 'status-active' : 'status-rejected'} capitalize`}>{b.status}</span></td>
-                      <td className="text-right text-xs">{b.file_size ?? b.fileSize ?? 0} bytes</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
+      {stats && (() => {
+            const columns: Column<any>[] = [
+              { key: 'recorded', header: 'Recorded', priority: 'primary', render: (b) => <span className="whitespace-nowrap text-xs">{new Date(b.created_at ?? b.createdAt).toLocaleString()}</span> },
+              { key: 'type', header: 'Type', priority: 'secondary', render: (b) => <span className="text-xs">{b.backup_type ?? b.type ?? '—'}</span> },
+              { key: 'status', header: 'Status', render: (b) => <span className={`status-badge ${b.status === 'success' ? 'status-active' : 'status-rejected'} capitalize`}>{b.status}</span> },
+              { key: 'size', header: 'Size', tabular: true, render: (b) => <span className="text-xs">{b.file_size ?? b.fileSize ?? 0} bytes</span> },
+            ];
+            return (
+              <div className="card">
+                <h2 className="mb-2 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Recorded metadata rows</h2>
+                <p className="text-sm text-ink-muted">
+                  {stats.total} row{stats.total === 1 ? '' : 's'}. These are metadata only and are not evidence of a dump or a restore.
+                </p>
+                {Array.isArray(stats.recent) && stats.recent.length > 0 && (
+                  <DataTable columns={columns} rows={stats.recent} rowKey={(b) => b.id} caption="Backup metadata" />
+                )}
+              </div>
+            );
+          })()}
     </div>
   );
 }

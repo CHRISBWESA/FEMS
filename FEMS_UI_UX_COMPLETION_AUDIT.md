@@ -293,13 +293,13 @@ Estimated completion: **38%**
 | P0 - Vercel SPA rewrite | DONE. All probed routes return 200; static assets unaffected; deployed |
 | P2 - DataTable | DONE. X-Total-Count-aware server paging, boundedNotice, row actions, selection, client/server sort, and a mobile card layout with mobile=scroll opt-out |
 | P2 - Missing primitives | DONE. Pagination, SearchInput, Progress, Dropdown, Tooltip, Breadcrumb, StatCard/StatGrid, IconButton, Radio, Switch, MultiSelect, DatePicker, FileUploader, Timeline, Stepper and ToastProvider added; ui.tsx now exports 33 |
-| P1 - Platform admin | PARTIAL. Shell redesigned (11 flat tabs -> Estate / Requests / System left-rail), Dashboard rebuilt on StatGrid/Alert/DataTable, Fellowships and Audit and Support migrated to DataTable |
-| P4 - Module pages | PARTIAL. Platform Dashboard/Fellowships/Audit/Support migrated;; 36 raw inputs, 72 raw selects, 43 raw tables, 17 window.confirm remain; ConfirmDialog not adopted, ToastProvider not yet wired into main.tsx |
+| P1 - Platform admin | PARTIAL. Shell redesigned, Dashboard rebuilt on StatGrid/Alert/DataTable, Fellowships/Audit/Support migrated to DataTable. **This session**: Billing.tsx, PlatformTenant.tsx, AdminAccounts.tsx migrated to primitives |
+| P4 - Module pages | PARTIAL. **This session**: FinancePeriodsTab, AssetDetail, Appointments, ForcePasswordChange, MemberGroups, Programmes, PublicSiteAdmin (PostsTab), RecycleBin, SupportAccess, Users, VolunteerOpportunity migrated to DataTable/ui primitives and ConfirmDialog |
 | P5 - Public fellowship site | NOT DONE |
 | P6 - Marketing beyond hero | NOT DONE |
 | P7 - Form migration | NOT DONE |
-| P8 - ConfirmDialog / Toast adoption | NOT ADOPTED |
-| P9 - Accessibility labels | NOT DONE broadly (12 of 332 buttons labelled) |
+| P8 - ConfirmDialog / Toast adoption | **DONE**. All 17 window.confirm replaced with ConfirmDialog; ToastProvider wired in main.tsx |
+| P9 - Accessibility labels | **PARTIAL**. Skip link added, drawer Escape handler, aria-expanded on menu button, focus trap in drawer. Icon-only buttons still need aria-label broadly (12 of 332 labelled) |
 | P10 - Mobile grids / P11 typography | NOT DONE broadly |
 | P12 - Module-page states | PARTIAL - primitives exist and are used somewhere; not adopted across all pages |
 

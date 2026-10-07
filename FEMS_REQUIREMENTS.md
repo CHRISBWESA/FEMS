@@ -11,5 +11,11 @@ Captured so a new session does not need this chat thread.
 7. Secretary: 15-minute member registration link, countdown and expiry, copy/WhatsApp/Email share, no-account submission, Pending verification queue (Verify & Add / Reject / edit, verifier + timestamp, audit), duplicate guard, filtered member export (.xlsx/.pdf/.csv) — NOT DONE
 8. Notifications should be in-app message notifications — NOT DONE (Notification centre page exists, not redesigned or adopted)
 
+UI/UX Transformation progress (this session):
+- P1 Platform admin: Migrated Billing.tsx, PlatformTenant.tsx, AdminAccounts.tsx to DataTable/ui primitives
+- P8 ConfirmDialog/Toast: All 17 window.confirm replaced with ConfirmDialog; ToastProvider wired in main.tsx
+- P9 Accessibility: Skip link added, drawer Escape handler, aria-expanded on menu button, focus trap in drawer
+- P4 Module pages (partial): FinancePeriodsTab, AssetDetail, Appointments, ForcePasswordChange, MemberGroups, Programmes, PublicSiteAdmin (PostsTab), RecycleBin, SupportAccess, Users, VolunteerOpportunity migrated to primitives/ConfirmDialog
+
 General rule for the next session: backend gets provider envs; everything else is frontend and must be
 implemented and verified (tsc + eslint + build + jest). Do not claim delivery for SMS/email until a provider key is present.
