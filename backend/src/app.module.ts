@@ -34,6 +34,7 @@ import { MustChangePasswordGuard } from './shared/authorization/must-change-pass
 import { ModuleAvailabilityGuard } from './shared/modules/module-availability.guard';
 import { PrismaModule } from './prisma/prisma.module';
 import { SharedModule } from './shared/shared.module';
+import { StorageModule } from './shared/storage/storage.module';
 import { RolesGuard } from './shared/authorization/roles.guard';
 import { DepartmentScopeGuard } from './shared/authorization/department-scope.guard';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
@@ -62,6 +63,7 @@ import { RequestContextMiddleware } from './shared/middleware/request-context.mi
     }),
     PrismaModule,
     SharedModule,
+    StorageModule,
     AuthModule,
     UsersModule,
     MembersModule,
