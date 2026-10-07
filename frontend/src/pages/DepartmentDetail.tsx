@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
-import { PageLoader } from '../components/ui';
+import { PageLoader, EmptyState, Alert, ConfirmDialog } from '../components/ui';
+import { DataTable, type Column } from '../components/DataTable';
 import {
   ArrowLeftIcon, BuildingOfficeIcon, UsersIcon, PlusIcon, XMarkIcon,
   UserMinusIcon, ArrowRightCircleIcon, UserPlusIcon,
@@ -31,6 +32,7 @@ export default function DepartmentDetail() {
   const [showRemoval, setShowRemoval] = useState(false);
   const [removalForm, setRemovalForm] = useState({ memberId: '', reason: '' });
   const [saving, setSaving] = useState(false);
+  const [confirmRemoveLeader, setConfirmRemoveLeader] = useState<null | string>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -77,13 +79,17 @@ export default function DepartmentDetail() {
     }
   };
 
-  const removeLeader = async (userId: string) => {
-    if (!confirm('Remove this leader from the department?')) return;
+  const removeLeader = (userId: string) => setConfirmRemoveLeader(userId);
+
+  const confirmRemoveLeaderAction = async () => {
+    if (!confirmRemoveLeader) return;
     try {
-      await axios.post(`/departments/${id}/leaders/${userId}/remove`, {}, { withCredentials: true });
+      await axios.post(`/departments/${id}/leaders/${confirmRemoveLeader}/remove`, {}, { withCredentials: true });
       fetchDept();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to remove leader');
+    } finally {
+      setConfirmRemoveLeader(null);
     }
   };
 
@@ -138,8 +144,8 @@ export default function DepartmentDetail() {
   }
   if (!dept) {
     return (
-      <div className="empty-state">
-        <p className="empty-title">{error || 'Department not found'}</p>
+      <div className="mx-auto max-w-4xl">
+        <EmptyState title="Department not found" description={error || undefined} />
       </div>
     );
   }
@@ -222,34 +228,22 @@ export default function DepartmentDetail() {
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-subtle">Members ({members.length})</h2>
           </div>
-          {members.length === 0 ? (
-            <p className="py-6 text-sm text-ink-muted">No active members in this department.</p>
-          ) : (
-            <div className="table-wrap overflow-x-auto">
-              <table className="table">
-                <thead>
-                  <tr><th>Name</th><th>Member Code</th><th>Status</th></tr>
-                </thead>
-                <tbody>
-                  {members.map((m: any) => (
-                    <tr key={m.id} className="cursor-pointer" onClick={() => navigate(`/members/${m.id}`)}>
-                      <td className="font-medium text-ink">{m.full_name}</td>
-                      <td className="font-mono text-xs">{m.member_code}</td>
-                      <td>{m.membership_status}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <DataTable
+            columns={[
+              { key: 'name', header: 'Name', priority: 'primary', render: (m) => <span className="font-medium text-ink">{m.full_name}</span> },
+              { key: 'code', header: 'Member Code', priority: 'secondary', render: (m) => <span className="font-mono text-xs">{m.member_code}</span> },
+              { key: 'status', header: 'Status', render: (m) => m.membership_status },
+            ] as Column<any>[]}
+            rows={members}
+            rowKey={(m) => m.id}
+            caption="Department members"
+            empty={{ title: 'No active members in this department' }}
+            mobile="card"
+          />
         </div>
       )}
 
-      {error && (
-        <div className="alert alert-danger mb-4" role="alert">
-          {error}
-        </div>
-      )}
+      {error && <Alert tone="danger" className="mb-4">{error}</Alert>}
 
       {showAssignLeader && (
         <div className="modal-backdrop" onClick={() => setShowAssignLeader(false)}>
@@ -369,7 +363,16 @@ export default function DepartmentDetail() {
             <SubmitRow saving={saving} label="Submit Removal Request" onCancel={() => setShowRemoval(false)} />
           </form>
         </div>
-      )}
+)}
+      {confirmRemoveLeader ? (
+        <ConfirmDialog
+          open
+          title="Remove leader"
+          message="Remove this leader from the department?"
+          onConfirm={confirmRemoveLeaderAction}
+          onCancel={() => setConfirmRemoveLeader(null)}
+        />
+      ) : null}
     </div>
   );
 }
