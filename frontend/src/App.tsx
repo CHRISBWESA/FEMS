@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import axios from 'axios';
 import { decodeJwtPayload } from './lib/axios';
 import Layout from './components/Layout';
+import { ThemeProvider } from './context/ThemeContext';
+import { I18nProvider } from './context/I18nContext';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Members from './pages/Members';
@@ -237,7 +239,9 @@ export default function App() {
 
   return (
     <AuthContext.Provider value={value}>
-      <Router>
+      <ThemeProvider>
+        <I18nProvider>
+          <Router>
         <Routes>
           <Route path="/login" element={!user ? <Login /> : <Navigate to="/dashboard" replace />} />
           <Route path="/register" element={!user ? <Register /> : <Navigate to="/dashboard" replace />} />
@@ -300,6 +304,8 @@ export default function App() {
           </Route>
         </Routes>
       </Router>
+        </I18nProvider>
+      </ThemeProvider>
     </AuthContext.Provider>
   );
 }

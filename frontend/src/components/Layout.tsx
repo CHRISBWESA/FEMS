@@ -8,6 +8,8 @@ import {
   UserGroupIcon, BookOpenIcon, ClipboardDocumentCheckIcon, FaceSmileIcon,
   ChartPieIcon, RectangleGroupIcon, HeartIcon, CubeIcon, ArchiveBoxIcon, HandRaisedIcon, PresentationChartLineIcon, LifebuoyIcon, CreditCardIcon,
   GlobeAltIcon, IdentificationIcon,
+  SunIcon, MoonIcon, ComputerDesktopIcon as MonitorIcon,
+  GlobeAltIcon as GlobeIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../App';
 import axios from 'axios';
@@ -16,6 +18,8 @@ import { onSignOut } from '../offline/session';
 import { pendingCount } from '../offline/outbox';
 import ImpersonationBanner, { SupportSessionBanner } from './platform/ImpersonationBanner';
 import { Avatar, ConfirmDialog } from './ui';
+import { useTheme } from '../context/ThemeContext';
+import { useI18n } from '../context/I18nContext';
 
 interface NavItem {
   name: string;
@@ -92,6 +96,8 @@ const NAV_SECTIONS: NavSection[] = [
 
 export default function Layout() {
   const { user, hasRole, logout } = useAuth();
+  const { theme, resolvedTheme, setTheme } = useTheme();
+  const { language, setLanguage, t } = useI18n();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -290,6 +296,30 @@ export default function Layout() {
                 </span>
               )}
             </button>
+
+            {/* Theme Switch */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                className="btn btn-ghost btn-sm p-2"
+                title={theme === 'dark' ? t('settings.light') : t('settings.dark')}
+              >
+                {resolvedTheme === 'dark' ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
+              </button>
+            </div>
+
+            {/* Language Switch */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setLanguage(language === 'sw' ? 'en' : 'sw')}
+                aria-label={language === 'sw' ? 'Switch to English' : 'Badilisha lugha hadi Kiswahili'}
+                className="btn btn-ghost btn-sm px-2 py-1.5"
+              >
+                {language === 'sw' ? 'EN' : 'SW'}
+              </button>
+            </div>
+
             <button onClick={() => navigate('/profile')} className="flex items-center gap-2 rounded-control p-1.5 transition-colors hover:bg-surface-sunken">
               <Avatar name={`${user?.firstName || ''} ${user?.lastName || ''}`} size="sm" />
               <span className="hidden min-w-0 text-left md:block">
