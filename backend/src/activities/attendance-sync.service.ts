@@ -116,7 +116,7 @@ export class AttendanceSyncService {
           out.push({ opId: op.opId, status: 'already_recorded' });
         } else {
           const usable = op.at && op.at.getTime() <= now + CLOCK_SKEW_MS && op.at.getTime() >= now - MAX_AGE_MS;
-          await tx.attendance.create({ data: { activity_id: activity.id, member_id: op.memberId, recorded_by_name: name, is_confirmed: true, fellowship_id: activity.fellowship_id, ...(usable ? { recorded_at: op.at! } : {}) } });
+          await tx.attendance.create({ data: { activity_id: activity.id, member_id: op.memberId, recorded_by_name: name, recorded_by_user_id: user.userId, is_confirmed: true, fellowship_id: activity.fellowship_id, ...(usable ? { recorded_at: op.at! } : {}) } });
           attendedSet.add(op.memberId);
           result = 'applied';
           out.push({ opId: op.opId, status: 'applied' });

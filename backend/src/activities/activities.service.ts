@@ -340,6 +340,7 @@ export class ActivitiesService {
           activity_id: activityId,
           member_id: m.id,
           recorded_by_name: m.full_name,
+          recorded_by_user_id: currentUser.userId,
           is_confirmed: true,
           fellowship_id: activity.fellowship_id,
         })),

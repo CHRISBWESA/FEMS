@@ -181,10 +181,11 @@ model User {
   updated_at            DateTime  @updatedAt
   deleted_at            DateTime?
 
-  member                Member?
+  member                Member?     @relation("user_member")
   notificationsAsActor  Notification[] @relation("NotificationActor")
   invitationsSent       Invitation[] @relation("InvitationInvitedBy")
   invitationsAccepted   Invitation[] @relation("InvitationAcceptedBy")
+  recordedAttendances   Attendance[] @relation("recordedAttendances")
 
   @@index([fellowship_id])
   @@map("users")
@@ -447,7 +448,6 @@ model PendingMemberVerification {
 
 model Member {
   id                         String    @id @default(uuid()) @db.Uuid
-  user_id                    String?   @unique @db.Uuid
   fellowship_id              String?   @db.Uuid
   member_code                String    @unique
   full_name                  String
@@ -463,11 +463,13 @@ model Member {
   status_changed_by          String?   @db.Uuid
   status_changed_at          DateTime?
   department_custom_fields   Json?
+  leader_role                String?   // e.g., 'secretary', 'chairperson', 'treasurer', 'assistant_secretary', 'assistant_chairperson', 'department_secretary', 'department_chairperson'
+  user_id                    String?   @unique @db.Uuid // Only for leaders who have accounts
   created_by                 String    @db.Uuid
   created_at                 DateTime  @default(now())
   updated_at                 DateTime  @updatedAt
 
-  user                       User?     @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  user                       User?     @relation("user_member", fields: [user_id], references: [id], onDelete: SetNull)
   departmentMemberships      DepartmentMember[]
   contributions              Contribution[]
   attendances                Attendance[]
@@ -591,11 +593,12 @@ model Attendance {
   id                 String   @id @default(uuid()) @db.Uuid
   activity_id        String   @db.Uuid
   member_id          String?  @db.Uuid
-  // Set when the attendee is a youth/child participant tracked via YouthProfile rather than a
-  // full Member record (children often don't have one - see YouthProfile doc comment). Nullable
-  // and additive: every existing Attendance caller is unaffected.
+  // Set when the attendee is a youth/child participant tracked via YouthProfile 
+  // rather than a full Member record (children often don't have one - see YouthProfile doc 
+  // comment). Nullable and additive: every existing Attendance caller is unaffected.
   youth_profile_id   String?  @db.Uuid
   recorded_by_name   String?
+  recorded_by_user_id String?  @db.Uuid // Secretary who recorded this attendance
   public_checkin_key  String?       @db.VarChar(300)
   recorded_at        DateTime @default(now())
   is_confirmed       Boolean  @default(true)
@@ -604,11 +607,9 @@ model Attendance {
   activity           Activity      @relation(fields: [activity_id], references: [id], onDelete: Cascade)
   member             Member?       @relation(fields: [member_id], references: [id], onDelete: SetNull)
   youthProfile       YouthProfile? @relation(fields: [youth_profile_id], references: [id], onDelete: SetNull)
+  recordedBy         User?         @relation("recordedAttendances", fields: [recorded_by_user_id], references: [id], onDelete: SetNull)
 
   @@index([fellowship_id])
-  @@index([youth_profile_id])
-  // Added in the analytics phase: activity_id is the join key of every per-event query (and of the
-  // ON DELETE CASCADE from activities) but had no index; member_id serves per-member engagement lookups.
   @@index([activity_id])
   @@index([member_id])
   @@map("attendance")

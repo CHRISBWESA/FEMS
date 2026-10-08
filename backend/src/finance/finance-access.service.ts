@@ -74,7 +74,7 @@ export class FinanceAccessService {
   async assertMember(memberId: string, fellowshipId: string | null): Promise<any> {
     const member = await this.prisma.member.findFirst({
       where: { id: memberId, fellowship_id: fellowshipId },
-      select: { id: true, full_name: true, fellowship_id: true, user_id: true },
+      select: { id: true, full_name: true, fellowship_id: true },
     });
     if (!member) throw new NotFoundException('Member not found');
     return member;
