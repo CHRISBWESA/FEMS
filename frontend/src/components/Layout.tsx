@@ -20,6 +20,7 @@ import ImpersonationBanner, { SupportSessionBanner } from './platform/Impersonat
 import { Avatar, ConfirmDialog } from './ui';
 import { useTheme } from '../context/ThemeContext';
 import { useI18n } from '../context/I18nContext';
+import { useInstallPrompt } from '../hooks/useInstallPrompt';
 
 interface NavItem {
   name: string;
@@ -98,6 +99,7 @@ export default function Layout() {
   const { user, hasRole, logout } = useAuth();
   const { theme, resolvedTheme, setTheme } = useTheme();
   const { language, setLanguage, t } = useI18n();
+  const { isInstallable, isInstalled, install } = useInstallPrompt();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -319,6 +321,21 @@ export default function Layout() {
                 {language === 'sw' ? 'EN' : 'SW'}
               </button>
             </div>
+
+            {/* PWA Install Button */}
+            {isInstallable && !isInstalled && (
+              <button
+                onClick={install}
+                aria-label="Install Fellowship Manager app"
+                className="btn btn-primary px-3 py-1.5 flex items-center gap-1.5"
+                title="Install Fellowship Manager"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <span className="hidden sm:inline text-sm font-medium">Install App</span>
+              </button>
+            )}
 
             <button onClick={() => navigate('/profile')} className="flex items-center gap-2 rounded-control p-1.5 transition-colors hover:bg-surface-sunken">
               <Avatar name={`${user?.firstName || ''} ${user?.lastName || ''}`} size="sm" />
