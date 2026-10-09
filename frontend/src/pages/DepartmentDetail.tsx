@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import { PageLoader, EmptyState, Alert, ConfirmDialog } from '../components/ui';
 import { DataTable, type Column } from '../components/DataTable';
+import { useMembers } from '../context/MembersContext';
 import {
   ArrowLeftIcon, BuildingOfficeIcon, UsersIcon, PlusIcon, XMarkIcon,
   UserMinusIcon, ArrowRightCircleIcon, UserPlusIcon,
@@ -12,13 +13,13 @@ import {
 export default function DepartmentDetail() {
   const { id } = useParams();
   const { user } = useAuth();
+  const { members, refreshMembers } = useMembers();
   const navigate = useNavigate();
   const isSecretary = user?.roles.includes('secretary');
   const isDeptLeader =
     user?.roles.includes('department_secretary') || user?.roles.includes('department_chairperson');
 
   const [dept, setDept] = useState<any>(null);
-  const [members, setMembers] = useState<any[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [users, setUsers] = useState<any[]>([]);
@@ -55,14 +56,10 @@ export default function DepartmentDetail() {
       .finally(() => setLoading(false));
   };
 
-  const loadMembers = async () => {
-    try {
-      const res = await axios.get(`/departments/${id}/members`, { withCredentials: true });
-      setMembers(res.data || []);
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to load members');
-    }
-  };
+  // Filter members from shared context by department
+  const deptMembers = members?.filter(m =>
+    m.departmentMemberships?.some(dm => dm.department_id === id)
+  ) || [];
 
   const submitAssignLeader = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +68,7 @@ export default function DepartmentDetail() {
     try {
       await axios.post(`/departments/${id}/leaders`, leaderForm, { withCredentials: true });
       setShowAssignLeader(false);
-      fetchDept();
+      refreshMembers();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to assign leader');
     } finally {
@@ -85,7 +82,7 @@ export default function DepartmentDetail() {
     if (!confirmRemoveLeader) return;
     try {
       await axios.post(`/departments/${id}/leaders/${confirmRemoveLeader}/remove`, {}, { withCredentials: true });
-      fetchDept();
+      refreshMembers();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to remove leader');
     } finally {
@@ -172,7 +169,7 @@ export default function DepartmentDetail() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button onClick={loadMembers} className="btn btn-secondary">
+            <button onClick={refreshMembers} className="btn btn-secondary">
               <UsersIcon className="h-4 w-4" />
               View Members
             </button>

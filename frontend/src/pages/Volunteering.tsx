@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { HandRaisedIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../App';
+import { useMembers } from '../context/MembersContext';
 import FormModal from '../components/resources/FormModal';
 import { Bar, errMsg, isoDay } from '../components/finance/common';
 import { DataTable, type Column } from '../components/DataTable';
@@ -44,6 +45,7 @@ export default function Volunteering() {
 function OpportunitiesTab({ canCreate }: { canCreate: boolean }) {
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
+  const { searchMembers } = useMembers();
   const manager = hasPermission('volunteer.manage');
   const [rows, setRows] = useState<any[] | null>(null);
   const [q, setQ] = useState('');
@@ -61,9 +63,9 @@ function OpportunitiesTab({ canCreate }: { canCreate: boolean }) {
   useEffect(load, [status]);
   useEffect(() => {
     if (!creating) return;
-    axios.get('/members?limit=100&status=active', { withCredentials: true }).then((r) => setLookups((l) => ({ ...l, members: r.data.data || [] }))).catch(() => {});
+    searchMembers('', 100).then((members) => setLookups((l) => ({ ...l, members }))).catch(() => {});
     if (manager) axios.get('/departments', { withCredentials: true }).then((r) => setLookups((l) => ({ ...l, departments: r.data }))).catch(() => {});
-  }, [creating]);
+  }, [creating, searchMembers]);
 
   return (
     <div>

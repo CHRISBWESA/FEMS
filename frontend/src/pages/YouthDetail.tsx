@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
+import { useMembers } from '../context/MembersContext';
 import { PageLoader } from '../components/ui';
 import {
   ArrowLeftIcon, FaceSmileIcon, UserPlusIcon, XMarkIcon, TrashIcon,
@@ -14,6 +15,7 @@ type Tab = (typeof TABS)[number];
 export default function YouthDetail() {
   const { id } = useParams();
   const { hasPermission } = useAuth();
+  const { searchMembers } = useMembers();
   const navigate = useNavigate();
 
   const canEdit = hasPermission('youth.edit');
@@ -55,8 +57,8 @@ export default function YouthDetail() {
       const res = await axios.get(`/youth/${id}/guardians`, { withCredentials: true });
       setGuardians(res.data || []);
       if (members.length === 0) {
-        const m = await axios.get('/members', { withCredentials: true });
-        setMembers(Array.isArray(m.data) ? m.data : m.data.data || []);
+        const m = await searchMembers('', 1000);
+        setMembers(m);
       }
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to load guardians');

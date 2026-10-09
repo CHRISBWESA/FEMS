@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeftIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../App';
+import { useMembers } from '../context/MembersContext';
 import FormModal, { Field } from '../components/resources/FormModal';
 import { Empty, Spinner, errMsg } from '../components/finance/common';
 import { ConfirmDialog } from '../components/ui';
@@ -23,6 +24,7 @@ export default function VolunteerOpportunity() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
+  const { searchMembers } = useMembers();
   const manager = hasPermission('volunteer.manage');
   const deptLeader = hasPermission('volunteer.department_manage');
   const canSuggest = hasPermission('member.profile_view') && (manager || deptLeader);
@@ -51,13 +53,13 @@ export default function VolunteerOpportunity() {
 
   useEffect(() => {
     if (!dialog) return;
-    if (dialog.type === 'assign' && lookups.members.length === 0) axios.get('/members?limit=100&status=active', { withCredentials: true }).then((r) => setLookups((l) => ({ ...l, members: r.data.data || [] }))).catch(() => {});
+    if (dialog.type === 'assign' && lookups.members.length === 0) searchMembers('', 100).then((members) => setLookups((l) => ({ ...l, members }))).catch(() => {});
     if ((dialog.type === 'shift' || dialog.type === 'editShift') && lookups.roles.length === 0) {
       axios.get('/volunteers/roles', { withCredentials: true }).then((r) => setLookups((l) => ({ ...l, roles: r.data.filter((x: any) => x.is_active) }))).catch(() => {});
     }
     if (dialog.type === 'shift' && lookups.activities.length === 0) axios.get('/activities', { withCredentials: true }).then((r) => setLookups((l) => ({ ...l, activities: Array.isArray(r.data) ? r.data : [] }))).catch(() => {});
-    if (dialog.type === 'edit' && lookups.members.length === 0) axios.get('/members?limit=100&status=active', { withCredentials: true }).then((r) => setLookups((l) => ({ ...l, members: r.data.data || [] }))).catch(() => {});
-  }, [dialog]);
+    if (dialog.type === 'edit' && lookups.members.length === 0) searchMembers('', 100).then((members) => setLookups((l) => ({ ...l, members }))).catch(() => {});
+  }, [dialog, searchMembers]);
 
   const act = async (key: string, fn: () => Promise<any>) => {
     setBusy(key);

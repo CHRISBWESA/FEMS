@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
+import { useMembers } from '../context/MembersContext';
 import { DataTable, type Column } from '../components/DataTable';
 import { EmptyState, PageLoader, Alert } from '../components/ui';
 import {
@@ -32,11 +33,12 @@ const CSV_TEMPLATE_ROWS = [
 
 const emptyFilters = {
   skills: '', interests: '', serviceInterests: '', joinedFrom: '', joinedTo: '',
-  groupId: '', attendance: '' as '' | 'attended' | 'not_attended', days: '90',
+  groupId: '', attendance: undefined as undefined | 'attended' | 'not_attended', days: '90',
 };
 
 export default function Members() {
   const { user, hasPermission } = useAuth();
+  const { members, total, loading, error: ctxError, fetchMembers, refreshMembers, createMember: ctxCreateMember, updateMember, deleteMember } = useMembers();
   const canManage = user?.roles.includes('secretary') || user?.roles.includes('admin');
   // Advanced filters are only offered for the parts the server will actually allow this user to use.
   const canFilterProfile = hasPermission('member.profile_view');
@@ -47,14 +49,11 @@ export default function Members() {
   const [draft, setDraft] = useState(emptyFilters);
   const [applied, setApplied] = useState(emptyFilters);
   const [groups, setGroups] = useState<any[]>([]);
-  const [members, setMembers] = useState([]);
   const [programmes, setProgrammes] = useState<any[]>([]);
   const [selectedProgramme, setSelectedProgramme] = useState('');
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
@@ -66,7 +65,7 @@ export default function Members() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchMembers();
+    fetchMembers({ search, status: statusFilter, page, ...applied });
     fetchProgrammes();
   }, [search, statusFilter, page, applied]);
 
@@ -95,34 +94,7 @@ export default function Members() {
     }
   };
 
-  const fetchMembers = async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (search) params.set('search', search);
-      if (statusFilter) params.set('status', statusFilter);
-      if (applied.skills.trim()) params.set('skills', applied.skills.trim());
-      if (applied.interests.trim()) params.set('interests', applied.interests.trim());
-      if (applied.serviceInterests.trim()) params.set('serviceInterests', applied.serviceInterests.trim());
-      if (applied.joinedFrom) params.set('joinedFrom', applied.joinedFrom);
-      if (applied.joinedTo) params.set('joinedTo', applied.joinedTo);
-      if (applied.groupId) params.set('groupId', applied.groupId);
-      if (applied.attendance === 'attended') params.set('attendedWithinDays', applied.days);
-      if (applied.attendance === 'not_attended') params.set('notAttendedWithinDays', applied.days);
-      params.set('page', page.toString());
-      params.set('limit', '20');
-
-      const res = await axios.get(`/members?${params}`, { withCredentials: true });
-      setMembers(res.data.data);
-      setTotal(res.data.total);
-    } catch (err: any) {
-      console.error('Failed to fetch members:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createMember = async (e: React.FormEvent) => {
+  const handleCreateMember = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setCreating(true);
@@ -169,7 +141,7 @@ export default function Members() {
       fd.append('file', uploadFile);
       const res = await axios.post('/members/bulk-upload', fd, { withCredentials: true });
       setUploadResult(res.data);
-      fetchMembers();
+      refreshMembers();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to upload CSV');
     } finally {
@@ -314,8 +286,8 @@ export default function Members() {
             { key: 'name', header: 'Name', priority: 'primary', render: (m: any) => <span className="font-medium text-ink">{m.full_name}</span> },
             { key: 'code', header: 'Member Code', priority: 'secondary', render: (m: any) => <span className="font-mono text-xs">{m.member_code}</span> },
             { key: 'status', header: 'Status', render: (m: any) => <span className={`status-badge ${getStatusClass(m.membership_status)}`}>{m.membership_status}</span> },
-            { key: 'departments', header: 'Department', render: (m: any) => <span className="text-ink-muted">{m.departments?.filter((d: any) => !d.removed).map((d: any) => d.department_id || '').join(', ') || '—'}</span> },
-            ...(canFilterProfile ? [{ key: 'skills', header: 'Skills', render: (m: any) => <span className="text-ink-muted">{m.profile?.skills?.length ? m.profile.skills.slice(0, 3).join(', ') : '—'}</span> }] : []),
+            { key: 'departments', header: 'Department', render: (m: any) => <span className="text-ink-muted">{m.departments?.filter((d: any) => !d.removed).map((d: any) => d.department_id || '').join(', ') || 'â€”'}</span> },
+            ...(canFilterProfile ? [{ key: 'skills', header: 'Skills', render: (m: any) => <span className="text-ink-muted">{m.profile?.skills?.length ? m.profile.skills.slice(0, 3).join(', ') : 'â€”'}</span> }] : []),
           ] as Column<any>[]}
           rows={members}
           rowKey={(m) => m.id}
@@ -333,7 +305,7 @@ export default function Members() {
       {showCreate && (
         <div className="modal-backdrop" onClick={() => setShowCreate(false)}>
           <form
-            onSubmit={createMember}
+            onSubmit={handleCreateMember}
             onClick={(e) => e.stopPropagation()}
             className="modal max-w-lg"
           >
@@ -408,7 +380,7 @@ export default function Members() {
                   {programmes.map((p) => (
                     <option key={p.id} value={p.name}>{p.name}</option>
                   ))}
-                  <option value="__other__">Other (write manually)…</option>
+                  <option value="__other__">Other (write manually)â€¦</option>
                 </select>
               </div>
               {selectedProgramme === '__other__' && (
@@ -541,6 +513,6 @@ export default function Members() {
           </form>
         </div>
       )}
-    </div>
+</div>
   );
 }

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
+import { useMembers } from '../context/MembersContext';
 import AdminAccounts from '../components/platform/AdminAccounts';
 import SecretModal from '../components/platform/SecretModal';
 import { Modal } from '../components/finance/common';
@@ -49,6 +50,7 @@ export default function Users() {
     if (next === 'system') setParams({ view: 'admin' });
     else setParams({});
   };
+  const { searchMembers } = useMembers();
   const [users, setUsers] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [fellowships, setFellowships] = useState<any[]>([]);
@@ -196,9 +198,7 @@ export default function Users() {
   // rendered as an empty page.
   const fetchMembers = () => {
     if (isAdmin()) { setMembers([]); return Promise.resolve(); }
-    return axios.get('/members?limit=1000', { withCredentials: true })
-      .then(res => setMembers(res.data?.data || []))
-      .catch(() => {});
+    return searchMembers('', 1000).then(setMembers).catch(() => {});
   };
 
   useEffect(() => {

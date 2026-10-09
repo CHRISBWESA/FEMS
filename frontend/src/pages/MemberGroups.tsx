@@ -3,9 +3,11 @@ import axios from 'axios';
 import { useAuth } from '../App';
 import { RectangleGroupIcon, PlusIcon, XMarkIcon, UserPlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { PageLoader, ConfirmDialog } from '../components/ui';
+import { useMembers } from '../context/MembersContext';
 
 export default function MemberGroups() {
   const { hasPermission } = useAuth();
+  const { searchMembers } = useMembers();
   const canManage = hasPermission('member.groups_manage');
   const [groups, setGroups] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,13 +44,16 @@ export default function MemberGroups() {
 
   useEffect(() => {
     if (!open || !canManage || !search.trim()) { setCandidates([]); return; }
-    const handle = setTimeout(() => {
-      axios.get(`/members?limit=8&search=${encodeURIComponent(search.trim())}`, { withCredentials: true })
-        .then((res) => setCandidates(res.data.data || []))
-        .catch(() => setCandidates([]));
+    const handle = setTimeout(async () => {
+      try {
+        const results = await searchMembers(search.trim(), 8);
+        setCandidates(results);
+      } catch {
+        setCandidates([]);
+      }
     }, 300);
     return () => clearTimeout(handle);
-  }, [search, open, canManage]);
+  }, [search, open, canManage, searchMembers]);
 
   const createGroup = async (e: React.FormEvent) => {
     e.preventDefault();

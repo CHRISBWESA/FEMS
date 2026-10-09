@@ -6,6 +6,7 @@ import { useAuth } from '../App';
 import FormModal, { Field } from '../components/resources/FormModal';
 import { Empty, Spinner, errMsg, isoDay, money } from '../components/finance/common';
 import { ConfirmDialog } from '../components/ui';
+import { useMembers } from '../context/MembersContext';
 
 const CONDITIONS = ['new', 'good', 'fair', 'poor', 'damaged'];
 const condOpts = CONDITIONS.map((v) => ({ value: v, label: v }));
@@ -16,6 +17,7 @@ export default function AssetDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
+  const { searchMembers } = useMembers();
   const canManage = hasPermission('resources.manage');
   const canAssign = hasPermission('resources.assign');
   const canRetire = hasPermission('resources.retire');
@@ -49,7 +51,7 @@ export default function AssetDetail() {
   useEffect(() => {
     if (!dialog) return;
     if (['checkout', 'transfer'].includes(dialog) && lookups.members.length === 0) {
-      axios.get('/members?limit=100&status=active', { withCredentials: true }).then((r) => setLookups((l) => ({ ...l, members: r.data.data || [] }))).catch(() => {});
+      searchMembers('', 100).then((members) => setLookups((l) => ({ ...l, members })));
     }
     if (dialog === 'transfer') {
       axios.get('/departments', { withCredentials: true }).then((r) => setLookups((l) => ({ ...l, departments: r.data }))).catch(() => {});

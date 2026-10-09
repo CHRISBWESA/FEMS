@@ -9,6 +9,7 @@ import FinancePledgesTab from '../components/finance/FinancePledgesTab';
 import FinanceReportsTab from '../components/finance/FinanceReportsTab';
 import { errMsg } from '../components/finance/common';
 import { EmptyState, PageLoader, Alert, Modal, Field, Input, Select, Textarea } from '../components/ui';
+import { useMembers } from '../context/MembersContext';
 
 const CONTRIBUTION_TYPES = ['tithe', 'offering', 'thanksgiving', 'pledge', 'project', 'other'];
 const RELEASE_METHODS = ['cash', 'bank_transfer', 'mobile_money', 'cheque', 'other'];
@@ -28,6 +29,7 @@ const LIST_TABS = ['contributions', 'expenses', 'budgets', 'money-requests'];
 
 export default function Finance() {
   const { user, hasPermission, hasRole } = useAuth();
+  const { searchMembers } = useMembers();
   const canRecord = user?.roles.includes('treasurer') || user?.roles.includes('secretary');
   const canRequestMoney =
     user?.roles.includes('secretary') || user?.roles.includes('assistant_secretary') ||
@@ -75,9 +77,7 @@ export default function Finance() {
 
   useEffect(() => {
     if (canRecord) {
-      axios.get('/members?limit=100&status=active', { withCredentials: true })
-        .then(res => setMembers(res.data?.data || []))
-        .catch(() => {});
+      searchMembers('', 100).then(setMembers);
       axios.get('/finance/campaigns?status=active', { withCredentials: true }).then((r) => setCampaigns(r.data)).catch(() => {});
       axios.get('/finance/categories', { withCredentials: true }).then((r) => setCategories(r.data.filter((c: any) => c.is_active))).catch(() => {});
       axios.get('/it-content/documents', { withCredentials: true })
