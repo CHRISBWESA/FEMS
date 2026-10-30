@@ -24,11 +24,8 @@ import Backups from './pages/Backups';
 import ItContent from './pages/ItContent';
 import Profile from './pages/Profile';
 import Users from './pages/Users';
-import Approvals from './pages/Approvals';
 import Platform from './pages/Platform';
 import PlatformTenant from './pages/PlatformTenant';
-import SupportAccess from './pages/SupportAccess';
-import Billing from './pages/Billing';
 import AttendancePublic from './pages/AttendancePublic';
 import Youth from './pages/Youth';
 import YouthDetail from './pages/YouthDetail';
@@ -49,7 +46,6 @@ import NotFound from './pages/NotFound';
 import PlatformSite from './site/PlatformSite';
 import FellowshipSite from './fellowship-site/FellowshipSite';
 import PublicSiteAdmin from './pages/PublicSiteAdmin';
-import Appointments from './pages/Appointments';
 import AcceptInvitation from './pages/AcceptInvitation';
 import Register from './pages/Register';
 
@@ -144,6 +140,20 @@ function AppRoot() {
   }
   return <RequireAuth><Layout /></RequireAuth>;
 }
+
+/** Sends anyone holding one of these roles back to the dashboard. */
+function HideFor({ roles, children }: { roles: string[]; children: JSX.Element }) {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  if (roles.some(r => user.roles.includes(r))) return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+}
+
+// Administration pages are for the super admin (the platform `admin` role) only.
+const SUPER_ADMIN = ['admin'];
+
+// Pages the Secretary does not use. The sidebar hides the same ones (Layout.tsx).
+const NOT_SECRETARY = ['secretary'];
 
 function ExcludeAdmin({ children }: { children: JSX.Element }) {
   const { user } = useAuth();
@@ -276,30 +286,25 @@ export default function App() {
             <Route path="resources/:id" element={<ExcludeAdmin><RequireRole roles={['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'treasurer', 'department_secretary', 'department_chairperson']}>{<AssetDetail />}</RequireRole></ExcludeAdmin>} />
             <Route path="my-loans" element={<ExcludeAdmin><MyLoans /></ExcludeAdmin>} />
             <Route path="analytics" element={<ExcludeAdmin><RequireRole roles={['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'treasurer', 'department_secretary', 'department_chairperson']}>{<Analytics />}</RequireRole></ExcludeAdmin>} />
-            <Route path="volunteering" element={<ExcludeAdmin><Volunteering /></ExcludeAdmin>} />
-            <Route path="volunteering/:id" element={<ExcludeAdmin><VolunteerOpportunity /></ExcludeAdmin>} />
+            <Route path="volunteering" element={<HideFor roles={NOT_SECRETARY}><ExcludeAdmin><Volunteering /></ExcludeAdmin></HideFor>} />
+            <Route path="volunteering/:id" element={<HideFor roles={NOT_SECRETARY}><ExcludeAdmin><VolunteerOpportunity /></ExcludeAdmin></HideFor>} />
             <Route path="notifications" element={<Notifications />} />
-            <Route path="audit" element={<RequireRole roles={['admin', 'secretary', 'chairperson', 'assistant_chairperson']}>{<Audit />}</RequireRole>} />
-            <Route path="recycle-bin" element={<RequireRole roles={['secretary', 'assistant_secretary']}>{<RecycleBin />}</RequireRole>} />
-            <Route path="backups" element={<RequireRole roles={['admin']}>{<Backups />}</RequireRole>} />
-            <Route path="it-content" element={<ExcludeAdmin><ItContent /></ExcludeAdmin>} />
-            {/* The fellowship administrator's screen: appointing the people who hold the fellowship's offices. */}
-            <Route path="appointments" element={<ExcludeAdmin><RequireRole roles={['fellowship_admin', 'secretary']}><Appointments /></RequireRole></ExcludeAdmin>} />
+            <Route path="audit" element={<RequireRole roles={SUPER_ADMIN}>{<Audit />}</RequireRole>} />
+            <Route path="recycle-bin" element={<ExcludeAdmin><RequireRole roles={['secretary', 'assistant_secretary']}>{<RecycleBin />}</RequireRole></ExcludeAdmin>} />
+            <Route path="backups" element={<RequireRole roles={SUPER_ADMIN}>{<Backups />}</RequireRole>} />
+            <Route path="it-content" element={<HideFor roles={NOT_SECRETARY}><ExcludeAdmin><ItContent /></ExcludeAdmin></HideFor>} />
             {/* The content manager's own screen. `admin` is deliberately absent, matching the IT Content page: the
                 platform administrator runs the platform, and a tenant's public site is the tenant's business. */}
-            <Route path="public-site" element={<ExcludeAdmin><RequireRole roles={['it_admin', 'secretary', 'assistant_secretary']}><PublicSiteAdmin /></RequireRole></ExcludeAdmin>} />
-            <Route path="youth" element={<ExcludeAdmin><Youth /></ExcludeAdmin>} />
-            <Route path="youth/age-groups" element={<ExcludeAdmin><RequireRole roles={['secretary']}>{<YouthAgeGroups />}</RequireRole></ExcludeAdmin>} />
-            <Route path="youth/programs" element={<ExcludeAdmin><YouthPrograms /></ExcludeAdmin>} />
-            <Route path="youth/reports" element={<ExcludeAdmin><YouthReports /></ExcludeAdmin>} />
-            <Route path="youth/:id" element={<ExcludeAdmin><YouthDetail /></ExcludeAdmin>} />
-            <Route path="users" element={<RequireRole roles={['admin', 'secretary']}>{<Users />}</RequireRole>} />
-            <Route path="approvals" element={<ExcludeAdmin><Approvals /></ExcludeAdmin>} />
-            <Route path="platform" element={<RequireRole roles={['admin', 'platform_support']}>{<Platform />}</RequireRole>} />
-            <Route path="platform/tenants/:id" element={<RequireRole roles={['admin', 'platform_support']}>{<PlatformTenant />}</RequireRole>} />
+            <Route path="public-site" element={<HideFor roles={NOT_SECRETARY}><ExcludeAdmin><RequireRole roles={['it_admin', 'secretary', 'assistant_secretary']}><PublicSiteAdmin /></RequireRole></ExcludeAdmin></HideFor>} />
+            <Route path="youth" element={<HideFor roles={NOT_SECRETARY}><ExcludeAdmin><Youth /></ExcludeAdmin></HideFor>} />
+            <Route path="youth/age-groups" element={<HideFor roles={NOT_SECRETARY}><ExcludeAdmin><RequireRole roles={['secretary']}>{<YouthAgeGroups />}</RequireRole></ExcludeAdmin></HideFor>} />
+            <Route path="youth/programs" element={<HideFor roles={NOT_SECRETARY}><ExcludeAdmin><YouthPrograms /></ExcludeAdmin></HideFor>} />
+            <Route path="youth/reports" element={<HideFor roles={NOT_SECRETARY}><ExcludeAdmin><YouthReports /></ExcludeAdmin></HideFor>} />
+            <Route path="youth/:id" element={<HideFor roles={NOT_SECRETARY}><ExcludeAdmin><YouthDetail /></ExcludeAdmin></HideFor>} />
+            <Route path="users" element={<RequireRole roles={SUPER_ADMIN}>{<Users />}</RequireRole>} />
+            <Route path="platform" element={<RequireRole roles={SUPER_ADMIN}>{<Platform />}</RequireRole>} />
+            <Route path="platform/tenants/:id" element={<RequireRole roles={SUPER_ADMIN}>{<PlatformTenant />}</RequireRole>} />
             <Route path="fellowships" element={<Navigate to="/platform" replace />} />
-            <Route path="billing" element={<ExcludeAdmin><RequireRole roles={['secretary']}>{<Billing />}</RequireRole></ExcludeAdmin>} />
-            <Route path="support-access" element={<ExcludeAdmin><RequireRole roles={['secretary']}>{<SupportAccess />}</RequireRole></ExcludeAdmin>} />
             <Route path="profile" element={<Profile />} />
             {/* Any address inside the authenticated shell that matches nothing above. */}
             <Route path="*" element={<NotFound />} />

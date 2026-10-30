@@ -5,9 +5,9 @@ import {
   ChartBarIcon, CurrencyDollarIcon, BellIcon, ShieldCheckIcon,
   TrashIcon, ServerIcon, ComputerDesktopIcon, UserIcon,
   Bars3Icon, XMarkIcon, ArrowRightOnRectangleIcon,
-  UserGroupIcon, BookOpenIcon, ClipboardDocumentCheckIcon, FaceSmileIcon,
-  ChartPieIcon, RectangleGroupIcon, HeartIcon, CubeIcon, ArchiveBoxIcon, HandRaisedIcon, PresentationChartLineIcon, LifebuoyIcon, CreditCardIcon,
-  GlobeAltIcon, IdentificationIcon,
+  UserGroupIcon, BookOpenIcon, FaceSmileIcon,
+  ChartPieIcon, RectangleGroupIcon, HeartIcon, CubeIcon, ArchiveBoxIcon, HandRaisedIcon, PresentationChartLineIcon,
+  GlobeAltIcon,
   SunIcon, MoonIcon, ComputerDesktopIcon as MonitorIcon,
   GlobeAltIcon as GlobeIcon,
 } from '@heroicons/react/24/outline';
@@ -28,7 +28,11 @@ interface NavItem {
   path: string;
   roles: string[];
   module?: string; // optional module a platform administrator can switch off per fellowship
+  hideFor?: string[]; // roles that never see this item, even if another of their roles would allow it
 }
+
+// Pages the Secretary does not use. App.tsx blocks the same routes with <HideFor>.
+const NOT_SECRETARY = ['secretary'];
 
 interface NavSection {
   title: string;
@@ -58,29 +62,24 @@ const NAV_SECTIONS: NavSection[] = [
       { name: 'Programmes', icon: BookOpenIcon, path: '/programmes', roles: ['secretary'] },
       { name: 'Departments', icon: BuildingOfficeIcon, path: '/departments', roles: ['secretary', 'assistant_secretary'] },
       { name: 'Activities', icon: CalendarIcon, path: '/activities', roles: ALL_NON_ADMIN_ROLES },
-      { name: 'Youth & Children', icon: FaceSmileIcon, path: '/youth', roles: ['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'department_secretary', 'department_chairperson'], module: 'youth' },
+      { name: 'Youth & Children', icon: FaceSmileIcon, path: '/youth', roles: ['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'department_secretary', 'department_chairperson'], module: 'youth', hideFor: NOT_SECRETARY },
       { name: 'Analytics', icon: PresentationChartLineIcon, path: '/analytics', roles: ['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'treasurer', 'department_secretary', 'department_chairperson'], module: 'analytics' },
       { name: 'Reports', icon: ChartBarIcon, path: '/reports', roles: ['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'department_secretary', 'department_chairperson'] },
       { name: 'Finance', icon: CurrencyDollarIcon, path: '/finance', roles: ['treasurer', 'secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'department_secretary', 'department_chairperson'], module: 'finance' },
       { name: 'Resources', icon: CubeIcon, path: '/resources', roles: ['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'treasurer', 'department_secretary', 'department_chairperson'], module: 'resources' },
-      { name: 'Volunteering', icon: HandRaisedIcon, path: '/volunteering', roles: ALL_NON_ADMIN_ROLES, module: 'volunteers' },
-      { name: 'IT Content', icon: ComputerDesktopIcon, path: '/it-content', roles: ALL_NON_ADMIN_ROLES },
-      { name: 'My Website', icon: GlobeAltIcon, path: '/public-site', roles: ['it_admin', 'secretary', 'assistant_secretary'] },
+      { name: 'Volunteering', icon: HandRaisedIcon, path: '/volunteering', roles: ALL_NON_ADMIN_ROLES, module: 'volunteers', hideFor: NOT_SECRETARY },
+      { name: 'IT Content', icon: ComputerDesktopIcon, path: '/it-content', roles: ALL_NON_ADMIN_ROLES, hideFor: NOT_SECRETARY },
+      { name: 'My Website', icon: GlobeAltIcon, path: '/public-site', roles: ['it_admin', 'secretary', 'assistant_secretary'], hideFor: NOT_SECRETARY },
+      { name: 'Recycle Bin', icon: TrashIcon, path: '/recycle-bin', roles: ['secretary', 'assistant_secretary'] },
     ],
   },
   {
     title: 'Administration',
+    // Super admin (the platform `admin` role) only.
     items: [
-      { name: 'Approvals', icon: ClipboardDocumentCheckIcon, path: '/approvals', roles: ALL_NON_ADMIN_ROLES },
-      // Where the fellowship administrator appoints the people who hold its offices. Separate from Users because
-      // the two answer different questions: "who has an account" and "who has been invited to an office".
-      { name: 'Appointments', icon: IdentificationIcon, path: '/appointments', roles: ['fellowship_admin', 'secretary'] },
-      { name: 'Users', icon: UserGroupIcon, path: '/users', roles: ['admin', 'secretary', 'fellowship_admin'] },
-    { name: 'Audit', icon: ShieldCheckIcon, path: '/audit', roles: ['admin', 'secretary', 'chairperson', 'assistant_chairperson'] },
-    { name: 'Platform', icon: BuildingLibraryIcon, path: '/platform', roles: ['admin', 'platform_support'] },
-      { name: 'Billing & plan', icon: CreditCardIcon, path: '/billing', roles: ['secretary'] },
-      { name: 'Support Access', icon: LifebuoyIcon, path: '/support-access', roles: ['secretary'] },
-    { name: 'Recycle Bin', icon: TrashIcon, path: '/recycle-bin', roles: ['secretary', 'assistant_secretary'] },
+      { name: 'Users', icon: UserGroupIcon, path: '/users', roles: ['admin'] },
+      { name: 'Audit', icon: ShieldCheckIcon, path: '/audit', roles: ['admin'] },
+      { name: 'Platform', icon: BuildingLibraryIcon, path: '/platform', roles: ['admin'] },
       { name: 'Backups', icon: ServerIcon, path: '/backups', roles: ['admin'] },
     ],
   },
@@ -145,7 +144,7 @@ export default function Layout() {
   const visibleSections = NAV_SECTIONS.map((section) => ({
     ...section,
     items: section.items.filter(
-      (item) => (item.roles.length === 0 || item.roles.some((r) => hasRole(r))) && !(item.module && disabledModules.includes(item.module)),
+      (item) => (item.roles.length === 0 || item.roles.some((r) => hasRole(r))) && !item.hideFor?.some((r) => hasRole(r)) && !(item.module && disabledModules.includes(item.module)),
     ),
   })).filter((section) => section.items.length > 0);
 

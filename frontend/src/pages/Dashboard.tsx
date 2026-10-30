@@ -56,11 +56,11 @@ export default function Dashboard() {
     { name: 'Activities', icon: CalendarIcon, href: '/activities', show: !isAdmin },
     { name: 'Finance', icon: CurrencyDollarIcon, href: '/finance', show: (hasRole('treasurer') || hasRole('secretary') || hasRole('chairperson')) && !isAdmin },
     { name: 'Reports', icon: ChartBarIcon, href: '/reports', show: (hasRole('secretary') || hasRole('chairperson') || hasRole('department_secretary')) && !isAdmin },
-    { name: 'Users', icon: UsersIcon, href: '/users', show: hasRole('admin') || hasRole('secretary') },
+    { name: 'Users', icon: UsersIcon, href: '/users', show: hasRole('admin') },
     { name: 'Notifications', icon: BellIcon, href: '/notifications', show: true },
-    { name: 'Audit trail', icon: DocumentTextIcon, href: '/audit', show: hasRole('admin') || hasRole('secretary') || hasRole('chairperson') },
+    { name: 'Audit trail', icon: DocumentTextIcon, href: '/audit', show: hasRole('admin') },
     { name: 'Backups', icon: ServerIcon, href: '/backups', show: hasRole('admin') },
-    { name: 'Platform', icon: BuildingOfficeIcon, href: '/platform', show: hasRole('admin') || hasRole('platform_support') },
+    { name: 'Platform', icon: BuildingOfficeIcon, href: '/platform', show: hasRole('admin') },
   ].filter((l) => l.show);
 
   return (
@@ -146,10 +146,12 @@ export default function Dashboard() {
                 <h2 className="section-title">Recent activity</h2>
                 <p className="mt-1 text-sm text-ink-muted">What has changed in your fellowship recently.</p>
               </div>
-              <Link to="/audit" className="btn btn-quiet btn-sm">
-                View audit trail
-                <ArrowRightIcon className="h-3.5 w-3.5" />
-              </Link>
+              {hasRole('admin') && (
+                <Link to="/audit" className="btn btn-quiet btn-sm">
+                  View audit trail
+                  <ArrowRightIcon className="h-3.5 w-3.5" />
+                </Link>
+              )}
             </div>
 
             <Card>
