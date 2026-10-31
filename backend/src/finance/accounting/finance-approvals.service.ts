@@ -5,6 +5,7 @@ import { isUuid } from '../../shared/utils/uuid.util';
 import { applyFinanceEffect } from '../finance-effects';
 import { validateText } from '../finance.validation';
 import { applyAccountingEffect } from './accounting-effects';
+import { applyInventoryEffect, INVENTORY_WORKFLOWS } from '../../inventory/inventory-sync';
 import { money } from './ledger';
 import { FinanceScopeService } from './finance-scope.service';
 import { FinanceNotifyService } from './finance-notify.service';
@@ -13,6 +14,7 @@ export const FINANCE_WORKFLOWS = [
   'money_request', 'expense', 'budget', 'department_expense', 'department_expense_major', 'department_budget',
   'budget_revision', 'project', 'project_closure', 'project_allocation', 'fund_transfer', 'period_close',
   'contribution_edit', 'contribution_delete', 'income_edit', 'income_delete', 'expense_edit', 'expense_delete', 'budget_edit', 'budget_delete',
+  ...INVENTORY_WORKFLOWS,
 ];
 
 const LABEL: Record<string, string> = {
@@ -22,6 +24,8 @@ const LABEL: Record<string, string> = {
   fund_transfer: 'Fund transfer', period_close: 'Financial year closure', contribution_edit: 'Contribution correction',
   contribution_delete: 'Contribution reversal', income_edit: 'Income correction', income_delete: 'Income reversal',
   expense_edit: 'Expense correction', expense_delete: 'Expense reversal', budget_edit: 'Budget correction', budget_delete: 'Budget cancellation',
+  asset_transfer_department: 'Resource ownership transfer', asset_transfer_fellowship: 'Resource ownership transfer',
+  asset_disposal: 'Resource disposal / write-off', asset_disposal_department: 'Department resource disposal', asset_disposal_major: 'Department resource disposal (major)',
 };
 
 const ACTING: Record<string, string[]> = {
@@ -95,6 +99,16 @@ export class FinanceApprovalsService {
         s = t && { title: `${t.fromAccount.name} to ${t.toAccount.name}`, amount: money(t.amount), number: t.transfer_number }; break;
       }
       case 'period_close': s = await this.prisma.financialPeriod.findUnique({ where: { id }, select: { name: true } }); s = s && { title: s.name }; break;
+      case 'asset_transfer_department': case 'asset_transfer_fellowship': {
+        const t = await this.prisma.assetTransfer.findUnique({ where: { id } });
+        const a = t ? await this.prisma.asset.findUnique({ where: { id: t.asset_id }, select: { name: true, asset_tag: true } }) : null;
+        s = t && { title: `${a?.name ?? 'Resource'} (${a?.asset_tag ?? ''}): ${t.from_ownership} to ${t.to_ownership}`, number: t.transfer_number, departmentId: t.from_department_id, assetId: t.asset_id, reason: t.reason }; break;
+      }
+      case 'asset_disposal': case 'asset_disposal_department': case 'asset_disposal_major': {
+        const inc = await this.prisma.assetIncident.findUnique({ where: { id } });
+        const a = inc ? await this.prisma.asset.findUnique({ where: { id: inc.asset_id }, select: { name: true, asset_tag: true, estimated_value: true, acquisition_cost: true } }) : null;
+        s = inc && { title: `${a?.name ?? 'Resource'} (${a?.asset_tag ?? ''}): ${inc.proposed_action.replace('_', ' ')}`, number: inc.incident_number, departmentId: inc.department_id, assetId: inc.asset_id, reason: inc.description, amount: a?.estimated_value ?? a?.acquisition_cost ? money(a?.estimated_value ?? a?.acquisition_cost) : undefined }; break;
+      }
       case 'contribution_edit': case 'contribution_delete': s = await this.prisma.contribution.findUnique({ where: { id }, select: { receipt_number: true, amount: true } }); s = s && { title: `Contribution ${s.receipt_number ?? ''}`, amount: money(s.amount), number: s.receipt_number }; break;
       case 'income_edit': case 'income_delete': s = await this.prisma.incomeRecord.findUnique({ where: { id }, select: { title: true, amount: true, receipt_number: true } }); s = s && { title: s.title, amount: money(s.amount), number: s.receipt_number }; break;
     }
@@ -123,7 +137,8 @@ export class FinanceApprovalsService {
       { approverUserId: user.userId, approverRole: step.approver_role, decision, comment },
       async (tx, final) => {
         if (await applyFinanceEffect(tx, final, user.userId)) return;
-        await applyAccountingEffect(tx, final, user.userId);
+        if (await applyAccountingEffect(tx, final, user.userId)) return;
+        await applyInventoryEffect(tx, final, user.userId);
       },
     );
     await this.prisma.auditLog.create({ data: { user_id: user.userId, action: `finance.approval_${decision}`, entity_type: approval.entity_type, entity_id: approval.entity_id, fellowship_id: approval.fellowship_id, comment: comment || null, approval_info: { workflowId: approvalId, stage: approval.current_stage, resultingStatus: updated.status } as any } });

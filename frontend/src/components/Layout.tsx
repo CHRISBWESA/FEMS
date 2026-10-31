@@ -69,7 +69,7 @@ const NAV_SECTIONS: NavSection[] = [
       { name: 'Reports', icon: ChartBarIcon, path: '/reports', roles: ['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'department_secretary', 'department_chairperson'] },
       { name: 'Finance', icon: CurrencyDollarIcon, path: '/finance', roles: ['treasurer', 'secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson'], module: 'finance' },
       { name: 'Projects', icon: BriefcaseIcon, path: '/projects', roles: ['treasurer', 'secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'department_secretary', 'department_chairperson'], module: 'finance' },
-      { name: 'Resources', icon: CubeIcon, path: '/resources', roles: ['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'treasurer', 'department_secretary', 'department_chairperson'], module: 'resources' },
+      { name: 'Resources', icon: CubeIcon, path: '/inventory', roles: ['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'treasurer'], module: 'resources' },
       { name: 'Volunteering', icon: HandRaisedIcon, path: '/volunteering', roles: ALL_NON_ADMIN_ROLES, module: 'volunteers', hideFor: NOT_SECRETARY },
       { name: 'IT Content', icon: ComputerDesktopIcon, path: '/it-content', roles: ALL_NON_ADMIN_ROLES, hideFor: NOT_SECRETARY },
       { name: 'My Website', icon: GlobeAltIcon, path: '/public-site', roles: ['it_admin', 'secretary', 'assistant_secretary'], hideFor: NOT_SECRETARY },

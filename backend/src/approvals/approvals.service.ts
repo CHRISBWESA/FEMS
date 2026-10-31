@@ -8,6 +8,7 @@ import { TenantScopeService } from '../shared/tenant/tenant-scope.service';
 import { buildHistoryData } from '../members/membership-history.util';
 import { applyFinanceEffect } from '../finance/finance-effects';
 import { applyAccountingEffect } from '../finance/accounting/accounting-effects';
+import { applyInventoryEffect } from '../inventory/inventory-sync';
 import { isUuid } from '../shared/utils/uuid.util';
 
 @Injectable()
@@ -113,6 +114,7 @@ export class ApprovalsService {
     // Finance edit/delete requests (contribution / expense / budget / income).
     if (await applyFinanceEffect(db, approval, actorUserId)) return;
     if (await applyAccountingEffect(db, approval, actorUserId)) return;
+    if (await applyInventoryEffect(db, approval, actorUserId)) return;
 
     switch (approval.workflow_type) {
       case 'department_transfer': {

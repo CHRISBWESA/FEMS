@@ -120,7 +120,7 @@ export class ResourcesReportsService {
     let maintenanceReminders = 0;
     if (overdueMaint.length > 0) {
       const recipients = await this.prisma.user.findMany({
-        where: { roles: { hasSome: ['secretary', 'assistant_secretary'] }, fellowship_id: this.tenantScope.isAdmin(user) ? undefined : user.fellowshipId, is_active: true, deleted_at: null },
+        where: { roles: { hasSome: ['treasurer'] }, fellowship_id: this.tenantScope.isAdmin(user) ? undefined : user.fellowshipId, is_active: true, deleted_at: null },
         select: { id: true, fellowship_id: true },
         take: 20,
       });

@@ -8,6 +8,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ACCOUNTING_WORKFLOWS, syncAccountingStatus } from '../../finance/accounting/accounting-sync';
+import { INVENTORY_WORKFLOWS, syncInventoryStatus } from '../../inventory/inventory-sync';
 
 export interface WorkflowDefinition {
   workflowType: string;
@@ -87,6 +88,17 @@ const WORKFLOW_DEFINITIONS: Record<string, WorkflowDefinition> = {
   fund_transfer: secretaryThenChair('fund_transfer'),
   // Closing a financial year: the Treasurer prepares the statements, the Secretary reviews, the Chairperson approves.
   period_close: secretaryThenChair('period_close'),
+  // ---- Resource management ----
+  // A department's resource leaving the department's ownership: its Chairperson, then the Treasurer (Resource Manager).
+  asset_transfer_department: { workflowType: 'asset_transfer_department', stages: [{ stageOrder: 0, approverRole: 'department_chairperson' }, { stageOrder: 1, approverRole: 'treasurer' }] },
+  // A fellowship-owned resource becoming a department's own (started by the Treasurer).
+  asset_transfer_fellowship: secretaryThenChair('asset_transfer_fellowship'),
+  // Disposal / write-off of a fellowship resource: the Treasurer recommends, the Secretary reviews, the Chairperson decides.
+  asset_disposal: secretaryThenChair('asset_disposal'),
+  // A department's routine disposal: its Chairperson, then the Treasurer.
+  asset_disposal_department: { workflowType: 'asset_disposal_department', stages: [{ stageOrder: 0, approverRole: 'department_chairperson' }, { stageOrder: 1, approverRole: 'treasurer' }] },
+  // A significant department disposal: its Chairperson, the Fellowship Secretary and the Chairperson.
+  asset_disposal_major: { workflowType: 'asset_disposal_major', stages: [{ stageOrder: 0, approverRole: 'department_chairperson' }, { stageOrder: 1, approverRole: 'secretary' }, { stageOrder: 2, approverRole: 'chairperson' }] },
 };
 
 // Approvals scoped to one department (metadata.departmentId): a department_* stage may only be decided by a current
@@ -103,6 +115,7 @@ const SEPARATION_OF_DUTIES = new Set([
   'report', 'it_content', 'it_content_delete', 'role_unassign', 'department_activity',
   'department_expense', 'department_expense_major', 'department_budget', 'budget_revision', 'project',
   'project_closure', 'project_allocation', 'fund_transfer', 'period_close',
+  ...INVENTORY_WORKFLOWS,
 ]);
 
 // For these workflows a rejection ends the request for good; changes are asked for with 'returned' instead.
@@ -116,6 +129,7 @@ const PRIMARY_ENTITY_WORKFLOWS = new Set([
   'expense', 'budget', 'money_request', 'report', 'it_content', 'department_activity',
   'department_expense', 'department_expense_major', 'department_budget',
   ...ACCOUNTING_WORKFLOWS,
+  ...INVENTORY_WORKFLOWS,
 ]);
 
 const DECIDABLE_STATUSES = ['SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'RESUBMITTED'];
@@ -157,7 +171,9 @@ export class ApprovalEngineService {
     metadata?: Record<string, any>,
     fellowshipId?: string | null,
     db: Db = this.prisma,
-    opts: { preparedByTreasurer?: boolean } = {},
+    // skipFirstStage: the person submitting holds the first stage's office for this very record (e.g. a Department
+    // Chairperson initiating their own department's transfer) - their initiation is that stage's authorization.
+    opts: { preparedByTreasurer?: boolean; skipFirstStage?: boolean } = {},
   ): Promise<any> {
     const def = this.getWorkflowDefinition(workflowType);
     if (!def) { throw new BadRequestException(`Unknown workflow type: ${workflowType}`); }
@@ -165,7 +181,7 @@ export class ApprovalEngineService {
     // A Treasurer review stage is the Treasurer's own financial check. When the Treasurer prepared the request, that
     // check is already done, so the stage is recorded as skipped (never "approved" by them) and the request starts
     // with the next, independent approver.
-    const skipFirst = !!opts.preparedByTreasurer && def.stages[0]?.approverRole === 'treasurer' && def.stages.length > 1;
+    const skipFirst = def.stages.length > 1 && ((!!opts.preparedByTreasurer && def.stages[0]?.approverRole === 'treasurer') || !!opts.skipFirstStage);
 
     return db.approval.create({
       data: {
@@ -183,7 +199,7 @@ export class ApprovalEngineService {
             approver_role: stage.approverRole,
             approver_user_id: stage.approverUserIds ? stage.approverUserIds[0] : undefined,
             status: skipFirst && i === 0 ? 'skipped' : 'pending',
-            comment: skipFirst && i === 0 ? 'Prepared by the Treasurer' : undefined,
+            comment: skipFirst && i === 0 ? (opts.skipFirstStage ? 'Initiated by the office holder' : 'Prepared by the Treasurer') : undefined,
           })),
         },
       },
@@ -287,6 +303,10 @@ export class ApprovalEngineService {
     }
     if (ACCOUNTING_WORKFLOWS.includes(approval.workflow_type)) {
       await syncAccountingStatus(tx, approval, approvalStatus);
+      return;
+    }
+    if (INVENTORY_WORKFLOWS.includes(approval.workflow_type)) {
+      await syncInventoryStatus(tx, approval, approvalStatus);
       return;
     }
     const data = { approval_status: this.entityStatusFor(approvalStatus) };

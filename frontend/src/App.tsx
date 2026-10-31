@@ -47,8 +47,8 @@ import MemberInsights from './pages/MemberInsights';
 import MemberGroups from './pages/MemberGroups';
 import MemberGroupDetail from './pages/MemberGroupDetail';
 import MyGiving from './pages/MyGiving';
-import Resources from './pages/Resources';
-import AssetDetail from './pages/AssetDetail';
+import InventoryArea, { CENTRAL_ROLES as RESOURCE_CENTRAL_ROLES } from './inv/InventoryArea';
+import WsResources from './inv/WsResources';
 import MyLoans from './pages/MyLoans';
 import Volunteering from './pages/Volunteering';
 import VolunteerOpportunity from './pages/VolunteerOpportunity';
@@ -299,6 +299,7 @@ export default function App() {
             <Route path="reports" element={<WsReports />} />
             <Route path="finance" element={<WsFinance />} />
             <Route path="money/*" element={<WsMoney />} />
+            <Route path="resources/*" element={<WsResources />} />
             <Route path="leadership" element={<WsLeadership />} />
             <Route path="account" element={<WsAccount />} />
             <Route path="notifications" element={<Notifications />} />
@@ -324,8 +325,10 @@ export default function App() {
             <Route path="projects" element={<ExcludeAdmin><RequireRole roles={[...CENTRAL_FINANCE_ROLES, 'department_chairperson', 'department_secretary']}><ProjectsList /></RequireRole></ExcludeAdmin>} />
             <Route path="projects/:id" element={<ExcludeAdmin><RequireRole roles={[...CENTRAL_FINANCE_ROLES, 'department_chairperson', 'department_secretary']}><ProjectDetail /></RequireRole></ExcludeAdmin>} />
             <Route path="my-giving" element={<ExcludeAdmin><MyGiving /></ExcludeAdmin>} />
-            <Route path="resources" element={<ExcludeAdmin><RequireRole roles={['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'treasurer', 'department_secretary', 'department_chairperson']}>{<Resources />}</RequireRole></ExcludeAdmin>} />
-            <Route path="resources/:id" element={<ExcludeAdmin><RequireRole roles={['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'treasurer', 'department_secretary', 'department_chairperson']}>{<AssetDetail />}</RequireRole></ExcludeAdmin>} />
+            <Route path="inventory/*" element={<ExcludeAdmin><RequireRole roles={RESOURCE_CENTRAL_ROLES}>{<InventoryArea />}</RequireRole></ExcludeAdmin>} />
+            {/* Old links keep working. */}
+            <Route path="resources" element={<Navigate to="/inventory" replace />} />
+            <Route path="resources/:id" element={<Navigate to="/inventory/inventory" replace />} />
             <Route path="my-loans" element={<ExcludeAdmin><MyLoans /></ExcludeAdmin>} />
             <Route path="analytics" element={<ExcludeAdmin><RequireRole roles={['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'treasurer', 'department_secretary', 'department_chairperson']}>{<Analytics />}</RequireRole></ExcludeAdmin>} />
             <Route path="volunteering" element={<HideFor roles={NOT_SECRETARY}><ExcludeAdmin><Volunteering /></ExcludeAdmin></HideFor>} />

@@ -25,16 +25,19 @@ describeDb('Phase 16 - resources & asset management (real Postgres, full HTTP st
     D2 = await makeDepartment(prisma, fA.id, 'RD2');
     DB = await makeDepartment(prisma, fB.id, 'RDB');
     const mk = (roles: string[], departmentId?: string) => makeUser(prisma, { fellowshipId: fA.id, roles, departmentId });
-    sec = await mk(['secretary']);
-    asst = await mk(['assistant_secretary']);
+    // The Treasurer is now the fellowship's Resource Manager, and the Secretary a viewer/approver. These Phase 16
+    // tests keep their structure: `sec` and `asst` are the two OPERATORS (Treasurer role), `treas` is a read-only
+    // central officer (Secretary role).
+    sec = await mk(['treasurer']);
+    asst = await mk(['treasurer']);
     chair = await mk(['chairperson']);
-    treas = await mk(['treasurer']);
+    treas = await mk(['secretary']);
     ds1 = await mk(['department_secretary'], D1.id);
     dc1 = await mk(['department_chairperson'], D1.id);
     ds2 = await mk(['department_secretary'], D2.id);
     ord = await mk(['ordinary_member']);
     gl = await mk(['gender_leader']);
-    secB = await makeUser(prisma, { fellowshipId: fB.id, roles: ['secretary'] });
+    secB = await makeUser(prisma, { fellowshipId: fB.id, roles: ['treasurer'] });
     m1 = await makeMember(prisma, { fellowshipId: fA.id, name: 'Borrower One', userId: ord.id });
     m2 = await makeMember(prisma, { fellowshipId: fA.id, name: 'Borrower Two' });
     m3 = await makeMember(prisma, { fellowshipId: fA.id, name: 'Nodept' });
@@ -62,7 +65,7 @@ describeDb('Phase 16 - resources & asset management (real Postgres, full HTTP st
         await get(u, '/resources/reports/summary').expect(403);
       }
     });
-    it('viewers (chair, treasurer) can read but not write; only Secretary/Assistant operate', async () => {
+    it('viewers (chair, secretary) can read but not write; only the Treasurer operates', async () => {
       for (const u of [chair, treas]) {
         await get(u, '/resources/assets').expect(200);
         await post(u, '/resources/assets', { name: 'nope' }).expect(403);
@@ -351,9 +354,9 @@ describeDb('Phase 16 - resources & asset management (real Postgres, full HTTP st
   });
 
   describe('retirement', () => {
-    it('only the Secretary retires; reason required; not while on loan; final', async () => {
+    it('only the Treasurer retires; reason required; not while on loan; final', async () => {
       const a = await mkAsset();
-      await post(asst, `/resources/assets/${a.id}/retire`, { reason: 'old' }).expect(403);
+      await post(treas, `/resources/assets/${a.id}/retire`, { reason: 'old' }).expect(403); // the Secretary views only
       await post(sec, `/resources/assets/${a.id}/retire`, {}).expect(400);
       await post(sec, `/resources/assets/${a.id}/retire`, { reason: 'x', outcome: 'stolen' }).expect(400);
       await post(asst, `/resources/assets/${a.id}/check-out`, { memberId: m1.id }).expect(201);
@@ -431,7 +434,7 @@ describeDb('Phase 16 - resources & asset management (real Postgres, full HTTP st
   describe('reports and reminders', () => {
     it('summary aggregates correctly, scopes to the caller, and hides value from non-cost viewers', async () => {
       const fx = await makeFellowship(prisma, 'RRPT');
-      const s = await makeUser(prisma, { fellowshipId: fx.id, roles: ['secretary'] });
+      const s = await makeUser(prisma, { fellowshipId: fx.id, roles: ['treasurer'] }); // the Resource Manager
       const dx = await makeDepartment(prisma, fx.id, 'RRD');
       const dl = await makeUser(prisma, { fellowshipId: fx.id, roles: ['department_secretary'], departmentId: dx.id });
       const P = (u: any, url: string, body: object = {}) => api(app, u.token).post(url, body);

@@ -15,7 +15,8 @@ const VIEWERS = [
   ROLES.ADMIN, ROLES.SECRETARY, ROLES.ASSISTANT_SECRETARY, ROLES.CHAIRPERSON, ROLES.ASSISTANT_CHAIRPERSON,
   ROLES.TREASURER, ROLES.DEPARTMENT_SECRETARY, ROLES.DEPARTMENT_CHAIRPERSON,
 ];
-const OPERATORS = [ROLES.ADMIN, ROLES.SECRETARY, ROLES.ASSISTANT_SECRETARY];
+// The Treasurer is the Resource Manager; the Secretary and Chairperson are viewers and approvers.
+const OPERATORS = [ROLES.ADMIN, ROLES.TREASURER];
 const EVERY_ROLE = [...VIEWERS, ROLES.GENDER_LEADER, ROLES.ORDINARY_MEMBER];
 
 @RequiresModule('resources')
@@ -60,7 +61,7 @@ export class ResourcesController {
 
   @Post('assets/:id/transfer') @Roles(...OPERATORS)
   transfer(@Param('id') id: string, @Body() b: any, @Req() req) { return this.assets.transfer(id, b, req.user); }
-  @Post('assets/:id/retire') @Roles(ROLES.ADMIN, ROLES.SECRETARY)
+  @Post('assets/:id/retire') @Roles(ROLES.ADMIN, ROLES.TREASURER)
   retire(@Param('id') id: string, @Body() b: any, @Req() req) { return this.assets.retire(id, b, req.user); }
   @Post('assets/:id/adjust-quantity') @Roles(...OPERATORS)
   adjust(@Param('id') id: string, @Body() b: any, @Req() req) { return this.assets.adjustQuantity(id, b, req.user); }

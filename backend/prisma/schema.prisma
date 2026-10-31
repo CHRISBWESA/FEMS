@@ -102,6 +102,8 @@ enum AssetCondition {
   fair
   poor
   damaged
+  excellent
+  under_repair
 }
 
 enum AssetStatus {
@@ -110,6 +112,19 @@ enum AssetStatus {
   in_maintenance
   retired
   lost
+  assigned
+  reserved
+  borrowed
+  disposed
+}
+
+// Who owns a resource. Possession or use never changes this: a fellowship-owned asset assigned to a department
+// stays fellowship-owned. Borrowed resources belong to someone outside the fellowship and are never counted as owned.
+enum AssetOwnership {
+  fellowship
+  department
+  donated
+  borrowed
 }
 
 enum MaintenanceType {
@@ -123,6 +138,9 @@ enum MaintenanceStatus {
   in_progress
   completed
   cancelled
+  reported
+  pending_review
+  approved
 }
 
 enum AssetEventType {
@@ -141,6 +159,24 @@ enum AssetEventType {
   document_removed
   retired
   lost
+  assigned
+  assignment_ended
+  ownership_transferred
+  status_changed
+  request_approved
+  handed_over
+  returned
+  borrowed_external
+  returned_external
+  incident_reported
+  disposal_requested
+  disposed
+  stock_received
+  stock_issued
+  stock_adjusted
+  stock_transferred
+  maintenance_reported
+  maintenance_approved
 }
 
 enum FinanceCategoryKind {
@@ -1585,6 +1621,32 @@ model Asset {
   created_by            String         @db.Uuid
   created_at            DateTime       @default(now())
   updated_at            DateTime       @updatedAt
+  // ---- Ownership and accountability (resource management) ----
+  // owning_department_id is the OWNER for department-owned resources (and the receiving department for donations
+  // or borrowings made by a department). assigned_department_id is who currently USES a fellowship-owned asset.
+  ownership_type        AssetOwnership @default(fellowship)
+  assigned_department_id String?       @db.Uuid
+  acquisition_method    String?
+  acquisition_source    String?
+  estimated_value       Decimal?       @db.Decimal(12, 2)
+  donor_name            String?
+  donor_contact         String?
+  donation_date         DateTime?
+  // Borrowed from outside the fellowship.
+  external_owner_name     String?
+  external_owner_contact  String?
+  borrowed_on             DateTime?
+  expected_return_date    DateTime?
+  actual_return_date      DateTime?
+  condition_received      AssetCondition?
+  condition_returned      AssetCondition?
+  last_inspected_at     DateTime?
+  unit                  String?
+  storage_location      String?
+  photos                Json           @default("[]")
+  attachments           Json           @default("[]")
+  disposed_at           DateTime?
+  disposal_method       String?
 
   category              AssetCategory?  @relation(fields: [category_id], references: [id], onDelete: SetNull)
   location              AssetLocation?  @relation(fields: [location_id], references: [id], onDelete: SetNull)
@@ -1598,6 +1660,8 @@ model Asset {
   @@unique([fellowship_id, asset_tag])
   @@index([fellowship_id, status])
   @@index([owning_department_id])
+  @@index([assigned_department_id])
+  @@index([fellowship_id, ownership_type])
   @@index([custodian_member_id])
   @@index([category_id])
   @@index([location_id])
@@ -1643,6 +1707,16 @@ model AssetMaintenance {
   cost              Decimal?          @db.Decimal(12, 2)
   condition_after   AssetCondition?
   notes             String?
+  // ---- Repairs reported and approved through resource management ----
+  reported_by       String?           @db.Uuid
+  department_id     String?           @db.Uuid
+  technician        String?
+  estimated_cost    Decimal?          @db.Decimal(12, 2)
+  // The finance expense that pays for the repair (one expense, never duplicated).
+  expense_id        String?           @db.Uuid
+  attachments       Json              @default("[]")
+  approved_by       String?           @db.Uuid
+  approved_at       DateTime?
   created_by        String            @db.Uuid
   created_at        DateTime          @default(now())
   updated_at        DateTime          @updatedAt
@@ -1692,6 +1766,183 @@ model AssetDocument {
 
   @@unique([asset_id, document_id])
   @@map("asset_documents")
+}
+
+// ---------- Resource management: assignments, transfers, requests, incidents, stock ----------
+
+model ResourceSettings {
+  id                        String   @id @default(uuid()) @db.Uuid
+  fellowship_id             String   @unique @db.Uuid
+  tag_prefix                String   @default("AST")
+  units                     String[] @default(["piece", "set", "box", "pack", "ream", "litre", "kg", "metre"])
+  maintenance_categories    String[] @default(["repair", "service", "inspection", "cleaning"])
+  // Disposals of resources worth at least this much always need the Fellowship Secretary and Chairperson.
+  major_disposal_value      Decimal? @db.Decimal(12, 2)
+  low_stock_notifications   Boolean  @default(true)
+  return_reminder_days      Int      @default(2)
+  updated_by                String?  @db.Uuid
+  created_at                DateTime @default(now())
+  updated_at                DateTime @updatedAt
+
+  @@map("resource_settings")
+}
+
+// Custody of a fellowship-owned asset by a department. Never an ownership change. At most one open assignment per
+// asset (active_key = asset id while open, null once ended).
+model AssetAssignment {
+  id                    String          @id @default(uuid()) @db.Uuid
+  fellowship_id         String          @db.Uuid
+  asset_id              String          @db.Uuid
+  department_id         String          @db.Uuid
+  responsible_member_id String?         @db.Uuid
+  from_location_id      String?         @db.Uuid
+  to_location_id        String?         @db.Uuid
+  handed_over_at        DateTime        @default(now())
+  condition_at_handover AssetCondition
+  authorized_by         String          @db.Uuid
+  notes                 String?
+  active_key            String?         @unique
+  ended_at              DateTime?
+  ended_by              String?         @db.Uuid
+  condition_at_return   AssetCondition?
+  end_notes             String?
+
+  @@index([asset_id, handed_over_at])
+  @@index([department_id, ended_at])
+  @@map("asset_assignments")
+}
+
+// Moving a resource: between locations, between custodians, or a change of OWNER. Ownership changes of a
+// department's resource, or into/out of the fellowship's ownership, need approval and are never silent.
+model AssetTransfer {
+  id                     String          @id @default(uuid()) @db.Uuid
+  fellowship_id          String          @db.Uuid
+  transfer_number        String
+  asset_id               String          @db.Uuid
+  // location | ownership
+  kind                   String
+  from_ownership         AssetOwnership
+  to_ownership           AssetOwnership
+  from_department_id     String?         @db.Uuid
+  to_department_id       String?         @db.Uuid
+  from_location_id       String?         @db.Uuid
+  to_location_id         String?         @db.Uuid
+  from_custodian_id      String?         @db.Uuid
+  to_custodian_id        String?         @db.Uuid
+  transfer_date          DateTime
+  reason                 String
+  condition_before       AssetCondition
+  condition_after        AssetCondition?
+  // PENDING | COMPLETED | REJECTED | RETURNED | CANCELLED
+  status                 String          @default("PENDING")
+  approval_workflow_id   String?         @db.Uuid
+  initiated_by           String          @db.Uuid
+  approved_by            String?         @db.Uuid
+  completed_at           DateTime?
+  created_at             DateTime        @default(now())
+  updated_at             DateTime        @updatedAt
+
+  @@unique([fellowship_id, transfer_number])
+  @@index([asset_id, created_at])
+  @@map("asset_transfers")
+}
+
+// A request to use (borrow / book) a resource for an activity or project. Approval by the resource's manager;
+// availability is checked so the same resource is never booked twice for overlapping dates.
+model ResourceRequest {
+  id                   String          @id @default(uuid()) @db.Uuid
+  fellowship_id        String          @db.Uuid
+  request_number       String
+  asset_id             String          @db.Uuid
+  requester_user_id    String          @db.Uuid
+  // The department asking (null = a central/fellowship request).
+  department_id        String?         @db.Uuid
+  borrower_member_id   String?         @db.Uuid
+  activity_id          String?         @db.Uuid
+  project_id           String?         @db.Uuid
+  quantity             Int             @default(1)
+  purpose              String
+  needed_from          DateTime
+  needed_until         DateTime
+  location             String?
+  supporting_info      String?
+  // PENDING | APPROVED | REJECTED | CANCELLED | ISSUED | PARTIALLY_RETURNED | RETURNED
+  status               String          @default("PENDING")
+  decided_by           String?         @db.Uuid
+  decided_at           DateTime?
+  decision_note        String?
+  issued_at            DateTime?
+  issued_by            String?         @db.Uuid
+  condition_out        AssetCondition?
+  quantity_returned    Int             @default(0)
+  returned_at          DateTime?
+  received_by          String?         @db.Uuid
+  condition_in         AssetCondition?
+  return_notes         String?
+  return_evidence      Json            @default("[]")
+  last_reminded_at     DateTime?
+  created_at           DateTime        @default(now())
+  updated_at           DateTime        @updatedAt
+
+  @@unique([fellowship_id, request_number])
+  @@index([asset_id, status, needed_from])
+  @@index([fellowship_id, status])
+  @@index([department_id, status])
+  @@map("resource_requests")
+}
+
+// Loss, damage, missing items, unusable resources and disposals. A disposal never deletes the asset.
+model AssetIncident {
+  id                    String    @id @default(uuid()) @db.Uuid
+  fellowship_id         String    @db.Uuid
+  incident_number       String
+  asset_id              String    @db.Uuid
+  // lost | damaged | missing | unusable | disposal
+  incident_type         String
+  description           String
+  occurred_at           DateTime
+  reported_by           String    @db.Uuid
+  department_id         String?   @db.Uuid
+  investigation_notes   String?
+  // repair | write_off | dispose | recover | none
+  proposed_action       String
+  disposal_method       String?
+  attachments           Json      @default("[]")
+  // OPEN | PENDING_APPROVAL | APPROVED | REJECTED | RETURNED | CLOSED
+  status                String    @default("OPEN")
+  approval_workflow_id  String?   @db.Uuid
+  outcome               String?
+  closed_at             DateTime?
+  closed_by             String?   @db.Uuid
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  @@unique([fellowship_id, incident_number])
+  @@index([asset_id, created_at])
+  @@index([fellowship_id, status])
+  @@map("asset_incidents")
+}
+
+// Every change to a consumable item's quantity. The item's quantity changes only together with its movement.
+model StockMovement {
+  id               String   @id @default(uuid()) @db.Uuid
+  fellowship_id    String   @db.Uuid
+  asset_id         String   @db.Uuid
+  // received | issued | adjusted | transfer_out | transfer_in
+  kind             String
+  quantity         Int
+  balance_after    Int
+  department_id    String?  @db.Uuid
+  member_id        String?  @db.Uuid
+  related_asset_id String?  @db.Uuid
+  reference        String?
+  reason           String?
+  created_by       String   @db.Uuid
+  created_at       DateTime @default(now())
+
+  @@index([asset_id, created_at])
+  @@index([fellowship_id, created_at])
+  @@map("stock_movements")
 }
 
 // ---------- Volunteer & service management (Phase 17) ----------
