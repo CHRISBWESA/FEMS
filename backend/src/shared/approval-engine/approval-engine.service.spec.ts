@@ -38,9 +38,10 @@ describe('entity status synchronization', () => {
     };
     await (service as any).syncEntityStatus(tx, { id: 'workflow', entity_id: 'entity', workflow_type: 'report' }, 'APPROVED');
     await (service as any).syncEntityStatus(tx, { id: 'workflow', entity_id: 'entity', workflow_type: 'it_content' }, 'REJECTED');
+    // Reports keep their state in `status` (they have no approval_status column).
     expect(tx.report.updateMany).toHaveBeenCalledWith({
       where: { id: 'entity', approval_workflow_id: 'workflow' },
-      data: { approval_status: 'UNDER_REVIEW' },
+      data: { status: 'UNDER_REVIEW' },
     });
     expect(tx.documentEntity.updateMany).toHaveBeenCalledWith({
       where: { id: 'entity', approval_workflow_id: 'workflow' },

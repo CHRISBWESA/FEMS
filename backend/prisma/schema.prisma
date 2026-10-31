@@ -40,6 +40,8 @@ enum ApprovalStatus {
   RESUBMITTED
   FINAL_APPROVED
   CANCELLED
+  // Sent back to the submitter for changes. Unlike REJECTED, the submitter may revise and resubmit.
+  RETURNED
 }
 
 enum ApprovalStepStatus {
@@ -47,6 +49,20 @@ enum ApprovalStepStatus {
   approved
   rejected
   skipped
+  returned
+}
+
+// Lifecycle of an activity. Activities created by fellowship officers are official at once (APPROVED); activities
+// created by department leaders go through Secretary -> Chairperson approval first.
+enum ActivityStatus {
+  DRAFT
+  PENDING_SECRETARY
+  RETURNED
+  PENDING_CHAIRPERSON
+  APPROVED
+  REJECTED
+  COMPLETED
+  CANCELLED
 }
 
 enum MembershipStatus {
@@ -471,6 +487,7 @@ model Member {
 
   user                       User?     @relation("user_member", fields: [user_id], references: [id], onDelete: SetNull)
   departmentMemberships      DepartmentMember[]
+  departmentLeaderships      DepartmentLeader[]
   contributions              Contribution[]
   attendances                Attendance[]
   youthProfile               YouthProfile?
@@ -503,6 +520,7 @@ model Department {
 
   members               DepartmentMember[]
   leaders               DepartmentLeader[]
+  announcementTargets   DepartmentAnnouncementTarget[]
   youthProfiles         YouthProfile[]
   assets                Asset[]
   serviceOpportunities  ServiceOpportunity[]
@@ -525,6 +543,8 @@ model DepartmentMember {
   department            Department @relation(fields: [department_id], references: [id], onDelete: Cascade)
 
   @@index([department_id, removed])
+  // One row per member per department: leaving sets removed=true and re-joining reactivates the same row.
+  @@unique([department_id, member_id])
   @@map("department_members")
   // Foreign key without an index (found in the Phase 22 database review): a join or a parent delete scanned the whole table.
   @@index([member_id])
@@ -539,10 +559,23 @@ model DepartmentLeader {
   end_date             DateTime?
   created_at           DateTime  @default(now())
   fellowship_id        String?   @db.Uuid
+  // The registered member who holds the office (leaders are always members; accounts are linked through them).
+  member_id            String?   @db.Uuid
+  appointed_by         String?   @db.Uuid
+  ended_by             String?   @db.Uuid
+  end_reason           String?
+  // Equal to role_in_department while the appointment is current, NULL once it has ended. The unique index below
+  // therefore allows exactly one current Chairperson and one current Secretary per department, while every past
+  // appointment stays on record as history.
+  active_role          String?
 
   department           Department @relation(fields: [department_id], references: [id], onDelete: Cascade)
+  member               Member?    @relation(fields: [member_id], references: [id], onDelete: SetNull)
 
   @@index([fellowship_id])
+  @@index([user_id])
+  @@index([member_id])
+  @@unique([department_id, active_role])
   @@map("department_leaders")
   // Foreign key without an index (found in the Phase 22 database review): a join or a parent delete scanned the whole table.
   @@index([department_id])
@@ -580,12 +613,21 @@ model Activity {
   created_by     String       @db.Uuid
   created_at     DateTime     @default(now())
   updated_at     DateTime     @updatedAt
+  // Department activity workflow. Existing and officer-created activities are APPROVED (official) by default.
+  status               ActivityStatus @default(APPROVED)
+  objectives           String?
+  venue                String?
+  supporting_info      String?
+  attachments          Json           @default("[]")
+  submitted_at         DateTime?
+  approval_workflow_id String?        @db.Uuid
 
   attendances    Attendance[]
   serviceShifts  ServiceShift[]
 
   @@index([fellowship_id])
   @@index([fellowship_id, date])
+  @@index([department_id, status])
   @@map("activities")
 }
 
@@ -612,6 +654,7 @@ model Attendance {
   @@index([fellowship_id])
   @@index([activity_id])
   @@index([member_id])
+  @@index([youth_profile_id])
   @@map("attendance")
 }
 
@@ -628,9 +671,41 @@ model Report {
   approval_workflow_id  String?        @db.Uuid
   created_at            DateTime       @default(now())
   updated_at            DateTime       @updatedAt
+  // Structured activity report (department workspace). Older free-text reports leave these empty.
+  activity_id           String?        @db.Uuid
+  activity_title        String?
+  activity_date         DateTime?
+  objectives            String?
+  participants          Int?
+  achievements          String?
+  outcomes              String?
+  challenges            String?
+  recommendations       String?
+  photos                Json           @default("[]")
+  documents             Json           @default("[]")
+  version               Int            @default(1)
+
+  submissions           ReportSubmission[]
 
   @@index([fellowship_id])
+  @@index([department_id, status])
   @@map("reports")
+}
+
+// Every submission of a report is kept, so a revised report never overwrites what reviewers saw before.
+model ReportSubmission {
+  id            String   @id @default(uuid()) @db.Uuid
+  report_id     String   @db.Uuid
+  fellowship_id String?  @db.Uuid
+  version       Int
+  data          Json
+  submitted_by  String   @db.Uuid
+  submitted_at  DateTime @default(now())
+
+  report        Report   @relation(fields: [report_id], references: [id], onDelete: Cascade)
+
+  @@unique([report_id, version])
+  @@map("report_submissions")
 }
 
 model Announcement {
@@ -740,6 +815,12 @@ model MoneyRequest {
   approval_workflow_id  String?        @db.Uuid
   created_at            DateTime       @default(now())
   updated_at            DateTime       @updatedAt
+  // Department financial request details (department workspace).
+  justification         String?
+  activity_id           String?        @db.Uuid
+  expense_breakdown     Json?
+  attachments           Json           @default("[]")
+  submitted_at          DateTime?
 
   release               MoneyRequestRelease?
 
@@ -1365,6 +1446,7 @@ model Approval {
   updated_at     DateTime       @updatedAt
 
   steps          ApprovalStep[]
+  events         ApprovalEvent[]
 
   @@index([entity_id, workflow_type])
   @@index([fellowship_id])
@@ -1387,6 +1469,62 @@ model ApprovalStep {
   @@map("approval_steps")
   // Foreign key without an index (found in the Phase 22 database review): a join or a parent delete scanned the whole table.
   @@index([approval_id])
+}
+
+// Append-only history of an approval: every submission, decision and resubmission, with who and when. Steps are
+// reset when a returned request is resubmitted; this table is what keeps the earlier reviews.
+model ApprovalEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  approval_id    String   @db.Uuid
+  fellowship_id  String?  @db.Uuid
+  action         String   // submitted | approved | rejected | returned | resubmitted | cancelled
+  stage_order    Int?
+  approver_role  String?
+  comment        String?
+  actor_user_id  String?  @db.Uuid
+  created_at     DateTime @default(now())
+
+  approval       Approval @relation(fields: [approval_id], references: [id], onDelete: Cascade)
+
+  @@index([approval_id, created_at])
+  @@map("approval_events")
+}
+
+// ---------- Department announcements ----------
+//
+// Internal announcements from the Fellowship Secretary to department leaders. Kept apart from the public-site
+// Announcement model on purpose, so an internal notice can never be published on the fellowship's website.
+
+model DepartmentAnnouncement {
+  id             String   @id @default(uuid()) @db.Uuid
+  fellowship_id  String   @db.Uuid
+  title          String
+  content        String
+  status         String   @default("draft") // draft | published | archived
+  target_all     Boolean  @default(false)
+  attachments    Json     @default("[]")
+  published_at   DateTime?
+  created_by     String   @db.Uuid
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  targets        DepartmentAnnouncementTarget[]
+
+  @@index([fellowship_id, status, published_at])
+  @@map("department_announcements")
+}
+
+model DepartmentAnnouncementTarget {
+  id               String                 @id @default(uuid()) @db.Uuid
+  announcement_id  String                 @db.Uuid
+  department_id    String                 @db.Uuid
+
+  announcement     DepartmentAnnouncement @relation(fields: [announcement_id], references: [id], onDelete: Cascade)
+  department       Department             @relation(fields: [department_id], references: [id], onDelete: Cascade)
+
+  @@unique([announcement_id, department_id])
+  @@index([department_id])
+  @@map("department_announcement_targets")
 }
 
 // ---------- IT Content ----------

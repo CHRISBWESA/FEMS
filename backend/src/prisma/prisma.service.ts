@@ -25,7 +25,12 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   constructor() {
     const url = withUtcSession(process.env.DATABASE_URL);
-    super(url ? { datasources: { db: { url } } } : undefined);
+    super({
+      ...(url ? { datasources: { db: { url } } } : {}),
+      // Interactive transactions default to 5 s, which a multi-step write (e.g. appointing a leader and creating
+      // their account) can exceed when the database is in another region. Still bounded, so nothing hangs.
+      transactionOptions: { maxWait: 10_000, timeout: 30_000 },
+    });
   }
 
   async onModuleInit() {

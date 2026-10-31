@@ -1,233 +1,147 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../App';
-import { PageLoader } from '../components/ui';
-import {
-  BuildingOfficeIcon, UserGroupIcon, ArrowRightIcon,
-  PlusIcon, XMarkIcon, PencilSquareIcon, PlayCircleIcon, PauseCircleIcon,
-} from '@heroicons/react/24/outline';
+import { Link, useNavigate } from 'react-router-dom';
+import { BuildingOfficeIcon, PlusIcon, SparklesIcon, MagnifyingGlassIcon, UsersIcon } from '@heroicons/react/24/outline';
+import { Alert, Badge, Button, EmptyState, ErrorState, Field, Input, Modal, PageLoader, Switch, Textarea, useToast } from '../components/ui';
 
-const emptyForm = {
-  name: '',
-  description: '',
+export type DepartmentSummary = {
+  id: string; name: string; description: string | null; isActive: boolean; createdAt: string;
+  memberCount: number; maleCount: number; femaleCount: number;
+  chairperson: { memberId: string; fullName: string | null; since: string } | null;
+  secretary: { memberId: string; fullName: string | null; since: string } | null;
 };
 
+const errMsg = (e: any, f: string) => e?.response?.data?.message || f;
+
+/** The Fellowship Secretary's list of departments. */
 export default function Departments() {
-  const { user } = useAuth();
-  const canManage = user?.roles.includes('secretary') || user?.roles.includes('assistant_secretary');
-  const canEdit = user?.roles.includes('secretary');
-  const [departments, setDepartments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showCreate, setShowCreate] = useState(false);
-  const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState(emptyForm);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const toast = useToast();
   const navigate = useNavigate();
+  const [rows, setRows] = useState<DepartmentSummary[] | null>(null);
+  const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [showInactive, setShowInactive] = useState(true);
+  const [editing, setEditing] = useState<DepartmentSummary | 'new' | null>(null);
+  const [seeding, setSeeding] = useState(false);
 
-  useEffect(() => {
-    fetchDepartments();
+  const load = useCallback(() => {
+    axios.get('/department-admin/departments', { withCredentials: true })
+      .then((r) => { setRows(r.data); setError(''); })
+      .catch((e) => setError(e.response?.status === 403 ? 'Only the Fellowship Secretary manages departments.' : errMsg(e, 'Could not load departments.')));
   }, []);
+  useEffect(load, [load]);
+  const closeEditor = useCallback(() => setEditing(null), []);
 
-  const fetchDepartments = async () => {
-    setLoading(true);
+  const shown = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (rows ?? []).filter((d) => (showInactive || d.isActive) && (!q || d.name.toLowerCase().includes(q) || (d.description ?? '').toLowerCase().includes(q)));
+  }, [rows, search, showInactive]);
+
+  const seed = async () => {
+    setSeeding(true);
     try {
-      const res = await axios.get('/departments', { withCredentials: true });
-      setDepartments(res.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+      const r = await axios.post('/department-admin/departments/standard', {}, { withCredentials: true });
+      toast.push('success', r.data.created.length ? `Added ${r.data.created.join(', ')}` : 'All standard departments already exist');
+      load();
+    } catch (e) { toast.push('error', errMsg(e, 'Could not add the departments.')); } finally { setSeeding(false); }
   };
 
-  const openCreate = () => {
-    setForm(emptyForm);
-    setError('');
-    setShowCreate(true);
-  };
-
-  const openEdit = (dept: any) => {
-    setForm({ name: dept.name, description: dept.description || '' });
-    setError('');
-    setEditing(dept);
-  };
-
-  const submitForm = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setSaving(true);
-    try {
-      if (editing) {
-        await axios.put(`/departments/${editing.id}`, form, { withCredentials: true });
-      } else {
-        await axios.post('/departments', form, { withCredentials: true });
-      }
-      setShowCreate(false);
-      setEditing(null);
-      fetchDepartments();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save department');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const toggleActive = async (dept: any) => {
-    try {
-      await axios.put(`/departments/${dept.id}`, { is_active: !dept.is_active }, { withCredentials: true });
-      fetchDepartments();
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to update department');
-    }
-  };
-
-  // Secretaries see everything (including inactive); everyone else sees active only.
-  const visibleDepartments = canEdit
-    ? departments
-    : departments.filter((d: any) => d.is_active !== false);
+  const missingStandard = rows !== null && ['Praise', 'Choir', 'Evangelism', 'Prayers', 'Events', 'Word', 'Deacon', 'IT', 'Music', 'Decoration']
+    .some((n) => !rows.some((d) => d.name.toLowerCase() === n.toLowerCase()));
 
   return (
     <div className="mx-auto max-w-7xl">
       <div className="page-header">
         <div>
           <h1 className="page-title">Departments</h1>
-          <p className="page-desc">Departments and their leadership.</p>
+          <p className="page-desc">Create departments, appoint their Chairperson and Secretary, and see how many members each has.</p>
         </div>
-        {canManage && (
-          <button onClick={openCreate} className="btn btn-primary">
-            <PlusIcon className="h-4 w-4" />
-            Add Department
-          </button>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {missingStandard && <Button loading={seeding} onClick={seed}><SparklesIcon className="h-4 w-4" /> Add standard departments</Button>}
+          <Button variant="primary" onClick={() => setEditing('new')}><PlusIcon className="h-4 w-4" /> New department</Button>
+        </div>
       </div>
 
-      {loading ? (
-        <PageLoader rows={2} />
-      ) : visibleDepartments.length === 0 ? (
-        <div className="empty-state">
-          <div className="stat-icon bg-surface-sunken text-ink-subtle">
-            <BuildingOfficeIcon className="h-6 w-6" />
-          </div>
-          <p className="empty-title">No departments found</p>
-          <p className="empty-desc">Departments will appear here once created.</p>
-        </div>
+      {error ? <ErrorState message={error} onRetry={load} /> : rows === null ? <PageLoader rows={2} /> : rows.length === 0 ? (
+        <EmptyState icon={<BuildingOfficeIcon className="h-8 w-8" />} title="No departments yet"
+          description="Start with the ten standard departments (Praise, Choir, Evangelism, Prayers, Events, Word, Deacon, IT, Music, Decoration) or create your own."
+          action={<div className="flex flex-wrap justify-center gap-2"><Button loading={seeding} onClick={seed}>Add standard departments</Button><Button variant="primary" onClick={() => setEditing('new')}>New department</Button></div>} />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {visibleDepartments.map((dept: any) => (
-            <div key={dept.id} className="card card-hover group relative text-left">
-              <button onClick={() => navigate(`/departments/${dept.id}`)} className="block w-full text-left">
-                <div className="flex items-start justify-between">
-                  <div className={`stat-icon ${dept.is_active === false ? 'bg-surface-sunken text-ink-subtle' : 'bg-emerald-50 text-success'}`}>
-                    <BuildingOfficeIcon className="h-6 w-6" />
-                  </div>
-                  <ArrowRightIcon className="h-4 w-4 text-ink-subtle transition-colors group-hover:text-primary" />
-                </div>
-                <h3 className={`mt-4 text-base font-semibold ${dept.is_active === false ? 'text-ink-subtle' : 'text-ink'}`}>{dept.name}</h3>
-                <p className="mt-1 line-clamp-2 text-sm text-ink-muted">
-                  {dept.description || 'No description'}
-                </p>
-                <div className="mt-4 flex items-center gap-2 text-sm text-ink-muted">
-                  <UserGroupIcon className="h-4 w-4 text-ink-subtle" />
-                  {dept.leaders?.length ?? 0} leader(s)
-                  <span className={`status-badge ml-auto ${dept.is_active === false ? 'status-inactive' : 'status-active'}`}>
-                    {dept.is_active === false ? 'Inactive' : 'Active'}
-                  </span>
-                </div>
-              </button>
-              {canEdit && (
-                <div className="absolute right-3 top-12 flex flex-col gap-1.5">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); openEdit(dept); }}
-                    className="btn btn-icon"
-                    title="Edit department"
-                  >
-                    <PencilSquareIcon className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); toggleActive(dept); }}
-                    className="btn btn-icon"
-                    title={dept.is_active === false ? 'Activate department' : 'Deactivate department'}
-                  >
-                    {dept.is_active === false
-                      ? <PlayCircleIcon className="h-4 w-4 text-success" />
-                      : <PauseCircleIcon className="h-4 w-4 text-amber-600" />}
-                  </button>
-                </div>
-              )}
+        <>
+          <div className="mb-4 flex flex-wrap items-center gap-4">
+            <div className="relative w-full max-w-sm">
+              <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subtle" />
+              <input className="input pl-9" placeholder="Search departments" aria-label="Search departments" value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
-          ))}
-        </div>
+            <Switch label="Show inactive" checked={showInactive} onChange={setShowInactive} />
+          </div>
+          {shown.length === 0 ? <EmptyState compact title="No departments match" /> : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {shown.map((d) => (
+                <Link key={d.id} to={`/departments/${d.id}`} className="card card-interactive card-pad flex flex-col">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="stat-icon bg-primary-light text-primary"><BuildingOfficeIcon className="h-6 w-6" /></div>
+                    {!d.isActive && <Badge tone="warning">Inactive</Badge>}
+                  </div>
+                  <h3 className={`mt-4 break-words text-base font-semibold ${d.isActive ? 'text-ink' : 'text-ink-subtle'}`}>{d.name}</h3>
+                  <p className="mt-1 line-clamp-2 text-sm text-ink-muted">{d.description || 'No description'}</p>
+                  <dl className="mt-4 space-y-1.5 border-t border-hairline pt-3 text-sm">
+                    {[['Chairperson', d.chairperson], ['Secretary', d.secretary]].map(([label, l]: any) => (
+                      <div key={label} className="flex justify-between gap-3">
+                        <dt className="text-ink-muted">{label}</dt>
+                        <dd className={`truncate text-right ${l ? 'font-medium text-ink' : 'text-ink-subtle'}`}>{l?.fullName ?? 'Vacant'}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                  <p className="mt-auto flex items-center gap-1.5 pt-3 text-sm text-ink-muted">
+                    <UsersIcon className="h-4 w-4" /> {d.memberCount} {d.memberCount === 1 ? 'member' : 'members'} · {d.maleCount} male · {d.femaleCount} female
+                  </p>
+                </Link>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
-      {(showCreate || editing) && (
-        <div
-          className="modal-backdrop"
-          onClick={() => { setShowCreate(false); setEditing(null); }}
-        >
-          <form
-            onSubmit={submitForm}
-            onClick={(e) => e.stopPropagation()}
-            className="modal max-w-md"
-          >
-            <div className="mb-5 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="stat-icon bg-primary-light text-primary">
-                  <BuildingOfficeIcon className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-semibold text-ink">
-                    {editing ? 'Edit Department' : 'Add Department'}
-                  </h3>
-                  <p className="text-xs text-ink-muted">
-                    {editing ? 'Update department details.' : 'Create a new department.'}
-                  </p>
-                </div>
-              </div>
-              <button type="button" onClick={() => { setShowCreate(false); setEditing(null); }} className="btn btn-icon">
-                <XMarkIcon className="h-5 w-5" />
-              </button>
-            </div>
-
-            {error && (
-              <div className="alert alert-danger mb-4" role="alert">
-                {error}
-              </div>
-            )}
-
-            <div className="space-y-4">
-              <div>
-                <label className="label">Name *</label>
-                <input
-                  className="input"
-                  required
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="label">Description</label>
-                <textarea
-                  className="input"
-                  rows={3}
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="mt-5 flex gap-2">
-              <button type="submit" disabled={saving} className="btn btn-primary flex-1">
-                {saving ? <span className="spinner border-white" /> : editing ? 'Save Changes' : 'Create Department'}
-              </button>
-              <button type="button" onClick={() => { setShowCreate(false); setEditing(null); }} className="btn btn-secondary flex-1">
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
+      {editing && (
+        <DepartmentForm
+          department={editing === 'new' ? null : editing}
+          onClose={closeEditor}
+          onSaved={(d) => { closeEditor(); toast.push('success', 'Department saved'); if (editing === 'new') navigate(`/departments/${d.id}`); else load(); }}
+        />
       )}
     </div>
+  );
+}
+
+export function DepartmentForm({ department, onClose, onSaved }: { department: DepartmentSummary | null; onClose: () => void; onSaved: (d: DepartmentSummary) => void }) {
+  const [name, setName] = useState(department?.name ?? '');
+  const [description, setDescription] = useState(department?.description ?? '');
+  const [isActive, setIsActive] = useState(department?.isActive ?? true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) { setError('Enter a department name.'); return; }
+    setSaving(true);
+    setError('');
+    try {
+      const body = { name: name.trim(), description: description.trim() || null, isActive };
+      const r = department
+        ? await axios.put(`/department-admin/departments/${department.id}`, body, { withCredentials: true })
+        : await axios.post('/department-admin/departments', body, { withCredentials: true });
+      onSaved(r.data);
+    } catch (err) { setError(errMsg(err, 'Could not save the department.')); } finally { setSaving(false); }
+  };
+  return (
+    <Modal open onClose={onClose} title={department ? 'Edit department' : 'New department'}
+      footer={<><Button onClick={onClose}>Cancel</Button><Button type="submit" form="dept-form" variant="primary" loading={saving}>{department ? 'Save' : 'Create department'}</Button></>}>
+      <form id="dept-form" onSubmit={submit} className="space-y-4">
+        {error && <Alert tone="danger">{error}</Alert>}
+        <Field label="Name" required hint="Must be different from the fellowship's other departments."><Input value={name} onChange={(e) => setName(e.target.value)} maxLength={120} /></Field>
+        <Field label="Description"><Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={1000} /></Field>
+        <Switch label="Active" description="Leaders of an inactive department cannot use its workspace." checked={isActive} onChange={setIsActive} />
+      </form>
+    </Modal>
   );
 }

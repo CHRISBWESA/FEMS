@@ -51,12 +51,12 @@ export class ApprovalsService {
     });
   }
 
-  async decide(id: string, decision: 'approved' | 'rejected' | undefined, comment: string, currentUser: any): Promise<any> {
+  async decide(id: string, decision: 'approved' | 'rejected' | 'returned' | undefined, comment: string, currentUser: any): Promise<any> {
     if (!isUuid(id)) {
       throw new NotFoundException('Approval not found');
     }
-    if (decision !== 'approved' && decision !== 'rejected') {
-      throw new BadRequestException("decision must be 'approved' or 'rejected'");
+    if (decision !== 'approved' && decision !== 'rejected' && decision !== 'returned') {
+      throw new BadRequestException("decision must be 'approved', 'returned' or 'rejected'");
     }
     const approval = await this.prisma.approval.findUnique({
       where: { id },

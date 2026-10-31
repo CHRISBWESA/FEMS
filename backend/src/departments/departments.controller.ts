@@ -1,4 +1,4 @@
-﻿import {
+import {
   Controller,
   Get,
   Post,
@@ -7,15 +7,21 @@
   Param,
   Query,
   Req,
-  UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { DepartmentsService, CreateDepartmentDto, AssignLeaderDto, RequestTransferDto, RequestRemovalDto } from './departments.service';
 import { Roles } from '../shared/decorators/role.decorators';
 import { ROLES } from '../shared/authorization/roles';
+import { DepartmentLeadershipService } from '../department-workspace/department-leadership.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Controller('departments')
 export class DepartmentsController {
-  constructor(private readonly departmentsService: DepartmentsService) {}
+  constructor(
+    private readonly departmentsService: DepartmentsService,
+    private readonly leadership: DepartmentLeadershipService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   @Get()
   @Roles(
@@ -74,13 +80,22 @@ export class DepartmentsController {
   @Post(':id/leaders')
   @Roles(ROLES.SECRETARY)
   async assignLeader(@Param('id') id: string, @Body() body: AssignLeaderDto, @Req() req) {
-    return this.departmentsService.assignLeader(id, body, req.user);
+    // Older clients appoint by account id. Appointments now go through the member record (see
+    // DepartmentLeadershipService), so the account is mapped to its member and handled the same way.
+    const member = body?.userId ? await this.prisma.member.findFirst({ where: { user_id: body.userId }, select: { id: true } }) : null;
+    if (!member) throw new BadRequestException('Leaders are appointed from registered members. Use the member to appoint.');
+    const result = await this.leadership.appoint(req.user, id, { memberId: member.id, role: body.roleInDepartment });
+    return result.department;
   }
 
   @Post(':id/leaders/:userId/remove')
   @Roles(ROLES.SECRETARY)
   async removeLeader(@Param('id') id: string, @Param('userId') userId: string, @Req() req) {
-    return this.departmentsService.removeLeader(id, userId, req.user);
+    const held = await this.prisma.departmentLeader.findMany({ where: { department_id: id, user_id: userId, active_role: { not: null } } });
+    if (held.length === 0) throw new BadRequestException('This account does not currently lead the department.');
+    let result: any;
+    for (const h of held) result = await this.leadership.vacate(req.user, id, h.active_role, 'removed');
+    return result;
   }
 
   @Post('transfers')

@@ -23,6 +23,15 @@ import RecycleBin from './pages/RecycleBin';
 import Backups from './pages/Backups';
 import ItContent from './pages/ItContent';
 import Profile from './pages/Profile';
+import DepartmentAnnouncements from './pages/DepartmentAnnouncements';
+import DepartmentReviews from './pages/DepartmentReviews';
+import WorkspaceLayout, { WorkspaceRoot } from './workspace/WorkspaceLayout';
+import WsDashboard from './workspace/WsDashboard';
+import WsMembers from './workspace/WsMembers';
+import WsActivities from './workspace/WsActivities';
+import WsReports from './workspace/WsReports';
+import WsFinance from './workspace/WsFinance';
+import { WsAnnouncements, WsLeadership, WsAccount } from './workspace/WsPages';
 import Users from './pages/Users';
 import Platform from './pages/Platform';
 import PlatformTenant from './pages/PlatformTenant';
@@ -43,6 +52,7 @@ import VolunteerOpportunity from './pages/VolunteerOpportunity';
 import Analytics from './pages/Analytics';
 import ForcePasswordChange from './pages/ForcePasswordChange';
 import NotFound from './pages/NotFound';
+import { DEPARTMENT_LEADER_ROLES, isDepartmentLeaderOnly } from './lib/roles';
 import PlatformSite from './site/PlatformSite';
 import FellowshipSite from './fellowship-site/FellowshipSite';
 import PublicSiteAdmin from './pages/PublicSiteAdmin';
@@ -155,6 +165,14 @@ const SUPER_ADMIN = ['admin'];
 // Pages the Secretary does not use. The sidebar hides the same ones (Layout.tsx).
 const NOT_SECRETARY = ['secretary'];
 
+
+/** Sends department leaders (who hold no other office) to their workspace instead of the administration screens. */
+function LeaderHome({ children }: { children: JSX.Element }) {
+  const { user } = useAuth();
+  if (user && isDepartmentLeaderOnly(user.roles)) return <Navigate to="/workspace" replace />;
+  return children;
+}
+
 function ExcludeAdmin({ children }: { children: JSX.Element }) {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
@@ -266,17 +284,33 @@ export default function App() {
               is its own home page. */}
           <Route path="/site/*" element={<PlatformSite />} />
           <Route path="/f/:subdomain/*" element={<FellowshipSite />} />
+          {/* The department leaders' workspace: its own layout, separate from the fellowship administration. */}
+          <Route path="/workspace" element={<RequireAuth><RequireRole roles={DEPARTMENT_LEADER_ROLES}><WorkspaceRoot /></RequireRole></RequireAuth>} />
+          <Route path="/workspace/:deptId" element={<RequireAuth><RequireRole roles={DEPARTMENT_LEADER_ROLES}><WorkspaceLayout /></RequireRole></RequireAuth>}>
+            <Route index element={<WsDashboard />} />
+            <Route path="members" element={<WsMembers />} />
+            <Route path="activities" element={<WsActivities />} />
+            <Route path="announcements" element={<WsAnnouncements />} />
+            <Route path="reports" element={<WsReports />} />
+            <Route path="finance" element={<WsFinance />} />
+            <Route path="leadership" element={<WsLeadership />} />
+            <Route path="account" element={<WsAccount />} />
+            <Route path="notifications" element={<Notifications />} />
+            <Route path="*" element={<NotFound />} />
+          </Route>
           <Route path="/" element={<AppRoot />}>
             <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="dashboard" element={<LeaderHome><Dashboard /></LeaderHome>} />
+            <Route path="department-announcements" element={<ExcludeAdmin><RequireRole roles={['secretary', 'assistant_secretary']}><DepartmentAnnouncements /></RequireRole></ExcludeAdmin>} />
+            <Route path="department-reviews" element={<ExcludeAdmin><RequireRole roles={['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'treasurer']}><DepartmentReviews /></RequireRole></ExcludeAdmin>} />
             <Route path="members" element={<ExcludeAdmin><Members /></ExcludeAdmin>} />
             <Route path="members/insights" element={<ExcludeAdmin><MemberInsights /></ExcludeAdmin>} />
             <Route path="members/:id" element={<ExcludeAdmin><MemberDetail /></ExcludeAdmin>} />
             <Route path="member-groups" element={<ExcludeAdmin><MemberGroups /></ExcludeAdmin>} />
             <Route path="member-groups/:id" element={<ExcludeAdmin><MemberGroupDetail /></ExcludeAdmin>} />
             <Route path="programmes" element={<ExcludeAdmin><RequireRole roles={['secretary']}>{<Programmes />}</RequireRole></ExcludeAdmin>} />
-            <Route path="departments" element={<ExcludeAdmin><Departments /></ExcludeAdmin>} />
-            <Route path="departments/:id" element={<ExcludeAdmin><DepartmentDetail /></ExcludeAdmin>} />
+            <Route path="departments" element={<ExcludeAdmin><RequireRole roles={['secretary', 'assistant_secretary']}><Departments /></RequireRole></ExcludeAdmin>} />
+            <Route path="departments/:id" element={<ExcludeAdmin><RequireRole roles={['secretary', 'assistant_secretary']}><DepartmentDetail /></RequireRole></ExcludeAdmin>} />
             <Route path="activities" element={<ExcludeAdmin><Activities /></ExcludeAdmin>} />
             <Route path="activities/:id" element={<ExcludeAdmin><ActivityDetail /></ExcludeAdmin>} />
             <Route path="reports" element={<ExcludeAdmin><Reports /></ExcludeAdmin>} />

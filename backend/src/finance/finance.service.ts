@@ -292,8 +292,8 @@ export class FinanceService {
   // FINAL_APPROVED after every stage has approved and a race can't double-decide.
   private async decidePrimary(kind: PrimaryKind, id: string, decision: any, comment: any, user: any): Promise<any> {
     this.assertUuidParam(id, 'Record');
-    if (decision !== 'approved' && decision !== 'rejected') {
-      throw new BadRequestException("decision must be 'approved' or 'rejected'");
+    if (decision !== 'approved' && decision !== 'rejected' && decision !== 'returned') {
+      throw new BadRequestException("decision must be 'approved', 'returned' or 'rejected'");
     }
     const note = validateText('comment', comment, 500) ?? '';
     const model = MODEL_FOR[kind];
@@ -317,7 +317,7 @@ export class FinanceService {
 
     await this.auditService.log({
       userId: user.userId,
-      action: `finance.${kind}_${decision === 'approved' ? 'approve' : 'reject'}`,
+      action: `finance.${kind}_${decision === 'approved' ? 'approve' : decision === 'returned' ? 'return' : 'reject'}`,
       entityType: kind,
       entityId: id,
       approvalInfo: { workflowId: updated.id, decision, stage: current.current_stage, resultingStatus: updated.status },
@@ -325,12 +325,22 @@ export class FinanceService {
     });
 
     const ownerId = kind === 'money_request' ? entity.requester_id : kind === 'expense' ? entity.recorded_by : entity.created_by;
-    if (decision === 'rejected') {
+    if (decision === 'returned') {
       await this.notificationEngine.create({
         recipientUserId: ownerId,
-        eventType: 'finance_approved',
+        eventType: 'finance_returned',
+        title: `${LABEL_FOR[kind][0].toUpperCase()}${LABEL_FOR[kind].slice(1)} returned for revision`,
+        message: `Your ${LABEL_FOR[kind]} "${entity.title}" was returned for revision${note ? `: ${note}` : '.'}`,
+        entityType: kind,
+        entityId: id,
+        fellowshipId: entity.fellowship_id,
+      });
+    } else if (decision === 'rejected') {
+      await this.notificationEngine.create({
+        recipientUserId: ownerId,
+        eventType: 'finance_rejected',
         title: `${LABEL_FOR[kind][0].toUpperCase()}${LABEL_FOR[kind].slice(1)} rejected`,
-        message: `Your ${LABEL_FOR[kind]} "${entity.title}" was rejected${note ? `: ${note}` : '. Please correct and resubmit.'}`,
+        message: `Your ${LABEL_FOR[kind]} "${entity.title}" was rejected${note ? `: ${note}` : '.'}`,
         entityType: kind,
         entityId: id,
         fellowshipId: entity.fellowship_id,
@@ -552,8 +562,8 @@ export class FinanceService {
     if (request.requester_id !== user.userId) {
       throw new ForbiddenException('Only the requester can resubmit.');
     }
-    if (request.approval_status !== 'REJECTED' || !request.approval_workflow_id) {
-      throw new BadRequestException('Request is not in rejected state.');
+    if (request.approval_status !== 'RETURNED' || !request.approval_workflow_id) {
+      throw new BadRequestException('Only a request returned for revision can be resubmitted.');
     }
 
     // The engine reopens the workflow AND moves the request's status to RESUBMITTED atomically.

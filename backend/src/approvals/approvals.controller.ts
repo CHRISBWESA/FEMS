@@ -36,7 +36,7 @@ export class ApprovalsController {
   )
   async decide(
     @Param('id') id: string,
-    @Body() body: { decision: 'approved' | 'rejected'; comment?: string },
+    @Body() body: { decision: 'approved' | 'rejected' | 'returned'; comment?: string },
     @Req() req,
   ) {
     return this.approvalsService.decide(id, body?.decision, body?.comment || '', req.user);

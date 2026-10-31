@@ -34,7 +34,7 @@ export class DashboardController {
     const where = this.tenantScope.scopeWhere(req.user, {}) as any;
     const [memberCount, activityCount, deptCount] = await Promise.all([
       this.prisma.member.count({ where }),
-      this.prisma.activity.count({ where }),
+      this.prisma.activity.count({ where: { ...where, status: { in: ['APPROVED', 'COMPLETED'] } } }),
       this.prisma.department.count({ where }),
     ]);
 

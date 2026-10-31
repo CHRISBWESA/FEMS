@@ -160,7 +160,7 @@ export class ReportsService {
     return report;
   }
 
-  async review(id: string, decision: 'approved' | 'rejected', comment: string, currentUser: any) {
+  async review(id: string, decision: 'approved' | 'rejected' | 'returned', comment: string, currentUser: any) {
     const roles: string[] = currentUser.roles || [];
     const isSecretary = roles.includes('secretary') || roles.includes('admin') || roles.includes('assistant_secretary');
     const isChair = roles.includes('chairperson') || roles.includes('assistant_chairperson');
@@ -206,8 +206,8 @@ export class ReportsService {
 
     await this.notificationEngine.create({
       recipientUserId: report.submitted_by,
-      eventType: decided.status === 'REJECTED' ? 'report_rejected' : 'report_approved',
-      title: decided.status === 'REJECTED' ? 'Report Rejected' : decided.status === 'FINAL_APPROVED' ? 'Report Approved' : 'Report Review Complete',
+      eventType: decided.status === 'REJECTED' ? 'report_rejected' : decided.status === 'RETURNED' ? 'report_returned' : 'report_approved',
+      title: decided.status === 'REJECTED' ? 'Report Rejected' : decided.status === 'RETURNED' ? 'Report Returned for Revision' : decided.status === 'FINAL_APPROVED' ? 'Report Approved' : 'Report Review Complete',
       message: `Your report "${report.title}" is now ${decided.status.toLowerCase().replace(/_/g, ' ')}: ${comment || ''}`,
       entityType: 'report',
       entityId: id,
@@ -228,8 +228,8 @@ export class ReportsService {
       throw new ForbiddenException('Only the original submitter can resubmit.');
     }
 
-    if (report.status !== 'REJECTED') {
-      throw new BadRequestException('Report is not in rejected state.');
+    if (report.status !== 'RETURNED') {
+      throw new BadRequestException('Only a report returned for revision can be resubmitted.');
     }
 
     if (!report.approval_workflow_id) throw new BadRequestException('No approval workflow for this report.');

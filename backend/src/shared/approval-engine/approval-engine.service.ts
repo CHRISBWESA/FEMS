@@ -20,7 +20,8 @@ export interface WorkflowDefinition {
 export interface ApprovalDecision {
   approverUserId: string;
   approverRole: string;
-  decision: 'approved' | 'rejected';
+  // 'returned' sends the request back to the submitter for changes; they may revise and resubmit it.
+  decision: 'approved' | 'rejected' | 'returned';
   comment?: string;
 }
 
@@ -28,6 +29,8 @@ export interface ApprovalDecision {
 // (applying an approved edit/delete, moving a member, ...) commits or rolls back together with the
 // decision itself.
 export type FinalApprovalHook = (tx: Prisma.TransactionClient, approval: any) => Promise<void>;
+
+type Db = Prisma.TransactionClient | PrismaService;
 
 const secretaryThenChair = (workflowType: string): WorkflowDefinition => ({
   workflowType,
@@ -38,7 +41,11 @@ const secretaryThenChair = (workflowType: string): WorkflowDefinition => ({
 });
 
 const WORKFLOW_DEFINITIONS: Record<string, WorkflowDefinition> = {
-  money_request: { workflowType: 'money_request', stages: [{ stageOrder: 0, approverRole: 'secretary' }, { stageOrder: 1, approverRole: 'chairperson' }, { stageOrder: 2, approverRole: 'treasurer' }] },
+  // Treasurer first (can the fellowship afford it?), then the Secretary, then the Chairperson's final approval.
+  // Requests created before this order changed keep the stages they were created with.
+  money_request: { workflowType: 'money_request', stages: [{ stageOrder: 0, approverRole: 'treasurer' }, { stageOrder: 1, approverRole: 'secretary' }, { stageOrder: 2, approverRole: 'chairperson' }] },
+  // A department's activity becomes official after the Fellowship Secretary and then the Chairperson approve it.
+  department_activity: secretaryThenChair('department_activity'),
   expense: secretaryThenChair('expense'),
   budget: secretaryThenChair('budget'),
   contribution_edit: secretaryThenChair('contribution_edit'),
@@ -59,19 +66,39 @@ const WORKFLOW_DEFINITIONS: Record<string, WorkflowDefinition> = {
 
 // Money-affecting workflows get segregation of duties: the person who submitted a request may not
 // decide any stage of it, and one person may approve at most one stage of the same request (the
-// Money Request chain is Secretary + Chairperson + Treasurer - three different people).
+// Money Request chain is Treasurer + Secretary + Chairperson - three different people).
 const SEPARATION_OF_DUTIES = new Set([
   'money_request', 'expense', 'budget',
   'contribution_edit', 'contribution_delete', 'income_edit', 'income_delete',
   'expense_edit', 'expense_delete', 'budget_edit', 'budget_delete',
-  'report', 'it_content', 'it_content_delete', 'role_unassign',
+  'report', 'it_content', 'it_content_delete', 'role_unassign', 'department_activity',
 ]);
+
+// For these workflows a rejection ends the request for good; changes are asked for with 'returned' instead.
+const FINAL_REJECTION = new Set(['money_request', 'report', 'department_activity']);
 
 // Only the *primary* finance approvals own the entity's approval_status. The *_edit / *_delete
 // workflows share the entity id but must never overwrite the record's own status.
-const PRIMARY_ENTITY_WORKFLOWS = new Set(['expense', 'budget', 'money_request', 'report', 'it_content']);
+const PRIMARY_ENTITY_WORKFLOWS = new Set(['expense', 'budget', 'money_request', 'report', 'it_content', 'department_activity']);
 
 const DECIDABLE_STATUSES = ['SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'RESUBMITTED'];
+
+/** The activity status that corresponds to an approval state (activities have their own lifecycle enum). */
+export function activityStatusFor(approvalStatus: string, currentStage: number): string {
+  switch (approvalStatus) {
+    case 'DRAFT': return 'DRAFT';
+    case 'SUBMITTED':
+    case 'RESUBMITTED':
+    case 'UNDER_REVIEW':
+    case 'APPROVED':
+      return currentStage === 0 ? 'PENDING_SECRETARY' : 'PENDING_CHAIRPERSON';
+    case 'FINAL_APPROVED': return 'APPROVED';
+    case 'REJECTED': return 'REJECTED';
+    case 'RETURNED': return 'RETURNED';
+    case 'CANCELLED': return 'CANCELLED';
+    default: return 'PENDING_SECRETARY';
+  }
+}
 
 @Injectable()
 export class ApprovalEngineService {
@@ -92,7 +119,7 @@ export class ApprovalEngineService {
     createdBy: string,
     metadata?: Record<string, any>,
     fellowshipId?: string | null,
-    db: Prisma.TransactionClient | PrismaService = this.prisma,
+    db: Db = this.prisma,
   ): Promise<any> {
     const def = this.getWorkflowDefinition(workflowType);
     if (!def) { throw new BadRequestException(`Unknown workflow type: ${workflowType}`); }
@@ -120,15 +147,43 @@ export class ApprovalEngineService {
     });
   }
 
-  async submit(approvalId: string, db: Prisma.TransactionClient | PrismaService = this.prisma): Promise<any> {
+  async submit(approvalId: string, db: Db = this.prisma, actorUserId?: string): Promise<any> {
     const approval = await db.approval.findUnique({ where: { id: approvalId } });
     if (!approval) { throw new BadRequestException('Approval record not found'); }
     if (approval.status !== 'DRAFT') { throw new BadRequestException('Already submitted'); }
-    return db.approval.update({
+    const updated = await db.approval.update({
       where: { id: approvalId },
       data: { status: 'SUBMITTED', current_stage: 0 },
       include: { steps: { orderBy: { stage_order: 'asc' } } },
     });
+    await this.recordEvent(db, approval, 'submitted', actorUserId ?? approval.created_by);
+    return updated;
+  }
+
+  /** Append-only history: every submission and decision is kept, even after a resubmission resets the steps. */
+  private async recordEvent(
+    db: Db,
+    approval: { id: string; fellowship_id: string | null },
+    action: string,
+    actorUserId: string | null,
+    extra: { stageOrder?: number; approverRole?: string; comment?: string | null } = {},
+  ): Promise<void> {
+    await db.approvalEvent.create({
+      data: {
+        approval_id: approval.id,
+        fellowship_id: approval.fellowship_id,
+        action,
+        stage_order: extra.stageOrder ?? null,
+        approver_role: extra.approverRole ?? null,
+        comment: extra.comment || null,
+        actor_user_id: actorUserId,
+      },
+    });
+  }
+
+  /** The full history of one approval, oldest first. */
+  async history(approvalId: string): Promise<any[]> {
+    return this.prisma.approvalEvent.findMany({ where: { approval_id: approvalId }, orderBy: { created_at: 'asc' } });
   }
 
   async getWorkflowForUser(approvalId: string, userId: string, userRoles: string[]): Promise<any> {
@@ -156,16 +211,20 @@ export class ApprovalEngineService {
     return approvalStatus === 'APPROVED' ? 'UNDER_REVIEW' : approvalStatus;
   }
 
-  private async syncEntityStatus(tx: Prisma.TransactionClient, approval: any, approvalStatus: string): Promise<void> {
+  private async syncEntityStatus(tx: Prisma.TransactionClient, approval: any, approvalStatus: string, currentStage = 0): Promise<void> {
     if (!PRIMARY_ENTITY_WORKFLOWS.has(approval.workflow_type)) return;
     // Bound to this exact workflow so a mismatched entity id can never be touched.
     const where = { id: approval.entity_id, approval_workflow_id: approval.id };
+    if (approval.workflow_type === 'department_activity') {
+      await tx.activity.updateMany({ where, data: { status: activityStatusFor(approvalStatus, currentStage) as any } });
+      return;
+    }
     const data = { approval_status: this.entityStatusFor(approvalStatus) };
     switch (approval.workflow_type) {
       case 'expense': await tx.expense.updateMany({ where, data }); break;
       case 'budget': await tx.budget.updateMany({ where, data }); break;
       case 'money_request': await tx.moneyRequest.updateMany({ where, data }); break;
-      case 'report': await tx.report.updateMany({ where, data }); break;
+      case 'report': await tx.report.updateMany({ where, data: { status: data.approval_status } }); break;
       case 'it_content': await tx.documentEntity.updateMany({ where, data }); break;
     }
   }
@@ -194,16 +253,21 @@ export class ApprovalEngineService {
 
     let nextStatus: string;
     let nextStage = approval.current_stage;
-    let stepStatus: 'approved' | 'rejected';
+    let stepStatus: 'approved' | 'rejected' | 'returned';
 
     if (decision.decision === 'approved') {
       stepStatus = 'approved';
       const isLastStage = approval.current_stage === approval.steps.length - 1;
       if (isLastStage) { nextStatus = 'FINAL_APPROVED'; }
       else { nextStatus = 'APPROVED'; nextStage = approval.current_stage + 1; }
-    } else {
+    } else if (decision.decision === 'returned') {
+      stepStatus = 'returned';
+      nextStatus = 'RETURNED';
+    } else if (decision.decision === 'rejected') {
       stepStatus = 'rejected';
       nextStatus = 'REJECTED';
+    } else {
+      throw new BadRequestException("decision must be 'approved', 'returned' or 'rejected'");
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -222,7 +286,12 @@ export class ApprovalEngineService {
         throw new ConflictException('This request changed while you were deciding. Refresh and try again.');
       }
 
-      await this.syncEntityStatus(tx, approval, nextStatus);
+      await this.syncEntityStatus(tx, approval, nextStatus, nextStage);
+      await this.recordEvent(tx, approval, stepStatus, decision.approverUserId, {
+        stageOrder: approval.current_stage,
+        approverRole: currentStage.approver_role,
+        comment: decision.comment,
+      });
 
       const updated = await tx.approval.findUniqueOrThrow({
         where: { id: approvalId },
@@ -235,40 +304,65 @@ export class ApprovalEngineService {
     });
   }
 
-  async resubmit(approvalId: string, userId: string, _userRoles: string[]): Promise<any> {
-    const approval = await this.prisma.approval.findUnique({ where: { id: approvalId } });
-    if (!approval) { throw new BadRequestException('Not found'); }
-    if (approval.created_by !== userId) { throw new ForbiddenException('Only requester can resubmit'); }
-    if (approval.status !== 'REJECTED') { throw new BadRequestException('Not in rejected state'); }
-
-    return this.prisma.$transaction(async (tx) => {
+  /**
+   * Reopens a request at the first stage. A request returned for revision can always be reopened; a REJECTED one
+   * only for workflows where rejection is not final. `anyRequester` lets a caller that has already checked the
+   * user may act for the same department (e.g. a co-leader) resubmit on the original submitter's behalf.
+   */
+  async resubmit(
+    approvalId: string,
+    userId: string,
+    _userRoles: string[],
+    opts: { anyRequester?: boolean; db?: Prisma.TransactionClient } = {},
+  ): Promise<any> {
+    const run = async (tx: Prisma.TransactionClient) => {
+      const approval = await tx.approval.findUnique({ where: { id: approvalId } });
+      if (!approval) { throw new BadRequestException('Not found'); }
+      if (!opts.anyRequester && approval.created_by !== userId) { throw new ForbiddenException('Only requester can resubmit'); }
+      const reopenable = FINAL_REJECTION.has(approval.workflow_type) ? ['RETURNED'] : ['RETURNED', 'REJECTED'];
+      if (!reopenable.includes(approval.status)) {
+        throw new BadRequestException(
+          approval.status === 'REJECTED'
+            ? 'A rejected request cannot be resubmitted.'
+            : 'Only a request returned for revision can be resubmitted.',
+        );
+      }
       const reopened = await tx.approval.updateMany({
-        where: { id: approvalId, status: 'REJECTED' },
+        where: { id: approvalId, status: approval.status },
         data: { status: 'RESUBMITTED', current_stage: 0 },
       });
       if (reopened.count !== 1) {
         throw new ConflictException('This request was already resubmitted.');
       }
+      // Earlier decisions stay in approval_events; the steps start fresh for the new review round.
       await tx.approvalStep.updateMany({
         where: { approval_id: approvalId },
         data: { status: 'pending', comment: null, acted_at: null, acted_by: null },
       });
-      await this.syncEntityStatus(tx, approval, 'RESUBMITTED');
+      await this.syncEntityStatus(tx, approval, 'RESUBMITTED', 0);
+      await this.recordEvent(tx, approval, 'resubmitted', userId);
       return tx.approval.findUniqueOrThrow({
         where: { id: approvalId },
         include: { steps: { orderBy: { stage_order: 'asc' } } },
       });
-    });
+    };
+    return opts.db ? run(opts.db) : this.prisma.$transaction(run);
   }
 
-  async cancel(approvalId: string): Promise<any> {
-    const approval = await this.prisma.approval.findUnique({ where: { id: approvalId } });
-    if (!approval) { throw new BadRequestException('Not found'); }
-    return this.prisma.approval.update({
-      where: { id: approvalId },
-      data: { status: 'CANCELLED' },
-      include: { steps: { orderBy: { stage_order: 'asc' } } },
-    });
+  async cancel(approvalId: string, actorUserId?: string, db?: Prisma.TransactionClient): Promise<any> {
+    const run = async (tx: Prisma.TransactionClient) => {
+      const approval = await tx.approval.findUnique({ where: { id: approvalId } });
+      if (!approval) { throw new BadRequestException('Not found'); }
+      const updated = await tx.approval.update({
+        where: { id: approvalId },
+        data: { status: 'CANCELLED' },
+        include: { steps: { orderBy: { stage_order: 'asc' } } },
+      });
+      await this.syncEntityStatus(tx, approval, 'CANCELLED', approval.current_stage);
+      await this.recordEvent(tx, approval, 'cancelled', actorUserId ?? null);
+      return updated;
+    };
+    return db ? run(db) : this.prisma.$transaction(run);
   }
 
   async getDefinition(workflowType: string): Promise<WorkflowDefinition | undefined> {

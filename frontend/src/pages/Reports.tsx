@@ -146,7 +146,7 @@ export default function Reports() {
                   </p>
                 </div>
               </div>
-              {(canReview(r.status) || (isDeptLeader && r.status === 'REJECTED')) ? (
+              {(canReview(r.status) || (isDeptLeader && r.status === 'RETURNED')) ? (
                 <div className="mt-4 flex gap-2 border-t border-hairline pt-4">
                   {canReview(r.status) && (
                     <>
@@ -158,7 +158,7 @@ export default function Reports() {
                       </button>
                     </>
                   )}
-                  {isDeptLeader && r.status === 'REJECTED' && (
+                  {isDeptLeader && r.status === 'RETURNED' && (
                     <button onClick={() => handleResubmit(r.id)} className="btn btn-secondary btn-sm">
                       <ArrowPathIcon className="h-4 w-4" /> Resubmit
                     </button>

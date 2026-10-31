@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { listWindow, pageResult } from '../shared/utils/paging.util';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { ActivityStatus, Prisma } from '@prisma/client';
 import { AuditService } from '../shared/audit/audit.service';
 import { NotificationEngineService } from '../shared/notifications/notification-engine.service';
 import { TenantScopeService } from '../shared/tenant/tenant-scope.service';
@@ -11,6 +11,9 @@ import { validateOptionalUuid, validateText } from '../shared/utils/validation.u
 import { audienceVisibilityWhere, isAudienceVisible } from '../shared/tenant/audience-scope';
 
 export const isActivityVisible = isAudienceVisible;
+
+/** Statuses of activities that are official and so appear in fellowship-wide lists. */
+export const OFFICIAL_ACTIVITY_STATUSES: ActivityStatus[] = ['APPROVED', 'COMPLETED', 'CANCELLED'];
 
 export interface CreateActivityDto {
   title: string;
@@ -47,6 +50,8 @@ export class ActivitiesService {
 
   async findAll(currentUser: any, fellowshipId?: string, page?: unknown, limit?: unknown): Promise<{ data: any[]; total: number }> {
     let where: Prisma.ActivityWhereInput = audienceVisibilityWhere(currentUser) as Prisma.ActivityWhereInput;
+    // Department activities still in draft or under review live in the department workspace, not here.
+    where = { AND: [where, { status: { in: OFFICIAL_ACTIVITY_STATUSES } }] };
     where = this.tenantScope.scopeWhere(currentUser, where, fellowshipId) as Prisma.ActivityWhereInput;
 
     const w = listWindow(page, limit);
@@ -61,6 +66,7 @@ export class ActivitiesService {
     }
     this.tenantScope.assertInScope(currentUser, activity);
     if (!isActivityVisible(activity, currentUser)) throw new ForbiddenException('You do not have permission to view this activity.');
+    if (!OFFICIAL_ACTIVITY_STATUSES.includes(activity.status)) throw new NotFoundException('Activity not found');
     return activity;
   }
 
@@ -193,7 +199,7 @@ export class ActivitiesService {
     this.tenantScope.assertInScope(currentUser, activity);
     if (activity.title.startsWith('[CANCELLED]')) return activity;
 
-    const updated = await this.prisma.activity.update({ where: { id }, data: { title: `[CANCELLED] ${activity.title}` } });
+    const updated = await this.prisma.activity.update({ where: { id }, data: { title: `[CANCELLED] ${activity.title}`, status: 'CANCELLED' } });
     await this.auditService.log({
       userId: currentUser.userId,
       action: 'activity.cancel',

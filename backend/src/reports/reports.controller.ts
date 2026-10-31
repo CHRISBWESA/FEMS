@@ -52,7 +52,7 @@ export class ReportsController {
   @Roles(ROLES.SECRETARY, ROLES.ASSISTANT_SECRETARY, ROLES.CHAIRPERSON, ROLES.ASSISTANT_CHAIRPERSON)
   async review(
     @Param('id') id: string,
-    @Body() body: { decision: 'approved' | 'rejected'; comment?: string },
+    @Body() body: { decision: 'approved' | 'rejected' | 'returned'; comment?: string },
     @Req() req,
   ) {
     return this.reportsService.review(id, body.decision, body.comment || '', req.user);

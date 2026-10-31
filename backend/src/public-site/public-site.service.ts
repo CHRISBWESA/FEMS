@@ -229,7 +229,8 @@ export class PublicSiteService {
   async events(subdomain: string) {
     const fellowshipId = await this.fellowshipIdFor(subdomain);
     const rows = await this.prisma.activity.findMany({
-      where: { fellowship_id: fellowshipId, date: { gte: new Date() } },
+      // Only official activities: a department's draft or one still awaiting approval is never published.
+      where: { fellowship_id: fellowshipId, date: { gte: new Date() }, status: 'APPROVED' },
       select: { title: true, description: true, date: true, end_date: true, specific_group: true },
       orderBy: { date: 'asc' },
       take: LIST_LIMIT,

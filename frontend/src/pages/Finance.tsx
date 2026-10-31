@@ -342,7 +342,7 @@ export default function Finance() {
                           <BanknotesIcon className="h-3.5 w-3.5" /> Release funds
                         </button>
                       )}
-                      {activeTab === 'money-requests' && item.approval_status === 'REJECTED' && canRequestMoney && (
+                      {activeTab === 'money-requests' && item.approval_status === 'RETURNED' && canRequestMoney && (
                         <button onClick={() => resubmitMoneyRequest(item.id)} className="btn btn-secondary btn-sm">
                           Resubmit
                         </button>

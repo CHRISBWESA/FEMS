@@ -11,6 +11,7 @@ import { UsersModule } from './users/users.module';
 import { MembersModule } from './members/members.module';
 import { ProgrammesModule } from './programmes/programmes.module';
 import { DepartmentsModule } from './departments/departments.module';
+import { DepartmentWorkspaceModule } from './department-workspace/department-workspace.module';
 import { ActivitiesModule } from './activities/activities.module';
 import { ReportsModule } from './reports/reports.module';
 import { FinanceModule } from './finance/finance.module';
@@ -69,6 +70,7 @@ import { RequestContextMiddleware } from './shared/middleware/request-context.mi
     MembersModule,
     ProgrammesModule,
     DepartmentsModule,
+    DepartmentWorkspaceModule,
     ActivitiesModule,
     ReportsModule,
     FinanceModule,

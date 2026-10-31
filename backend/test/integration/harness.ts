@@ -107,6 +107,7 @@ export async function makeMember(
     status?: 'active' | 'inactive' | 'graduated';
     userId?: string;
     gender?: string | null;
+    email?: string | null;
   },
 ) {
   return prisma.member.create({
@@ -120,6 +121,7 @@ export async function makeMember(
       fellowship_id: opts.fellowshipId,
       user_id: opts.userId,
       gender: opts.gender ?? null,
+      email: opts.email ?? null,
     },
   });
 }
