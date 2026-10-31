@@ -14,9 +14,12 @@ build/
 # File storage and database backups (UPLOAD_DIR / BACKUP_DIR default here).
 # Runtime artefacts and full DB dumps must never be committed.
 storage/
+# ...but not source code folders that happen to be called "storage".
+!backend/src/**/storage/
 uploads/
 tmp-test-uploads-*/
 backups/
+!backend/src/**/backups/
 *.dump
 *.sql.gz
 
