@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
-  HomeIcon, UsersIcon, CalendarDaysIcon, MegaphoneIcon, DocumentTextIcon, BanknotesIcon, IdentificationIcon,
+  HomeIcon, UsersIcon, CalendarDaysIcon, MegaphoneIcon, DocumentTextIcon, BanknotesIcon, WalletIcon, IdentificationIcon,
   Cog6ToothIcon, Bars3Icon, XMarkIcon, ArrowRightOnRectangleIcon, BellIcon, SunIcon, MoonIcon, BuildingOfficeIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../App';
@@ -64,6 +64,7 @@ const NAV = [
   { key: 'ws.activities', path: 'activities', icon: CalendarDaysIcon },
   { key: 'ws.announcements', path: 'announcements', icon: MegaphoneIcon },
   { key: 'ws.reports', path: 'reports', icon: DocumentTextIcon },
+  { key: 'ws.money', path: 'money', icon: WalletIcon },
   { key: 'ws.finance', path: 'finance', icon: BanknotesIcon },
   { key: 'ws.leadership', path: 'leadership', icon: IdentificationIcon },
   { key: 'ws.account', path: 'account', icon: Cog6ToothIcon },

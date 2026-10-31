@@ -7,6 +7,7 @@ import { ROLE_DEFINITIONS } from '../shared/authorization/roles';
 import { TenantScopeService } from '../shared/tenant/tenant-scope.service';
 import { buildHistoryData } from '../members/membership-history.util';
 import { applyFinanceEffect } from '../finance/finance-effects';
+import { applyAccountingEffect } from '../finance/accounting/accounting-effects';
 import { isUuid } from '../shared/utils/uuid.util';
 
 @Injectable()
@@ -34,9 +35,20 @@ export class ApprovalsService {
       orderBy: { updated_at: 'desc' },
     });
 
+    // A department stage is only "mine" for the department I currently lead in that office.
+    const led = await this.prisma.departmentLeader.findMany({
+      where: { user_id: userId, active_role: { not: null } },
+      select: { department_id: true, active_role: true },
+    });
+    const leads = new Set(led.map((l) => `${l.department_id}:${l.active_role}`));
+
     return approvals.filter((a) => {
       const current = a.steps.find((s) => s.stage_order === a.current_stage);
       if (!current || current.status !== 'pending') return false;
+      const departmentId = (a.metadata as any)?.departmentId;
+      if (departmentId && current.approver_role.startsWith('department_')) {
+        return leads.has(`${departmentId}:${current.approver_role}`);
+      }
       if (current.approver_user_id === userId) return true;
       if (roles.includes(current.approver_role)) return true;
       const roleIsChair =
@@ -100,6 +112,7 @@ export class ApprovalsService {
 
     // Finance edit/delete requests (contribution / expense / budget / income).
     if (await applyFinanceEffect(db, approval, actorUserId)) return;
+    if (await applyAccountingEffect(db, approval, actorUserId)) return;
 
     switch (approval.workflow_type) {
       case 'department_transfer': {

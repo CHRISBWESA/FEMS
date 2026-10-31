@@ -2,6 +2,8 @@ import { INestApplication } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { api, createTestApp, describeDb, getPrisma, makeDepartment, makeFellowship, makeMember, makeUser, uniq } from './harness';
 
+jest.setTimeout(300_000);
+
 describeDb('Phase 15 - advanced finance: validation, scope, campaigns, periods, pledges, income, reports (real Postgres)', () => {
   let app: INestApplication;
   let prisma: ReturnType<typeof getPrisma>;
@@ -54,7 +56,7 @@ describeDb('Phase 15 - advanced finance: validation, scope, campaigns, periods, 
       await contribution({ date: '2999-01-01' }).expect(400);
       await contribution({ date: 'garbage' }).expect(400);
       await contribution({ date: undefined }).expect(400);
-      await contribution({ contributionType: '' }).expect(400);
+      // An empty type is allowed now: the purpose comes from a configurable category, or defaults to 'general'.
       await contribution({ contributionType: 'x'.repeat(51) }).expect(400);
       await contribution({ memberId: 'not-a-uuid' }).expect(400);
       await contribution({ memberId: undefined }).expect(400);

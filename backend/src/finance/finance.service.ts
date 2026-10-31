@@ -7,6 +7,11 @@ import { ApprovalEngineService } from '../shared/approval-engine/approval-engine
 import { TenantScopeService } from '../shared/tenant/tenant-scope.service';
 import { isUuid } from '../shared/utils/uuid.util';
 import { FinanceAccessService } from './finance-access.service';
+import { FinanceScopeService } from './accounting/finance-scope.service';
+import { ContributionsCoreService } from './accounting/contributions-core.service';
+import { ExpensesFlowService } from './accounting/expenses-flow.service';
+import { BudgetsService } from './accounting/budgets.service';
+import { nextNumber } from './accounting/ledger';
 import { buildEditChanges, validateFiscalYear, FinanceKind } from './finance-effects';
 import {
   assertPeriodOpen,
@@ -89,6 +94,10 @@ export class FinanceService {
     private notificationEngine: NotificationEngineService,
     private tenantScope: TenantScopeService,
     private access: FinanceAccessService,
+    private scope: FinanceScopeService,
+    private contributions: ContributionsCoreService,
+    private expensesFlow: ExpensesFlowService,
+    private budgets: BudgetsService,
   ) {}
 
   private requireRecorder(user: any, what: string): void {
@@ -105,13 +114,17 @@ export class FinanceService {
     return validateText('reason', body?.reason, 500, true) as string;
   }
 
-  // Department leaders see only their own department's records; finance viewers see the fellowship's.
-  private visibilityWhere(user: any, ownerField?: 'requester_id'): Record<string, any> {
-    if (this.access.isFinanceViewer(user)) return {};
+  // Department leaders see only departments they currently lead; finance viewers see the fellowship's.
+  private async visibilityWhere(user: any, ownerField?: 'requester_id', departmentId?: string): Promise<Record<string, any>> {
+    if (this.access.isFinanceViewer(user)) {
+      if (!departmentId) return {};
+      return departmentId === 'central' ? { department_id: null } : { department_id: validateRequiredUuid('departmentId', departmentId) };
+    }
     if (this.access.isDepartmentLeader(user)) {
-      if (!user.departmentId) return { id: '00000000-0000-0000-0000-000000000000' };
-      const own = { department_id: user.departmentId };
-      return ownerField ? { OR: [own, { [ownerField]: user.userId }] } : own;
+      // Older accounts carry their department on the user record instead of a leadership appointment.
+      const legacy = user.departmentId && (!departmentId || departmentId === user.departmentId) ? { department_id: user.departmentId } : { department_id: '00000000-0000-0000-0000-000000000000' };
+      const own = await this.scope.listScope(user, departmentId).catch(() => legacy);
+      return ownerField && !departmentId ? { OR: [own, { [ownerField]: user.userId }] } : own;
     }
     throw new ForbiddenException('You do not have permission to perform this action.');
   }
@@ -119,11 +132,20 @@ export class FinanceService {
   // ===================== CONTRIBUTIONS =====================
 
   async findAllContributions(user: any, q: ListQuery = {}): Promise<{ data: any[]; total: number }> {
-    if (!this.access.isFinanceViewer(user)) {
-      throw new ForbiddenException('You do not have permission to perform this action.');
-    }
+    // Giving is sensitive: outside the central officers, only CURRENT leaders of a department (an appointment, not
+    // just a role) see that department's own contributions - never central or other departments' giving.
+    const visibility = this.access.isFinanceViewer(user)
+      ? await this.visibilityWhere(user, undefined, q.departmentId)
+      : await this.scope.listScope(user, q.departmentId);
     const { take, skip } = this.access.parsePaging(q.limit, q.page);
-    const extra: Record<string, any> = {};
+    const extra: Record<string, any> = { ...visibility };
+    if (q.status) extra.status = q.status === 'reversed' ? 'reversed' : 'active';
+    if (q.accountId) extra.account_id = validateRequiredUuid('accountId', q.accountId);
+    if (q.paymentMethod) extra.payment_method = validateText('paymentMethod', q.paymentMethod, 30);
+    if (q.search) {
+      const term = validateText('search', q.search, 100) as string;
+      extra.OR = [{ receipt_number: { contains: term, mode: 'insensitive' } }, { contributor_name: { contains: term, mode: 'insensitive' } }, { member: { full_name: { contains: term, mode: 'insensitive' } } }];
+    }
     if (q.memberId) extra.member_id = validateRequiredUuid('memberId', q.memberId);
     if (q.campaignId) extra.campaign_id = validateRequiredUuid('campaignId', q.campaignId);
     if (q.categoryId) extra.category_id = validateRequiredUuid('categoryId', q.categoryId);
@@ -143,6 +165,8 @@ export class FinanceService {
           member: { select: { id: true, full_name: true, member_code: true } },
           campaign: { select: { id: true, name: true } },
           category: { select: { id: true, name: true } },
+          account: { select: { id: true, name: true } },
+          allocations: { where: { is_active: true }, select: { amount: true, project: { select: { id: true, name: true } } } },
         },
       }),
       this.prisma.contribution.count({ where }),
@@ -151,50 +175,16 @@ export class FinanceService {
   }
 
   async recordContribution(dto: CreateContributionDto, user: any): Promise<any> {
-    this.requireRecorder(user, 'record contributions');
+    const departmentId = validateOptionalUuid('departmentId', (dto as any)?.departmentId);
+    if (departmentId) {
+      // A department's own money: recorded by that department's current leaders.
+      await this.scope.requireManage(user, departmentId);
+    } else {
+      this.requireRecorder(user, 'record contributions');
+    }
     const fellowshipId = this.access.resolveFellowship(user, dto?.fellowshipId);
-
-    const memberId = validateRequiredUuid('memberId', dto?.memberId);
-    const amount = validateAmount('amount', dto?.amount);
-    const date = validateDate('date', dto?.date) as Date;
-    const contributionType = validateText('contributionType', dto?.contributionType, 50, true) as string;
-    const campaignId = validateOptionalUuid('campaignId', dto?.campaignId);
-    const categoryId = validateOptionalUuid('categoryId', dto?.categoryId);
-    const receiptId = validateOptionalUuid('receiptDocumentId', dto?.receiptDocumentId);
-    const notes = validateText('notes', dto?.notes, 500);
-
-    await this.access.assertMember(memberId, fellowshipId);
-    if (campaignId) await this.access.assertCampaign(campaignId, fellowshipId);
-    if (categoryId) await this.access.assertCategory(categoryId, 'contribution', fellowshipId);
-    if (receiptId) await this.access.assertReceipt(receiptId, fellowshipId);
-    await assertPeriodOpen(this.prisma, fellowshipId, date);
-
-    const contribution = await this.prisma.contribution.create({
-      data: {
-        member_id: memberId,
-        amount,
-        contribution_type: contributionType,
-        date,
-        campaign_id: campaignId,
-        category_id: categoryId,
-        receipt_document_id: receiptId,
-        notes,
-        recorded_by: user.userId,
-        recorded_at: new Date(),
-        approval_status: 'FINAL_APPROVED',
-        fellowship_id: fellowshipId,
-      },
-    });
-
-    await this.auditService.log({
-      userId: user.userId,
-      action: 'finance.contribution_create',
-      entityType: 'contribution',
-      entityId: contribution.id,
-      newValue: { amount, type: contributionType, date: date.toISOString(), campaignId, categoryId },
-    });
-
-    return contribution;
+    if (!fellowshipId) throw new ForbiddenException('Contributions are recorded inside a fellowship.');
+    return this.contributions.record(user, dto as any, { fellowshipId, departmentId });
   }
 
   // ---- edit / delete of any recorded finance record goes through an approval; nothing changes until final approval ----
@@ -365,10 +355,9 @@ export class FinanceService {
   // ===================== EXPENSES =====================
 
   async findAllExpenses(user: any, q: ListQuery = {}): Promise<{ data: any[]; total: number }> {
-    const visibility = this.visibilityWhere(user);
+    const visibility = await this.visibilityWhere(user, undefined, q.departmentId);
     const { take, skip } = this.access.parsePaging(q.limit, q.page);
     const extra: Record<string, any> = { ...visibility };
-    if (q.departmentId && this.access.isFinanceViewer(user)) extra.department_id = validateRequiredUuid('departmentId', q.departmentId);
     if (q.status) extra.approval_status = validateText('status', q.status, 30);
     if (q.categoryId) extra.category_id = validateRequiredUuid('categoryId', q.categoryId);
     const from = validateDate('from', q.from, { required: false, maxFutureDays: 3650 });
@@ -387,42 +376,8 @@ export class FinanceService {
   }
 
   async createExpense(dto: CreateExpenseDto, user: any): Promise<any> {
-    this.requireRecorder(user, 'create expenses');
-    const fellowshipId = this.access.resolveFellowship(user, dto?.fellowshipId);
-
-    const title = validateText('title', dto?.title, 200, true) as string;
-    const description = validateText('description', dto?.description, 1000);
-    const amount = validateAmount('amount', dto?.amount);
-    const date = validateDate('date', dto?.date) as Date;
-    const purpose = validateText('purpose', dto?.purpose, 300);
-    const departmentId = validateOptionalUuid('departmentId', dto?.departmentId);
-    const categoryId = validateOptionalUuid('categoryId', dto?.categoryId);
-    const receiptId = validateOptionalUuid('receiptDocumentId', dto?.receiptDocumentId);
-
-    if (departmentId) await this.access.assertDepartment(departmentId, fellowshipId);
-    if (categoryId) await this.access.assertCategory(categoryId, 'expense', fellowshipId);
-    if (receiptId) await this.access.assertReceipt(receiptId, fellowshipId);
-    await assertPeriodOpen(this.prisma, fellowshipId, date);
-
-    const expense = await this.createWithWorkflow('expense', {
-      title, description, amount, date, purpose,
-      department_id: departmentId,
-      category_id: categoryId,
-      receipt_document_id: receiptId,
-      recorded_by: user.userId,
-      approval_status: 'SUBMITTED',
-      fellowship_id: fellowshipId,
-    }, user, fellowshipId);
-
-    await this.auditService.log({
-      userId: user.userId,
-      action: 'finance.expense_create',
-      entityType: 'expense',
-      entityId: expense.id,
-      newValue: { amount, title },
-      approvalInfo: { workflowId: expense.approval_workflow_id },
-    });
-    return expense;
+    // Central expenses (and department expenses paid from the department's own money, with scope: 'department').
+    return this.expensesFlow.create(user, dto);
   }
 
   approveExpense(id: string, decision: any, comment: any, user: any) {
@@ -435,10 +390,9 @@ export class FinanceService {
   // ===================== BUDGETS =====================
 
   async findAllBudgets(user: any, q: ListQuery = {}): Promise<{ data: any[]; total: number }> {
-    const visibility = this.visibilityWhere(user);
+    const visibility = await this.visibilityWhere(user, undefined, q.departmentId);
     const { take, skip } = this.access.parsePaging(q.limit, q.page);
     const extra: Record<string, any> = { ...visibility };
-    if (q.departmentId && this.access.isFinanceViewer(user)) extra.department_id = validateRequiredUuid('departmentId', q.departmentId);
     if (q.fiscalYear) extra.fiscal_year = validateFiscalYear(q.fiscalYear);
     const where = this.tenantScope.scopeWhere(user, extra, q.fellowshipId) as Prisma.BudgetWhereInput;
     const [data, total] = await Promise.all([
@@ -449,37 +403,12 @@ export class FinanceService {
   }
 
   async createBudget(dto: CreateBudgetDto, user: any): Promise<any> {
-    this.requireRecorder(user, 'create budgets');
-    const fellowshipId = this.access.resolveFellowship(user, dto?.fellowshipId);
-
-    const title = validateText('title', dto?.title, 200, true) as string;
-    const description = validateText('description', dto?.description, 1000);
-    const amount = validateAmount('amount', dto?.amount);
-    const fiscalYear = validateFiscalYear(dto?.fiscalYear);
-    const departmentId = validateOptionalUuid('departmentId', dto?.departmentId);
-    if (departmentId) await this.access.assertDepartment(departmentId, fellowshipId);
-
-    const budget = await this.createWithWorkflow('budget', {
-      title, description, amount, fiscal_year: fiscalYear,
-      department_id: departmentId,
-      created_by: user.userId,
-      approval_status: 'SUBMITTED',
-      fellowship_id: fellowshipId,
-    }, user, fellowshipId);
-
-    await this.auditService.log({
-      userId: user.userId,
-      action: 'finance.budget_create',
-      entityType: 'budget',
-      entityId: budget.id,
-      newValue: { amount, title, fiscalYear },
-      approvalInfo: { workflowId: budget.approval_workflow_id },
-    });
-    return budget;
+    // Line-item budgets (central, or a department's own with departmentId) - see BudgetsService.
+    return this.budgets.create(user, dto);
   }
 
   approveBudget(id: string, decision: any, comment: any, user: any) {
-    if (!this.access.hasAnyRole(user, ['secretary', 'assistant_secretary', 'admin', 'chairperson', 'assistant_chairperson'])) {
+    if (!this.access.hasAnyRole(user, ['treasurer', 'secretary', 'assistant_secretary', 'admin', 'chairperson', 'assistant_chairperson'])) {
       throw new ForbiddenException('You do not have permission to perform this action.');
     }
     return this.decidePrimary('budget', id, decision, comment, user);
@@ -488,10 +417,9 @@ export class FinanceService {
   // ===================== MONEY REQUESTS =====================
 
   async findAllMoneyRequests(user: any, q: ListQuery = {}): Promise<{ data: any[]; total: number }> {
-    const visibility = this.visibilityWhere(user, 'requester_id');
+    const visibility = await this.visibilityWhere(user, 'requester_id', q.departmentId);
     const { take, skip } = this.access.parsePaging(q.limit, q.page);
     const extra: Record<string, any> = { ...visibility };
-    if (q.departmentId && this.access.isFinanceViewer(user)) extra.department_id = validateRequiredUuid('departmentId', q.departmentId);
     if (q.status) extra.approval_status = validateText('status', q.status, 30);
     const where = this.tenantScope.scopeWhere(user, extra, q.fellowshipId) as Prisma.MoneyRequestWhereInput;
     const [data, total] = await Promise.all([
@@ -519,17 +447,20 @@ export class FinanceService {
     let departmentId = validateOptionalUuid('departmentId', dto?.departmentId);
 
     if (isDeptLeader && !isSecretary) {
-      // A department leader can only ever request money for their OWN department.
-      if (!user.departmentId) throw new ForbiddenException('You are not assigned to a department.');
-      if (departmentId && departmentId !== user.departmentId) {
+      // A department leader can only ever request money for a department they currently lead.
+      const led = Array.from((await this.scope.leaderships(user)).keys());
+      if (user.departmentId && !led.includes(user.departmentId)) led.push(user.departmentId);
+      if (!led.length) throw new ForbiddenException('You are not assigned to a department.');
+      if (departmentId && !led.includes(departmentId)) {
         throw new ForbiddenException('You can only request money for your own department.');
       }
-      departmentId = user.departmentId;
+      departmentId = departmentId ?? led[0];
     }
     if (departmentId) await this.access.assertDepartment(departmentId, fellowshipId);
 
+    const extra = await this.moneyRequestExtras(dto as any, fellowshipId);
     const request = await this.createWithWorkflow('money_request', {
-      title, description, amount, purpose,
+      title, description, amount, purpose, ...extra,
       department_id: departmentId,
       requester_id: user.userId,
       approval_status: 'SUBMITTED',
@@ -545,6 +476,42 @@ export class FinanceService {
       approvalInfo: { workflowId: request.approval_workflow_id },
     });
     return request;
+  }
+
+  // Project / budget links, the date needed, the preferred payment method and a reference number.
+  private async moneyRequestExtras(dto: any, fellowshipId: string | null): Promise<Record<string, any>> {
+    const out: Record<string, any> = {};
+    const projectId = validateOptionalUuid('projectId', dto?.projectId);
+    const budgetLineId = validateOptionalUuid('budgetLineId', dto?.budgetLineId);
+    let budgetId = validateOptionalUuid('budgetId', dto?.budgetId);
+    if (projectId) {
+      const p = await this.prisma.project.findFirst({ where: { id: projectId, fellowship_id: fellowshipId ?? undefined, status: { in: ['APPROVED', 'ACTIVE'] } } });
+      if (!p) throw new BadRequestException('The selected project is not open.');
+      out.project_id = projectId;
+    }
+    if (budgetLineId) {
+      const line = await this.prisma.budgetLineItem.findFirst({ where: { id: budgetLineId, is_active: true, budget: { fellowship_id: fellowshipId, approval_status: 'FINAL_APPROVED' } } });
+      if (!line) throw new BadRequestException('The selected budget line is not available.');
+      budgetId = line.budget_id;
+      out.budget_line_id = budgetLineId;
+    }
+    if (budgetId) {
+      const b = await this.prisma.budget.findFirst({ where: { id: budgetId, fellowship_id: fellowshipId } });
+      if (!b) throw new BadRequestException('The selected budget is not available.');
+      out.budget_id = budgetId;
+    }
+    const required = validateDate('requiredDate', dto?.requiredDate, { required: false, maxFutureDays: 3650 });
+    if (required) out.required_date = required;
+    const method = validateText('preferredPaymentMethod', dto?.preferredPaymentMethod, 30);
+    if (method) out.preferred_payment_method = method;
+    if (dto?.breakdown !== undefined) {
+      if (!Array.isArray(dto.breakdown) || dto.breakdown.length > 50) throw new BadRequestException('breakdown must be a list of at most 50 items');
+      out.expense_breakdown = dto.breakdown.map((b: any) => ({ item: validateText('breakdown item', b?.item, 150, true), amount: validateAmount('breakdown amount', b?.amount) }));
+    }
+    if (fellowshipId) {
+      out.request_number = await this.prisma.$transaction((tx) => nextNumber(tx, fellowshipId, 'money_request', 'MR'));
+    }
+    return out;
   }
 
   approveMoneyRequest(id: string, decision: any, comment: any, user: any) {

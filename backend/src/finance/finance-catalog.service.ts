@@ -6,6 +6,9 @@ import { TenantScopeService } from '../shared/tenant/tenant-scope.service';
 import { PERMISSIONS } from '../shared/authorization/permissions';
 import { isUuid } from '../shared/utils/uuid.util';
 import { FinanceAccessService } from './finance-access.service';
+import { ApprovalEngineService } from '../shared/approval-engine/approval-engine.service';
+import { FinanceScopeService } from './accounting/finance-scope.service';
+import { FinanceNotifyService } from './accounting/finance-notify.service';
 import { validateAmount, validateDate, validateOptionalUuid, validateText } from './finance.validation';
 
 const KINDS = ['contribution', 'income', 'expense'] as const;
@@ -25,7 +28,37 @@ export class FinanceCatalogService {
     private auditService: AuditService,
     private tenantScope: TenantScopeService,
     private access: FinanceAccessService,
+    private engine: ApprovalEngineService,
+    private scope: FinanceScopeService,
+    private notify: FinanceNotifyService,
   ) {}
+
+  private static CAMPAIGN_STATUSES = ['active', 'closed', 'draft', 'paused'];
+
+  // Central campaigns: the Treasurer/Secretary. A department's campaign: also that department's Chairperson.
+  private async requireCampaignManager(user: any, departmentId: string | null) {
+    if (this.access.hasPermission(user, PERMISSIONS.FINANCE_CAMPAIGN_MANAGE)) return;
+    if (departmentId && (await this.scope.leaderRole(user, departmentId)) === 'department_chairperson') return;
+    throw new ForbiddenException('You do not have permission to perform this action.');
+  }
+
+  private async campaignExtras(dto: any, fellowshipId: string | null, departmentId: string | null) {
+    const data: Record<string, any> = {};
+    if (dto?.projectId !== undefined) {
+      const projectId = validateOptionalUuid('projectId', dto.projectId);
+      if (projectId) {
+        const p = await this.prisma.project.findFirst({ where: { id: projectId, fellowship_id: fellowshipId ?? undefined, status: { notIn: ['REJECTED', 'CLOSED'] } } });
+        if (!p) throw new BadRequestException('The selected project is not available.');
+        if ((p.scope === 'department' ? p.department_id : null) !== (departmentId ?? null)) throw new BadRequestException('The campaign and its project must belong to the same fund.');
+      }
+      data.project_id = projectId;
+    }
+    if (dto?.budgetBreakdown !== undefined) {
+      if (!Array.isArray(dto.budgetBreakdown) || dto.budgetBreakdown.length > 50) throw new BadRequestException('budgetBreakdown must be a list of at most 50 items');
+      data.budget_breakdown = dto.budgetBreakdown.map((b: any) => ({ item: validateText('budget item', b?.item, 150, true), amount: validateAmount('budget amount', b?.amount) }));
+    }
+    return data;
+  }
 
   private requireViewer(user: any) {
     if (!this.access.isFinanceViewer(user)) {
@@ -92,10 +125,10 @@ export class FinanceCatalogService {
     if (campaigns.length === 0) return [];
     const ids = campaigns.map((c) => c.id);
     const [sums, perMember] = await Promise.all([
-      this.prisma.contribution.groupBy({ by: ['campaign_id'], where: { campaign_id: { in: ids } }, _sum: { amount: true }, _count: { _all: true } }),
-      this.prisma.contribution.groupBy({ by: ['campaign_id', 'member_id'], where: { campaign_id: { in: ids } } }),
+      this.prisma.contribution.groupBy({ by: ['campaign_id'], where: { campaign_id: { in: ids }, status: 'active' }, _sum: { amount: true }, _count: { _all: true } }),
+      this.prisma.contribution.groupBy({ by: ['campaign_id', 'member_id'], where: { campaign_id: { in: ids }, status: 'active' } }),
     ]);
-    const income = await this.prisma.incomeRecord.groupBy({ by: ['campaign_id'], where: { campaign_id: { in: ids } }, _sum: { amount: true } });
+    const income = await this.prisma.incomeRecord.groupBy({ by: ['campaign_id'], where: { campaign_id: { in: ids }, status: 'active' }, _sum: { amount: true } });
     return campaigns.map((c) => {
       const s = sums.find((x) => x.campaign_id === c.id);
       const inc = income.find((x) => x.campaign_id === c.id);
@@ -117,11 +150,11 @@ export class FinanceCatalogService {
     });
   }
 
-  async listCampaigns(user: any, q: { status?: string; fellowshipId?: string } = {}) {
-    this.requireViewer(user);
-    const extra: Record<string, any> = {};
+  async listCampaigns(user: any, q: { status?: string; fellowshipId?: string; departmentId?: string } = {}) {
+    // Department leaders see their own departments' campaigns only.
+    const extra: Record<string, any> = !this.access.isFinanceViewer(user) || q.departmentId ? await this.scope.listScope(user, q.departmentId) : {};
     if (q.status) {
-      if (!['active', 'closed'].includes(q.status)) throw new BadRequestException('status must be active or closed');
+      if (!FinanceCatalogService.CAMPAIGN_STATUSES.includes(q.status)) throw new BadRequestException('status must be active, paused, draft or closed');
       extra.status = q.status;
     }
     const where = this.tenantScope.scopeWhere(user, extra, q.fellowshipId) as Prisma.ContributionCampaignWhereInput;
@@ -129,16 +162,16 @@ export class FinanceCatalogService {
   }
 
   async getCampaign(id: string, user: any) {
-    this.requireViewer(user);
     this.notFoundUnlessUuid(id, 'Campaign');
     const c = await this.prisma.contributionCampaign.findUnique({ where: { id } });
     if (!c) throw new NotFoundException('Campaign not found');
     this.tenantScope.assertInScope(user, c);
+    if (!this.access.isFinanceViewer(user)) await this.scope.requireView(user, c.department_id);
     return (await this.withProgress([c]))[0];
   }
 
   async createCampaign(dto: CampaignDto, user: any) {
-    this.access.requirePermission(user, PERMISSIONS.FINANCE_CAMPAIGN_MANAGE);
+    await this.requireCampaignManager(user, validateOptionalUuid('departmentId', dto?.departmentId));
     const fellowshipId = this.access.resolveFellowship(user, dto?.fellowshipId);
     const name = validateText('name', dto?.name, 120, true) as string;
     const description = validateText('description', dto?.description, 1000);
@@ -151,19 +184,22 @@ export class FinanceCatalogService {
     const clash = await this.prisma.contributionCampaign.findFirst({ where: { fellowship_id: fellowshipId, name }, select: { id: true } });
     if (clash) throw new BadRequestException('A campaign with this name already exists.');
 
+    const extras = await this.campaignExtras(dto, fellowshipId, departmentId);
+    const status = dto?.status === undefined ? 'active' : dto.status;
+    if (!['active', 'draft'].includes(status)) throw new BadRequestException('A new campaign starts as active or draft');
     const c = await this.prisma.contributionCampaign.create({
-      data: { fellowship_id: fellowshipId, name, description, target_amount: target, start_date: start, end_date: end, department_id: departmentId, created_by: user.userId },
+      data: { fellowship_id: fellowshipId, name, description, target_amount: target, start_date: start, end_date: end, department_id: departmentId, created_by: user.userId, status: status as any, ...extras },
     });
     await this.auditService.log({ userId: user.userId, action: 'finance.campaign_create', entityType: 'campaign', entityId: c.id, newValue: { name, target } });
     return c;
   }
 
   async updateCampaign(id: string, dto: CampaignDto, user: any) {
-    this.access.requirePermission(user, PERMISSIONS.FINANCE_CAMPAIGN_MANAGE);
     this.notFoundUnlessUuid(id, 'Campaign');
     const c = await this.prisma.contributionCampaign.findUnique({ where: { id } });
     if (!c) throw new NotFoundException('Campaign not found');
     this.tenantScope.assertInScope(user, c);
+    await this.requireCampaignManager(user, c.department_id);
 
     const data: Record<string, any> = {};
     if (dto.name !== undefined) {
@@ -178,9 +214,12 @@ export class FinanceCatalogService {
       if (data.end_date && data.end_date < c.start_date) throw new BadRequestException('endDate cannot be before startDate');
     }
     if (dto.status !== undefined) {
-      if (!['active', 'closed'].includes(dto.status)) throw new BadRequestException('status must be active or closed');
+      if (!FinanceCatalogService.CAMPAIGN_STATUSES.includes(dto.status)) throw new BadRequestException('status must be active, paused, draft or closed');
       data.status = dto.status;
+      // A paused or closed campaign leaves the public website at once.
+      if (dto.status !== 'active') data.is_public = false;
     }
+    Object.assign(data, await this.campaignExtras(dto, c.fellowship_id, (data.department_id !== undefined ? data.department_id : c.department_id) ?? null));
     if (dto.departmentId !== undefined) {
       data.department_id = validateOptionalUuid('departmentId', dto.departmentId);
       if (data.department_id) await this.access.assertDepartment(data.department_id, c.fellowship_id);
@@ -213,8 +252,10 @@ export class FinanceCatalogService {
     });
     if (overlap) throw new BadRequestException(`This period overlaps the existing period "${overlap.name}".`);
 
+    const periodType = (dto as any)?.periodType ?? 'custom';
+    if (!['year', 'quarter', 'month', 'custom'].includes(periodType)) throw new BadRequestException('periodType must be year, quarter, month or custom');
     const p = await this.prisma.financialPeriod.create({
-      data: { fellowship_id: fellowshipId, name, start_date: start, end_date: end, created_by: user.userId },
+      data: { fellowship_id: fellowshipId, name, start_date: start, end_date: end, created_by: user.userId, period_type: periodType },
     });
     await this.auditService.log({ userId: user.userId, action: 'finance.period_create', entityType: 'financial_period', entityId: p.id, newValue: { name } });
     return p;
@@ -226,9 +267,25 @@ export class FinanceCatalogService {
     const p = await this.prisma.financialPeriod.findUnique({ where: { id } });
     if (!p) throw new NotFoundException('Period not found');
     this.tenantScope.assertInScope(user, p);
+    if (p.period_type === 'year' && !p.is_closed) {
+      // Year-end: the Treasurer prepares the statements; the Secretary reviews and the Chairperson approves the closure.
+      if (p.closure_status === 'pending') throw new ConflictException('This year is already waiting for closure approval.');
+      const approval = await this.prisma.$transaction(async (tx) => {
+        if (p.closure_workflow_id && ['returned', 'rejected'].includes(p.closure_status ?? '')) {
+          await tx.financialPeriod.update({ where: { id }, data: { closure_status: 'pending' } });
+          return this.engine.resubmit(p.closure_workflow_id, user.userId, this.access.roles(user), { anyRequester: true, db: tx });
+        }
+        const wf = await this.engine.createWorkflow('period_close', id, 'financial_period', user.userId, { name: p.name }, p.fellowship_id, tx);
+        await tx.financialPeriod.update({ where: { id }, data: { closure_workflow_id: wf.id, closure_status: 'pending' } });
+        return this.engine.submit(wf.id, tx, user.userId);
+      });
+      await this.auditService.log({ userId: user.userId, action: 'finance.period_close_requested', entityType: 'financial_period', entityId: id, newValue: { name: p.name } });
+      await this.notify.stage(approval, 'financial year closure', 'financial_period', id, user.userId);
+      return this.prisma.financialPeriod.findUnique({ where: { id } });
+    }
     const res = await this.prisma.financialPeriod.updateMany({
       where: { id, is_closed: false },
-      data: { is_closed: true, closed_by: user.userId, closed_at: new Date() },
+      data: { is_closed: true, closed_by: user.userId, closed_at: new Date(), closure_status: 'approved' },
     });
     if (res.count !== 1) throw new ConflictException('This period is already closed.');
     await this.auditService.log({ userId: user.userId, action: 'finance.period_close', entityType: 'financial_period', entityId: id, newValue: { name: p.name } });
@@ -247,7 +304,7 @@ export class FinanceCatalogService {
     this.tenantScope.assertInScope(user, p);
     const res = await this.prisma.financialPeriod.updateMany({
       where: { id, is_closed: true },
-      data: { is_closed: false, closed_by: null, closed_at: null },
+      data: { is_closed: false, closed_by: null, closed_at: null, closure_status: null, reopened_by: user.userId, reopened_at: new Date(), reopen_reason: reason },
     });
     if (res.count !== 1) throw new ConflictException('This period is not closed.');
     await this.auditService.log({ userId: user.userId, action: 'finance.period_reopen', entityType: 'financial_period', entityId: id, comment: reason });

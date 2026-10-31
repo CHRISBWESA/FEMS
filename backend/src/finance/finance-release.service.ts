@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { assertAccountScope, defaultAccount, nextNumber, postEntry } from './accounting/ledger';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../shared/audit/audit.service';
 import { NotificationEngineService } from '../shared/notifications/notification-engine.service';
@@ -49,6 +50,7 @@ export class FinanceReleaseService {
     const reference = validateText('reference', dto?.reference, 100);
     const notes = validateText('notes', dto?.notes, 500);
     const receiptId = validateOptionalUuid('receiptDocumentId', dto?.receiptDocumentId);
+    const accountId = validateOptionalUuid('accountId', (dto as any)?.accountId);
 
     const result = await this.prisma.$transaction(async (tx) => {
       const request = await tx.moneyRequest.findUnique({ where: { id } });
@@ -94,8 +96,9 @@ export class FinanceReleaseService {
         throw new ConflictException('The released amount cannot exceed the approved amount.');
       }
 
+      let release: any;
       try {
-        return await tx.moneyRequestRelease.create({
+        release = await tx.moneyRequestRelease.create({
           data: {
             money_request_id: id,
             fellowship_id: request.fellowship_id,
@@ -113,6 +116,29 @@ export class FinanceReleaseService {
         }
         throw err;
       }
+
+      // Paying out is an expense, recorded once and linked both ways; the money leaves a central account through
+      // the ledger (which refuses to overdraw it).
+      if (!request.fellowship_id) return release;
+      const account = accountId
+        ? await assertAccountScope(tx, accountId, request.fellowship_id, null)
+        : await defaultAccount(tx, request.fellowship_id, null, user.userId);
+      const number = await nextNumber(tx, request.fellowship_id, 'expense', 'EXP');
+      const expense = await tx.expense.create({
+        data: {
+          fellowship_id: request.fellowship_id, department_id: request.department_id, title: request.title, description: request.description,
+          purpose: request.purpose, amount: approved, amount_approved: approved, amount_paid: amount, date: new Date(),
+          project_id: request.project_id, activity_id: request.activity_id, budget_id: request.budget_id, budget_line_id: request.budget_line_id,
+          payment_status: 'paid', payment_method: method, payment_reference: reference, account_id: account.id, paid_at: new Date(), paid_by: user.userId,
+          money_request_id: id, expense_number: number, recorded_by: user.userId, approval_status: 'FINAL_APPROVED', approval_workflow_id: request.approval_workflow_id,
+        },
+      });
+      await postEntry(tx, {
+        fellowshipId: request.fellowship_id, accountId: account.id, amount: amount.negated(), entryType: 'expense', sourceType: 'expense', sourceId: expense.id,
+        date: new Date(), userId: user.userId, departmentId: null, projectId: request.project_id, reference: request.request_number ?? number,
+        description: `Money request: ${request.title}`, primary: true,
+      });
+      return tx.moneyRequestRelease.update({ where: { id: release.id }, data: { account_id: account.id, expense_id: expense.id } });
     });
 
     await this.auditService.log({

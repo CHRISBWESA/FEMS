@@ -28,11 +28,12 @@ describeDb('Phase 15 - finance approval chain, release, concurrency, edit/delete
   }
   const status = async (id: string) => (await prisma.moneyRequest.findUnique({ where: { id } }))!.approval_status;
 
+  // The chain is Treasurer (financial review) -> Fellowship Secretary -> Fellowship Chairperson; the Treasurer then pays.
   async function fullyApprove(id: string, requester = ds1) {
-    const stage0 = requester === sec ? asst : sec;
-    await post(stage0, `/finance/money-requests/${id}/approve`, { decision: 'approved' }).expect(201);
-    await post(chair, `/finance/money-requests/${id}/approve`, { decision: 'approved' }).expect(201);
+    const secretaryStage = requester === sec ? asst : sec;
     await post(treas, `/finance/money-requests/${id}/approve`, { decision: 'approved' }).expect(201);
+    await post(secretaryStage, `/finance/money-requests/${id}/approve`, { decision: 'approved' }).expect(201);
+    await post(chair, `/finance/money-requests/${id}/approve`, { decision: 'approved' }).expect(201);
   }
 
   beforeAll(async () => {
@@ -57,6 +58,8 @@ describeDb('Phase 15 - finance approval chain, release, concurrency, edit/delete
     chairB = await makeUser(prisma, { fellowshipId: fB.id, roles: ['chairperson'] });
     treasB = await makeUser(prisma, { fellowshipId: fB.id, roles: ['treasurer'] });
     member = await makeMember(prisma, { fellowshipId: fA.id });
+    // Payouts leave a real account, which cannot be overdrawn: put money in the default cash account first.
+    await api(app, treas.token).post('/finance/contributions', { memberId: member.id, amount: 1000000, date: '2026-09-01' }).expect(201);
   });
 
   afterAll(async () => {
@@ -77,21 +80,21 @@ describeDb('Phase 15 - finance approval chain, release, concurrency, edit/delete
     });
   });
 
-  describe('money request chain: Secretary -> Chairperson -> Treasurer', () => {
+  describe('money request chain: Treasurer -> Secretary -> Chairperson', () => {
     it('one approval never makes a request FINAL_APPROVED (was a critical bypass)', async () => {
       const mr = await newMoneyRequest();
       expect(mr.approval_status).toBe('SUBMITTED');
+      await post(treas, `/finance/money-requests/${mr.id}/approve`, { decision: 'approved' }).expect(201);
+      expect(await status(mr.id)).toBe('UNDER_REVIEW'); // the Treasurer's review is not final approval
       await post(sec, `/finance/money-requests/${mr.id}/approve`, { decision: 'approved' }).expect(201);
       expect(await status(mr.id)).toBe('UNDER_REVIEW');
       await post(chair, `/finance/money-requests/${mr.id}/approve`, { decision: 'approved' }).expect(201);
-      expect(await status(mr.id)).toBe('UNDER_REVIEW');
-      await post(treas, `/finance/money-requests/${mr.id}/approve`, { decision: 'approved' }).expect(201);
       expect(await status(mr.id)).toBe('FINAL_APPROVED');
     });
 
     it('stages must be approved in order by the right role', async () => {
       const mr = await newMoneyRequest();
-      await post(treas, `/finance/money-requests/${mr.id}/approve`, { decision: 'approved' }).expect(403);
+      await post(sec, `/finance/money-requests/${mr.id}/approve`, { decision: 'approved' }).expect(403);
       await post(chair, `/finance/money-requests/${mr.id}/approve`, { decision: 'approved' }).expect(403);
       expect(await status(mr.id)).toBe('SUBMITTED');
     });
@@ -107,26 +110,32 @@ describeDb('Phase 15 - finance approval chain, release, concurrency, edit/delete
 
     it('the requester can never approve their own request', async () => {
       const mr = await newMoneyRequest(sec); // a Secretary raises it
-      await post(sec, `/finance/money-requests/${mr.id}/approve`, { decision: 'approved' }).expect(403);
-      await post(sec2, `/finance/money-requests/${mr.id}/approve`, { decision: 'approved' }).expect(201);
+      await post(treas, `/finance/money-requests/${mr.id}/approve`, { decision: 'approved' }).expect(201);
+      await post(sec, `/finance/money-requests/${mr.id}/approve`, { decision: 'approved' }).expect(403); // own request
+      await post(sec2, `/finance/money-requests/${mr.id}/approve`, { decision: 'approved' }).expect(201); // an independent secretary
     });
 
     it('one person cannot approve two stages of the same request (three different people are required)', async () => {
       const mr = await newMoneyRequest();
-      await post(dual, `/finance/money-requests/${mr.id}/approve`, { decision: 'approved' }).expect(201);
-      await post(dual, `/finance/money-requests/${mr.id}/approve`, { decision: 'approved' }).expect(403);
+      await post(treas, `/finance/money-requests/${mr.id}/approve`, { decision: 'approved' }).expect(201);
+      await post(dual, `/finance/money-requests/${mr.id}/approve`, { decision: 'approved' }).expect(201); // as Secretary
+      await post(dual, `/finance/money-requests/${mr.id}/approve`, { decision: 'approved' }).expect(403); // not also as Chairperson
       expect(await status(mr.id)).toBe('UNDER_REVIEW');
     });
 
-    it('rejection ends the chain; only the requester can resubmit; then the chain restarts', async () => {
+    it('a rejection is final; a return lets only the requester resubmit, and the chain restarts', async () => {
+      const rejected = await newMoneyRequest();
+      await post(treas, `/finance/money-requests/${rejected.id}/approve`, { decision: 'rejected', comment: 'Too high' }).expect(201);
+      expect(await status(rejected.id)).toBe('REJECTED');
+      await post(sec, `/finance/money-requests/${rejected.id}/approve`, { decision: 'approved' }).expect(403); // rejected requests can't be approved
+      await post(ds1, `/finance/money-requests/${rejected.id}/resubmit`).expect(400); // and are not reopened
       const mr = await newMoneyRequest();
-      await post(sec, `/finance/money-requests/${mr.id}/approve`, { decision: 'rejected', comment: 'Too high' }).expect(201);
-      expect(await status(mr.id)).toBe('REJECTED');
-      await post(chair, `/finance/money-requests/${mr.id}/approve`, { decision: 'approved' }).expect(403); // rejected requests can't be approved
+      await post(treas, `/finance/money-requests/${mr.id}/approve`, { decision: 'returned', comment: 'Add quotes' }).expect(201);
+      expect(await status(mr.id)).toBe('RETURNED');
       await post(sec, `/finance/money-requests/${mr.id}/resubmit`).expect(403); // not the requester
       await post(ds1, `/finance/money-requests/${mr.id}/resubmit`).expect(201);
       expect(await status(mr.id)).toBe('RESUBMITTED');
-      await post(asst, `/finance/money-requests/${mr.id}/approve`, { decision: 'approved' }).expect(201);
+      await post(treas, `/finance/money-requests/${mr.id}/approve`, { decision: 'approved' }).expect(201);
       expect(await status(mr.id)).toBe('UNDER_REVIEW');
     });
 
@@ -153,21 +162,22 @@ describeDb('Phase 15 - finance approval chain, release, concurrency, edit/delete
       // The generic route is role-gated, so an ordinary member is refused at the door (403) and never reaches the
       // workflow engine - the chain cannot be bypassed from a different entry point.
       await post(ord, `/approvals/${mr.approval_workflow_id}/decide`, { decision: 'approved' }).expect(403);
-      await post(sec, `/approvals/${mr.approval_workflow_id}/decide`, { decision: 'approved' }).expect(201);
+      await post(sec, `/approvals/${mr.approval_workflow_id}/decide`, { decision: 'approved' }).expect(403); // not the Secretary's stage yet
+      await post(treas, `/approvals/${mr.approval_workflow_id}/decide`, { decision: 'approved' }).expect(201);
       expect(await status(mr.id)).toBe('UNDER_REVIEW'); // entity status is kept in sync by the engine
       await post(sec, '/approvals/not-a-uuid/decide', { decision: 'approved' }).expect(404);
     });
 
     it('pending approvals are now listed for the people who must act (endpoint used to be admin-only)', async () => {
       const mr = await newMoneyRequest();
-      const res = await get(sec, '/approvals').expect(200);
+      const res = await get(treas, '/approvals').expect(200);
       expect(res.body.map((a: any) => a.entity_id)).toContain(mr.id);
       await get(ord, '/approvals').expect(403);
     });
 
     it('approvers are notified (with neutral text) when a request needs them', async () => {
       const mr = await newMoneyRequest(ds1, { title: 'SECRET-TITLE-XYZ' });
-      const n = await prisma.notification.findMany({ where: { recipient_user_id: sec.id, entity_id: mr.id } });
+      const n = await prisma.notification.findMany({ where: { recipient_user_id: treas.id, entity_id: mr.id } });
       expect(n.length).toBeGreaterThan(0);
       expect(JSON.stringify(n)).not.toContain('SECRET-TITLE-XYZ');
     });
@@ -177,6 +187,7 @@ describeDb('Phase 15 - finance approval chain, release, concurrency, edit/delete
     it('cannot be released before the whole chain has approved', async () => {
       const mr = await newMoneyRequest();
       await post(treas, `/finance/money-requests/${mr.id}/release`, { method: 'cash' }).expect(409);
+      await post(treas, `/finance/money-requests/${mr.id}/approve`, { decision: 'approved' }).expect(201);
       await post(sec, `/finance/money-requests/${mr.id}/approve`, { decision: 'approved' }).expect(201);
       await post(treas, `/finance/money-requests/${mr.id}/release`, { method: 'cash' }).expect(409);
       expect(await prisma.moneyRequestRelease.count({ where: { money_request_id: mr.id } })).toBe(0);
@@ -225,6 +236,7 @@ describeDb('Phase 15 - finance approval chain, release, concurrency, edit/delete
 
     it('two simultaneous approvals of the same stage: exactly one wins', async () => {
       const mr = await newMoneyRequest();
+      await post(treas, `/finance/money-requests/${mr.id}/approve`, { decision: 'approved' }).expect(201);
       const results = await Promise.all([
         post(sec, `/finance/money-requests/${mr.id}/approve`, { decision: 'approved' }),
         post(sec2, `/finance/money-requests/${mr.id}/approve`, { decision: 'approved' }),
@@ -233,7 +245,7 @@ describeDb('Phase 15 - finance approval chain, release, concurrency, edit/delete
       expect(results.filter((r) => r.status === 201)).toHaveLength(1);
       expect(results.filter((r) => r.status !== 201).every((r) => [403, 409].includes(r.status))).toBe(true);
       const steps = await prisma.approvalStep.findMany({ where: { approval_id: mr.approval_workflow_id }, orderBy: { stage_order: 'asc' } });
-      expect(steps.filter((s) => s.status === 'approved')).toHaveLength(1); // never two approved stages from one round
+      expect(steps.filter((s) => s.status === 'approved')).toHaveLength(2); // the Treasurer + exactly one Secretary
       expect(await status(mr.id)).toBe('UNDER_REVIEW');
     });
   });
@@ -298,15 +310,17 @@ describeDb('Phase 15 - finance approval chain, release, concurrency, edit/delete
       await post(secB, `/finance/contributions/${id}/edit-request`, { amount: 5, reason: 'x' }).expect(403);
     });
 
-    it('an approved delete moves the row to the recycle bin and removes it', async () => {
+    it('an approved delete reverses the contribution in the ledger and keeps the record', async () => {
       const id = await newContribution(40);
       const req = await post(treas, `/finance/contributions/${id}/delete-request`, { reason: 'duplicate entry' }).expect(201);
       await post(sec2, `/approvals/${req.body.id}/decide`, { decision: 'approved' }).expect(201);
-      expect(await prisma.contribution.findUnique({ where: { id } })).not.toBeNull();
+      expect((await prisma.contribution.findUnique({ where: { id } }))!.status).toBe('active');
       await post(chair, `/approvals/${req.body.id}/decide`, { decision: 'approved' }).expect(201);
-      expect(await prisma.contribution.findUnique({ where: { id } })).toBeNull();
-      const bin = await prisma.deletedRecord.findFirst({ where: { original_record_id: id } });
-      expect(bin?.original_collection).toBe('contributions');
+      const after = await prisma.contribution.findUnique({ where: { id } });
+      expect(after).toMatchObject({ status: 'reversed', reversal_reason: 'duplicate entry' }); // never deleted
+      const entries = await prisma.ledgerEntry.findMany({ where: { source_id: id }, orderBy: { created_at: 'asc' } });
+      expect(entries.map((e) => [e.entry_type, e.amount.toFixed(2)])).toEqual([['contribution', '40.00'], ['reversal', '-40.00']]);
+      expect(await prisma.deletedRecord.findFirst({ where: { original_record_id: id } })).toBeNull();
     });
 
     it('the requester cannot approve their own edit; the same person cannot approve both stages', async () => {

@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ACCOUNTING_WORKFLOWS, syncAccountingStatus } from '../../finance/accounting/accounting-sync';
 
 export interface WorkflowDefinition {
   workflowType: string;
@@ -40,6 +41,15 @@ const secretaryThenChair = (workflowType: string): WorkflowDefinition => ({
   ],
 });
 
+const treasurerSecretaryChair = (workflowType: string): WorkflowDefinition => ({
+  workflowType,
+  stages: [
+    { stageOrder: 0, approverRole: 'treasurer' },
+    { stageOrder: 1, approverRole: 'secretary' },
+    { stageOrder: 2, approverRole: 'chairperson' },
+  ],
+});
+
 const WORKFLOW_DEFINITIONS: Record<string, WorkflowDefinition> = {
   // Treasurer first (can the fellowship afford it?), then the Secretary, then the Chairperson's final approval.
   // Requests created before this order changed keep the stages they were created with.
@@ -62,7 +72,26 @@ const WORKFLOW_DEFINITIONS: Record<string, WorkflowDefinition> = {
   expense_delete: secretaryThenChair('expense_delete'),
   budget_edit: secretaryThenChair('budget_edit'),
   budget_delete: secretaryThenChair('budget_delete'),
+  // ---- Finance & projects ----
+  // Routine department spending within an approved budget: the Department Chairperson of THAT department.
+  department_expense: { workflowType: 'department_expense', stages: [{ stageOrder: 0, approverRole: 'department_chairperson' }] },
+  // Major department spending, overruns, and anything the Department Chairperson submitted: central approval.
+  department_expense_major: treasurerSecretaryChair('department_expense_major'),
+  department_budget: treasurerSecretaryChair('department_budget'),
+  budget_revision: treasurerSecretaryChair('budget_revision'),
+  project: treasurerSecretaryChair('project'),
+  project_closure: treasurerSecretaryChair('project_closure'),
+  // Earmarking General Fund money for a project (prepared by the Treasurer).
+  project_allocation: secretaryThenChair('project_allocation'),
+  // Moving money between central and department funds (prepared by the Treasurer).
+  fund_transfer: secretaryThenChair('fund_transfer'),
+  // Closing a financial year: the Treasurer prepares the statements, the Secretary reviews, the Chairperson approves.
+  period_close: secretaryThenChair('period_close'),
 };
+
+// Approvals scoped to one department (metadata.departmentId): a department_* stage may only be decided by a current
+// leader of that department, never by the leader of another department.
+const DEPARTMENT_ROLES = new Set(['department_chairperson', 'department_secretary']);
 
 // Money-affecting workflows get segregation of duties: the person who submitted a request may not
 // decide any stage of it, and one person may approve at most one stage of the same request (the
@@ -72,14 +101,22 @@ const SEPARATION_OF_DUTIES = new Set([
   'contribution_edit', 'contribution_delete', 'income_edit', 'income_delete',
   'expense_edit', 'expense_delete', 'budget_edit', 'budget_delete',
   'report', 'it_content', 'it_content_delete', 'role_unassign', 'department_activity',
+  'department_expense', 'department_expense_major', 'department_budget', 'budget_revision', 'project',
+  'project_closure', 'project_allocation', 'fund_transfer', 'period_close',
 ]);
 
 // For these workflows a rejection ends the request for good; changes are asked for with 'returned' instead.
-const FINAL_REJECTION = new Set(['money_request', 'report', 'department_activity']);
+const FINAL_REJECTION = new Set([
+  'money_request', 'report', 'department_activity', 'project', 'project_allocation', 'fund_transfer', 'budget_revision',
+]);
 
 // Only the *primary* finance approvals own the entity's approval_status. The *_edit / *_delete
 // workflows share the entity id but must never overwrite the record's own status.
-const PRIMARY_ENTITY_WORKFLOWS = new Set(['expense', 'budget', 'money_request', 'report', 'it_content', 'department_activity']);
+const PRIMARY_ENTITY_WORKFLOWS = new Set([
+  'expense', 'budget', 'money_request', 'report', 'it_content', 'department_activity',
+  'department_expense', 'department_expense_major', 'department_budget',
+  ...ACCOUNTING_WORKFLOWS,
+]);
 
 const DECIDABLE_STATUSES = ['SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'RESUBMITTED'];
 
@@ -120,9 +157,15 @@ export class ApprovalEngineService {
     metadata?: Record<string, any>,
     fellowshipId?: string | null,
     db: Db = this.prisma,
+    opts: { preparedByTreasurer?: boolean } = {},
   ): Promise<any> {
     const def = this.getWorkflowDefinition(workflowType);
     if (!def) { throw new BadRequestException(`Unknown workflow type: ${workflowType}`); }
+
+    // A Treasurer review stage is the Treasurer's own financial check. When the Treasurer prepared the request, that
+    // check is already done, so the stage is recorded as skipped (never "approved" by them) and the request starts
+    // with the next, independent approver.
+    const skipFirst = !!opts.preparedByTreasurer && def.stages[0]?.approverRole === 'treasurer' && def.stages.length > 1;
 
     return db.approval.create({
       data: {
@@ -135,11 +178,12 @@ export class ApprovalEngineService {
         status: 'DRAFT',
         created_by: createdBy,
         steps: {
-          create: def.stages.map((stage) => ({
+          create: def.stages.map((stage, i) => ({
             stage_order: stage.stageOrder,
             approver_role: stage.approverRole,
             approver_user_id: stage.approverUserIds ? stage.approverUserIds[0] : undefined,
-            status: 'pending',
+            status: skipFirst && i === 0 ? 'skipped' : 'pending',
+            comment: skipFirst && i === 0 ? 'Prepared by the Treasurer' : undefined,
           })),
         },
       },
@@ -153,11 +197,21 @@ export class ApprovalEngineService {
     if (approval.status !== 'DRAFT') { throw new BadRequestException('Already submitted'); }
     const updated = await db.approval.update({
       where: { id: approvalId },
-      data: { status: 'SUBMITTED', current_stage: 0 },
+      data: { status: 'SUBMITTED', current_stage: await this.firstOpenStage(db, approvalId) },
       include: { steps: { orderBy: { stage_order: 'asc' } } },
     });
     await this.recordEvent(db, approval, 'submitted', actorUserId ?? approval.created_by);
     return updated;
+  }
+
+  /** The first stage that still needs a decision (stages skipped at creation are passed over). */
+  private async firstOpenStage(db: Db, approvalId: string): Promise<number> {
+    const first = await db.approvalStep.findFirst({
+      where: { approval_id: approvalId, status: { not: 'skipped' } },
+      orderBy: { stage_order: 'asc' },
+      select: { stage_order: true },
+    });
+    return first?.stage_order ?? 0;
   }
 
   /** Append-only history: every submission and decision is kept, even after a resubmission resets the steps. */
@@ -202,7 +256,19 @@ export class ApprovalEngineService {
       (roleIsSecretary && (userRoles.includes('secretary') || userRoles.includes('assistant_secretary')));
     const isAuthorized = hasApproverRole && (isDesignatedApprover || currentStage.approver_user_id === null);
     if (!isAuthorized) { throw new ForbiddenException('Not authorized'); }
+    await this.assertDepartmentApprover(approval, currentStage.approver_role, userId);
     return approval;
+  }
+
+  /** A department stage of a department-scoped approval belongs to that department's current leaders only. */
+  private async assertDepartmentApprover(approval: any, stageRole: string, userId: string): Promise<void> {
+    const departmentId = (approval.metadata as any)?.departmentId;
+    if (!DEPARTMENT_ROLES.has(stageRole) || !departmentId) return;
+    const leads = await this.prisma.departmentLeader.findFirst({
+      where: { department_id: departmentId, user_id: userId, active_role: stageRole },
+      select: { id: true },
+    });
+    if (!leads) { throw new ForbiddenException('Only a current leader of this department can decide this stage.'); }
   }
 
   // Maps the engine's status to the value stored on the finance entity: an intermediate approval is
@@ -219,10 +285,19 @@ export class ApprovalEngineService {
       await tx.activity.updateMany({ where, data: { status: activityStatusFor(approvalStatus, currentStage) as any } });
       return;
     }
+    if (ACCOUNTING_WORKFLOWS.includes(approval.workflow_type)) {
+      await syncAccountingStatus(tx, approval, approvalStatus);
+      return;
+    }
     const data = { approval_status: this.entityStatusFor(approvalStatus) };
     switch (approval.workflow_type) {
-      case 'expense': await tx.expense.updateMany({ where, data }); break;
-      case 'budget': await tx.budget.updateMany({ where, data }); break;
+      case 'expense':
+      case 'department_expense':
+      case 'department_expense_major':
+        await tx.expense.updateMany({ where, data }); break;
+      case 'budget':
+      case 'department_budget':
+        await tx.budget.updateMany({ where, data }); break;
       case 'money_request': await tx.moneyRequest.updateMany({ where, data }); break;
       case 'report': await tx.report.updateMany({ where, data: { status: data.approval_status } }); break;
       case 'it_content': await tx.documentEntity.updateMany({ where, data }); break;
@@ -327,19 +402,21 @@ export class ApprovalEngineService {
             : 'Only a request returned for revision can be resubmitted.',
         );
       }
+      const firstStage = await this.firstOpenStage(tx, approvalId);
       const reopened = await tx.approval.updateMany({
         where: { id: approvalId, status: approval.status },
-        data: { status: 'RESUBMITTED', current_stage: 0 },
+        data: { status: 'RESUBMITTED', current_stage: firstStage },
       });
       if (reopened.count !== 1) {
         throw new ConflictException('This request was already resubmitted.');
       }
-      // Earlier decisions stay in approval_events; the steps start fresh for the new review round.
+      // Earlier decisions stay in approval_events; the steps start fresh for the new review round. Stages skipped
+      // when the request was created stay skipped.
       await tx.approvalStep.updateMany({
-        where: { approval_id: approvalId },
+        where: { approval_id: approvalId, status: { not: 'skipped' } },
         data: { status: 'pending', comment: null, acted_at: null, acted_by: null },
       });
-      await this.syncEntityStatus(tx, approval, 'RESUBMITTED', 0);
+      await this.syncEntityStatus(tx, approval, 'RESUBMITTED', firstStage);
       await this.recordEvent(tx, approval, 'resubmitted', userId);
       return tx.approval.findUniqueOrThrow({
         where: { id: approvalId },

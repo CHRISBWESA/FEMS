@@ -34,13 +34,13 @@ export class FinanceController {
 
   // === Contributions ===
   @Get('contributions')
-  @Roles(...VIEWERS)
+  @Roles(...VIEWERS_AND_DEPT)
   async getContributions(@Req() req, @Query() query: ListQuery, @Res({ passthrough: true }) res: Response) {
     return withTotal(res, await this.financeService.findAllContributions(req.user, query));
   }
 
   @Post('contributions')
-  @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.ADMIN)
+  @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.ADMIN, ROLES.DEPARTMENT_SECRETARY, ROLES.DEPARTMENT_CHAIRPERSON)
   async createContribution(@Body() body: CreateContributionDto, @Req() req) {
     return this.financeService.recordContribution(body, req.user);
   }
@@ -59,13 +59,13 @@ export class FinanceController {
 
   // === Income (non-member income) ===
   @Get('income')
-  @Roles(...VIEWERS)
+  @Roles(...VIEWERS_AND_DEPT)
   async getIncome(@Req() req, @Query() query: Record<string, string>, @Res({ passthrough: true }) res: Response) {
     return withTotal(res, await this.incomeService.list(req.user, query));
   }
 
   @Post('income')
-  @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.ADMIN)
+  @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.ADMIN, ROLES.DEPARTMENT_SECRETARY, ROLES.DEPARTMENT_CHAIRPERSON)
   async createIncome(@Body() body: CreateIncomeDto, @Req() req) {
     return this.incomeService.create(body, req.user);
   }
@@ -90,7 +90,7 @@ export class FinanceController {
   }
 
   @Post('expenses')
-  @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.ADMIN)
+  @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.ADMIN, ROLES.DEPARTMENT_SECRETARY, ROLES.DEPARTMENT_CHAIRPERSON)
   async createExpense(@Body() body: CreateExpenseDto, @Req() req) {
     return this.financeService.createExpense(body, req.user);
   }
@@ -121,13 +121,13 @@ export class FinanceController {
   }
 
   @Post('budgets')
-  @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.ADMIN)
+  @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.ADMIN, ROLES.DEPARTMENT_SECRETARY, ROLES.DEPARTMENT_CHAIRPERSON)
   async createBudget(@Body() body: CreateBudgetDto, @Req() req) {
     return this.financeService.createBudget(body, req.user);
   }
 
   @Post('budgets/:id/approve')
-  @Roles(ROLES.SECRETARY, ROLES.ASSISTANT_SECRETARY, ROLES.CHAIRPERSON, ROLES.ASSISTANT_CHAIRPERSON, ROLES.ADMIN)
+  @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.ASSISTANT_SECRETARY, ROLES.CHAIRPERSON, ROLES.ASSISTANT_CHAIRPERSON, ROLES.ADMIN)
   async approveBudget(@Param('id') id: string, @Body() body: { decision: string; comment?: string }, @Req() req) {
     return this.financeService.approveBudget(id, body?.decision, body?.comment, req.user);
   }

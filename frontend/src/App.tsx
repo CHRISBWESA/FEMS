@@ -16,7 +16,10 @@ import DepartmentDetail from './pages/DepartmentDetail';
 import Activities from './pages/Activities';
 import ActivityDetail from './pages/ActivityDetail';
 import Reports from './pages/Reports';
-import Finance from './pages/Finance';
+import FinanceArea, { CENTRAL_FINANCE_ROLES } from './fin/FinanceArea';
+import { ProjectsList, ProjectDetail } from './fin/Projects';
+import PublicGive from './fin/PublicGive';
+import WsMoney from './fin/WsMoney';
 import Notifications from './pages/Notifications';
 import Audit from './pages/Audit';
 import RecycleBin from './pages/RecycleBin';
@@ -282,6 +285,8 @@ export default function App() {
               landing page. Both are reachable by path in every environment. On the apex domain in production,
               `/` below sends a visitor to the marketing site instead of the app, so the front door of the platform
               is its own home page. */}
+          {/* Public fundraising page: no sign-in, totals only. */}
+          <Route path="/give/:slug" element={<PublicGive />} />
           <Route path="/site/*" element={<PlatformSite />} />
           <Route path="/f/:subdomain/*" element={<FellowshipSite />} />
           {/* The department leaders' workspace: its own layout, separate from the fellowship administration. */}
@@ -293,6 +298,7 @@ export default function App() {
             <Route path="announcements" element={<WsAnnouncements />} />
             <Route path="reports" element={<WsReports />} />
             <Route path="finance" element={<WsFinance />} />
+            <Route path="money/*" element={<WsMoney />} />
             <Route path="leadership" element={<WsLeadership />} />
             <Route path="account" element={<WsAccount />} />
             <Route path="notifications" element={<Notifications />} />
@@ -314,7 +320,9 @@ export default function App() {
             <Route path="activities" element={<ExcludeAdmin><Activities /></ExcludeAdmin>} />
             <Route path="activities/:id" element={<ExcludeAdmin><ActivityDetail /></ExcludeAdmin>} />
             <Route path="reports" element={<ExcludeAdmin><Reports /></ExcludeAdmin>} />
-            <Route path="finance" element={<ExcludeAdmin><RequireRole roles={['treasurer', 'secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'department_secretary', 'department_chairperson']}>{<Finance />}</RequireRole></ExcludeAdmin>} />
+            <Route path="finance/*" element={<ExcludeAdmin><RequireRole roles={CENTRAL_FINANCE_ROLES}>{<FinanceArea />}</RequireRole></ExcludeAdmin>} />
+            <Route path="projects" element={<ExcludeAdmin><RequireRole roles={[...CENTRAL_FINANCE_ROLES, 'department_chairperson', 'department_secretary']}><ProjectsList /></RequireRole></ExcludeAdmin>} />
+            <Route path="projects/:id" element={<ExcludeAdmin><RequireRole roles={[...CENTRAL_FINANCE_ROLES, 'department_chairperson', 'department_secretary']}><ProjectDetail /></RequireRole></ExcludeAdmin>} />
             <Route path="my-giving" element={<ExcludeAdmin><MyGiving /></ExcludeAdmin>} />
             <Route path="resources" element={<ExcludeAdmin><RequireRole roles={['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'treasurer', 'department_secretary', 'department_chairperson']}>{<Resources />}</RequireRole></ExcludeAdmin>} />
             <Route path="resources/:id" element={<ExcludeAdmin><RequireRole roles={['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'treasurer', 'department_secretary', 'department_chairperson']}>{<AssetDetail />}</RequireRole></ExcludeAdmin>} />

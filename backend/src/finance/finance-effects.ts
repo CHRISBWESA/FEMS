@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { randomBytes } from 'crypto';
+import { D, postEntry, reverseSource } from './accounting/ledger';
+import { reverseContributionTx } from './accounting/contributions-core.service';
 import { assertPeriodOpen, validateAmount, validateDate, validateOptionalUuid, validateText } from './finance.validation';
 
 export type FinanceKind = 'contribution' | 'expense' | 'budget' | 'income';
@@ -128,20 +129,30 @@ export async function applyFinanceEffect(
     await assertPeriodOpen(tx as any, record.fellowship_id, record[cfg.dateColumn]);
   }
 
+  const actor = actorUserId ?? approval.created_by;
+  const reason: string = approval.metadata?.reason || 'Approved reversal request';
+
   if (effect.action === 'delete') {
-    // Recoverable: the row is copied to the recycle bin (30-day restore window) before deletion.
-    await tx.deletedRecord.create({
-      data: {
-        original_collection: cfg.collection,
-        original_record_id: record.id,
-        original_data: JSON.parse(JSON.stringify(record)),
-        fellowship_id: record.fellowship_id ?? null,
-        deleted_by: actorUserId ?? approval.created_by,
-        restore_token: randomBytes(24).toString('hex'),
-      },
-    });
-    await db[cfg.model].delete({ where: { id: record.id } });
-    await audit(tx, actorUserId, `finance.${effect.kind}_delete_applied`, effect.kind, record.id, { amount: record.amount?.toString?.() });
+    // Financial records are never deleted. An approved "delete" reverses the money in the ledger (or cancels a
+    // record that never moved money) and keeps the row, so the history stays complete.
+    if (effect.kind === 'contribution') {
+      await reverseContributionTx(tx, record.id, actor, reason);
+    } else if (effect.kind === 'income') {
+      const done = await tx.incomeRecord.updateMany({ where: { id: record.id, status: 'active' }, data: { status: 'reversed', reversed_at: new Date(), reversed_by: actor, reversal_reason: reason } });
+      if (done.count !== 1) throw new BadRequestException('This income has already been reversed.');
+      if (record.fellowship_id) await reverseSource(tx, record.fellowship_id, 'income', record.id, actor, reason);
+    } else if (effect.kind === 'expense') {
+      if (record.reversed_at) throw new BadRequestException('This expense has already been reversed.');
+      if (record.payment_status === 'paid' && record.fellowship_id) {
+        await reverseSource(tx, record.fellowship_id, 'expense', record.id, actor, reason);
+        await tx.expense.update({ where: { id: record.id }, data: { payment_status: 'reversed', reversed_at: new Date(), reversed_by: actor, reversal_reason: reason } });
+      } else {
+        await tx.expense.update({ where: { id: record.id }, data: { approval_status: 'CANCELLED', reversed_at: new Date(), reversed_by: actor, reversal_reason: reason } });
+      }
+    } else {
+      await tx.budget.update({ where: { id: record.id }, data: { approval_status: 'CANCELLED' } });
+    }
+    await audit(tx, actorUserId, `finance.${effect.kind}_delete_applied`, effect.kind, record.id, { amount: record.amount?.toString?.() }, { outcome: effect.kind === 'budget' ? 'cancelled' : 'reversed', reason });
     return true;
   }
 
@@ -159,6 +170,9 @@ export async function applyFinanceEffect(
       if (!ref) throw new BadRequestException(`The selected ${column === 'category_id' ? 'category' : 'campaign'} is not available.`);
     }
   }
+  if (changes.amount !== undefined && !D(changes.amount).equals(record.amount)) {
+    await adjustAmount(tx, effect.kind, record, D(changes.amount), actor, reason);
+  }
   const updated = await db[cfg.model].update({ where: { id: record.id }, data: changes });
   await audit(
     tx,
@@ -170,4 +184,30 @@ export async function applyFinanceEffect(
     { amount: updated.amount?.toString?.(), fields: Object.keys(changes) },
   );
   return true;
+}
+
+// An approved change of amount on money that is already in the ledger is posted as an adjustment for the
+// difference; the original entry is never rewritten.
+async function adjustAmount(tx: Prisma.TransactionClient, kind: FinanceKind, record: any, next: Prisma.Decimal, actor: string, reason: string) {
+  if (record.status === 'reversed' || record.reversed_at) throw new BadRequestException('A reversed record cannot be edited.');
+  if (kind === 'expense') {
+    if (record.payment_status === 'paid') throw new BadRequestException('A paid expense cannot change its amount; reverse it and record it again.');
+    return;
+  }
+  if (kind === 'budget') return;
+  if (kind === 'contribution') {
+    if (record.pledge_id || record.membership_fee_id) {
+      throw new BadRequestException('A pledge or membership-fee payment cannot change its amount; reverse it and record it again.');
+    }
+    const allocated = await tx.contributionAllocation.aggregate({ where: { contribution_id: record.id, is_active: true }, _sum: { amount: true } });
+    if (D(allocated._sum.amount).greaterThan(next)) throw new BadRequestException('The new amount is less than what is allocated to projects; change the allocations first.');
+  }
+  const sourceType = kind === 'contribution' ? 'contribution' : 'income';
+  const posted = await tx.ledgerEntry.findFirst({ where: { source_type: sourceType, source_id: record.id, entry_type: { in: ['contribution', 'income'] } } });
+  if (!posted) return;
+  await postEntry(tx, {
+    fellowshipId: record.fellowship_id, accountId: posted.account_id, amount: next.minus(record.amount), entryType: 'adjustment',
+    sourceType, sourceId: record.id, date: new Date(), userId: actor, departmentId: posted.department_id,
+    reference: posted.reference, description: `Amount corrected: ${reason}`, allowOverdraw: true,
+  });
 }

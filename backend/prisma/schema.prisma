@@ -152,6 +152,59 @@ enum FinanceCategoryKind {
 enum CampaignStatus {
   active
   closed
+  draft
+  paused
+}
+
+enum FinancialAccountType {
+  cash
+  bank
+  mobile_money
+  other
+}
+
+enum LedgerEntryType {
+  opening_balance
+  contribution
+  income
+  expense
+  transfer_in
+  transfer_out
+  reversal
+  adjustment
+}
+
+enum ContributorType {
+  member
+  external
+  anonymous
+}
+
+enum ProjectStatus {
+  DRAFT
+  PENDING_APPROVAL
+  RETURNED
+  APPROVED
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CLOSED
+  REJECTED
+}
+
+enum FeeFrequency {
+  monthly
+  semester
+  annual
+  one_time
+  custom
+}
+
+enum PledgeStatus {
+  pending
+  partially_fulfilled
+  fulfilled
+  cancelled
 }
 
 enum PledgeFrequency {
@@ -524,6 +577,7 @@ model Department {
   youthProfiles         YouthProfile[]
   assets                Asset[]
   serviceOpportunities  ServiceOpportunity[]
+  financialAccounts     FinancialAccount[]
 
   @@index([fellowship_id])
   @@unique([fellowship_id, name], map: "departments_fellowship_id_name_key")
@@ -728,7 +782,8 @@ model Announcement {
 
 model Contribution {
   id                    String         @id @default(uuid()) @db.Uuid
-  member_id             String         @db.Uuid
+  // Null for external and anonymous contributors.
+  member_id             String?        @db.Uuid
   fellowship_id         String?        @db.Uuid
   amount                Decimal        @db.Decimal(12, 2)
   contribution_type     String
@@ -745,10 +800,43 @@ model Contribution {
   notes                 String?
   created_at            DateTime       @default(now())
   updated_at            DateTime       @updatedAt
+  // ---- Ledger-backed contributions (finance & projects) ----
+  receipt_number        String?
+  contributor_type      ContributorType @default(member)
+  contributor_name      String?
+  contributor_phone     String?
+  contributor_email     String?
+  payment_method        String?
+  payment_reference     String?
+  // method + reference, lower-cased: the same payment reference can never be recorded twice in a fellowship.
+  payment_dedupe_key    String?
+  account_id            String?        @db.Uuid
+  // Set for a department's own contribution; null for central fellowship money.
+  department_id         String?        @db.Uuid
+  pledge_id             String?        @db.Uuid
+  // The part of this payment that went towards the pledge; the rest (if any) is an additional contribution.
+  pledge_applied        Decimal?       @db.Decimal(12, 2)
+  membership_fee_id     String?        @db.Uuid
+  attachments           Json           @default("[]")
+  // active | reversed. Financial records are never deleted: a mistake is reversed in the ledger.
+  status                String         @default("active")
+  reversed_at           DateTime?
+  reversed_by           String?        @db.Uuid
+  reversal_reason       String?
 
-  member                Member         @relation(fields: [member_id], references: [id], onDelete: Cascade)
+  // A member leaving never deletes the money they gave.
+  member                Member?        @relation(fields: [member_id], references: [id], onDelete: SetNull)
   campaign              ContributionCampaign? @relation(fields: [campaign_id], references: [id], onDelete: SetNull)
   category              FinanceCategory?      @relation(fields: [category_id], references: [id], onDelete: SetNull)
+  account               FinancialAccount?     @relation(fields: [account_id], references: [id], onDelete: Restrict)
+  allocations           ContributionAllocation[]
+
+  @@unique([fellowship_id, receipt_number])
+  @@unique([fellowship_id, payment_dedupe_key])
+  @@index([department_id, date])
+  @@index([pledge_id])
+  @@index([membership_fee_id])
+  @@index([account_id])
 
   @@index([fellowship_id])
   @@index([member_id, date])
@@ -774,11 +862,40 @@ model Expense {
   approval_workflow_id  String?        @db.Uuid
   created_at            DateTime       @default(now())
   updated_at            DateTime       @updatedAt
+  // ---- Payment and budget tracking. Approved is not paid: payment_status moves to 'paid' only when money leaves an account. ----
+  expense_number        String?
+  amount_approved       Decimal?       @db.Decimal(12, 2)
+  amount_paid           Decimal?       @db.Decimal(12, 2)
+  payment_status        String         @default("unpaid")
+  project_id            String?        @db.Uuid
+  activity_id           String?        @db.Uuid
+  budget_id             String?        @db.Uuid
+  budget_line_id        String?        @db.Uuid
+  payee                 String?
+  payment_method        String?
+  payment_reference     String?
+  account_id            String?        @db.Uuid
+  paid_at               DateTime?
+  paid_by               String?        @db.Uuid
+  // Money already spent before approval (a reimbursement): must carry evidence and be verified before payment.
+  already_incurred      Boolean        @default(false)
+  verified_at           DateTime?
+  verified_by           String?        @db.Uuid
+  attachments           Json           @default("[]")
+  // The money request this expense pays out (one request, at most one expense).
+  money_request_id      String?        @unique @db.Uuid
+  reversed_at           DateTime?
+  reversed_by           String?        @db.Uuid
+  reversal_reason       String?
 
   category              FinanceCategory? @relation(fields: [category_id], references: [id], onDelete: SetNull)
+  account               FinancialAccount? @relation(fields: [account_id], references: [id], onDelete: Restrict)
 
   @@index([fellowship_id])
   @@index([department_id, date])
+  @@unique([fellowship_id, expense_number])
+  @@index([project_id])
+  @@index([budget_id])
   @@map("expenses")
   // Foreign key without an index (found in the Phase 22 database review): a join or a parent delete scanned the whole table.
   @@index([category_id])
@@ -797,8 +914,25 @@ model Budget {
   approval_workflow_id  String?        @db.Uuid
   created_at            DateTime       @default(now())
   updated_at            DateTime       @updatedAt
+  // ---- Line-item budgets ----
+  budget_number         String?
+  // annual | department | project | activity | fundraising
+  budget_type           String         @default("annual")
+  project_id            String?        @db.Uuid
+  activity_id           String?        @db.Uuid
+  budget_call_id        String?        @db.Uuid
+  period_start          DateTime?
+  period_end            DateTime?
+  version               Int            @default(1)
+
+  lines                 BudgetLineItem[]
+  revisions             BudgetRevision[]
 
   @@index([fellowship_id])
+  @@unique([fellowship_id, budget_number])
+  @@index([department_id])
+  @@index([project_id])
+  @@index([budget_call_id])
   @@map("budgets")
 }
 
@@ -821,11 +955,19 @@ model MoneyRequest {
   expense_breakdown     Json?
   attachments           Json           @default("[]")
   submitted_at          DateTime?
+  request_number            String?
+  project_id                String?   @db.Uuid
+  budget_id                 String?   @db.Uuid
+  budget_line_id            String?   @db.Uuid
+  required_date             DateTime?
+  preferred_payment_method  String?
 
   release               MoneyRequestRelease?
 
   @@index([fellowship_id])
   @@index([department_id])
+  @@unique([fellowship_id, request_number])
+  @@index([project_id])
   @@map("money_requests")
 }
 
@@ -865,12 +1007,21 @@ model ContributionCampaign {
   created_by     String         @db.Uuid
   created_at     DateTime       @default(now())
   updated_at     DateTime       @updatedAt
+  // ---- Fundraising ----
+  project_id        String?   @db.Uuid
+  budget_breakdown  Json      @default("[]")
+  // Unguessable public identifier; the public page shows aggregates only, never contributors.
+  public_slug       String?   @unique
+  is_public         Boolean   @default(false)
+  published_at      DateTime?
 
   contributions  Contribution[]
   income         IncomeRecord[]
   pledges        ContributionPledge[]
+  updates        CampaignUpdate[]
 
   @@unique([fellowship_id, name])
+  @@index([project_id])
   @@map("contribution_campaigns")
 }
 
@@ -890,11 +1041,24 @@ model IncomeRecord {
   recorded_by          String                @db.Uuid
   created_at           DateTime              @default(now())
   updated_at           DateTime              @updatedAt
+  receipt_number       String?
+  account_id           String?               @db.Uuid
+  project_id           String?               @db.Uuid
+  funding_source       String?
+  payment_method       String?
+  payment_reference    String?
+  status               String                @default("active")
+  reversed_at          DateTime?
+  reversed_by          String?               @db.Uuid
+  reversal_reason      String?
 
   category             FinanceCategory?      @relation(fields: [category_id], references: [id], onDelete: SetNull)
   campaign             ContributionCampaign? @relation(fields: [campaign_id], references: [id], onDelete: SetNull)
+  account              FinancialAccount?     @relation(fields: [account_id], references: [id], onDelete: Restrict)
 
   @@index([fellowship_id, date])
+  @@unique([fellowship_id, receipt_number])
+  @@index([project_id])
   @@map("income_records")
   // Foreign key without an index (found in the Phase 22 database review): a join or a parent delete scanned the whole table.
   @@index([campaign_id])
@@ -911,6 +1075,13 @@ model FinancialPeriod {
   is_closed      Boolean   @default(false)
   closed_by      String?   @db.Uuid
   closed_at      DateTime?
+  // year | quarter | month | custom. Closing a year goes through Treasurer -> Secretary -> Chairperson.
+  period_type          String    @default("custom")
+  closure_status       String?
+  closure_workflow_id  String?   @db.Uuid
+  reopened_by          String?   @db.Uuid
+  reopened_at          DateTime?
+  reopen_reason        String?
   created_by     String    @db.Uuid
   created_at     DateTime  @default(now())
   updated_at     DateTime  @updatedAt
@@ -924,7 +1095,7 @@ model FinancialPeriod {
 model ContributionPledge {
   id             String                @id @default(uuid()) @db.Uuid
   fellowship_id  String?               @db.Uuid
-  member_id      String                @db.Uuid
+  member_id      String?               @db.Uuid
   campaign_id    String?               @db.Uuid
   amount         Decimal               @db.Decimal(12, 2)
   frequency      PledgeFrequency
@@ -935,9 +1106,24 @@ model ContributionPledge {
   created_by     String                @db.Uuid
   created_at     DateTime              @default(now())
   updated_at     DateTime              @updatedAt
+  // ---- Pledges towards projects and campaigns. A pledge is a promise, never money: payments are contributions. ----
+  pledge_number      String?
+  contributor_type   ContributorType @default(member)
+  contributor_name   String?
+  contributor_phone  String?
+  project_id         String?   @db.Uuid
+  department_id      String?   @db.Uuid
+  pledged_at         DateTime?
+  due_date           DateTime?
+  amount_fulfilled   Decimal   @default(0) @db.Decimal(12, 2)
+  status             PledgeStatus @default(pending)
+  last_reminded_at   DateTime?
 
-  member         Member                @relation(fields: [member_id], references: [id], onDelete: Cascade)
+  member         Member?               @relation(fields: [member_id], references: [id], onDelete: SetNull)
   campaign       ContributionCampaign? @relation(fields: [campaign_id], references: [id], onDelete: SetNull)
+
+  @@unique([fellowship_id, pledge_number])
+  @@index([project_id])
 
   @@index([fellowship_id])
   @@index([member_id])
@@ -959,11 +1145,379 @@ model MoneyRequestRelease {
   receipt_document_id  String?      @db.Uuid
   released_by          String       @db.Uuid
   released_at          DateTime     @default(now())
+  account_id           String?      @db.Uuid
+  expense_id           String?      @db.Uuid
 
   money_request        MoneyRequest @relation(fields: [money_request_id], references: [id], onDelete: Restrict)
 
   @@index([fellowship_id, released_at])
   @@map("money_request_releases")
+}
+
+// ---------- Accounts, ledger and projects ----------
+//
+// The ledger is the financial source of truth. Every movement of real money (a contribution received, income, an
+// expense paid, a transfer, an opening balance, a reversal or an adjustment) is one immutable ledger_entries row
+// against one account. An account's balance changes only together with its ledger entry, in one transaction.
+// Corrections are reversals or adjustments; nothing is edited or deleted.
+
+model FinanceSettings {
+  id                          String   @id @default(uuid()) @db.Uuid
+  fellowship_id               String   @unique @db.Uuid
+  currency                    String   @default("TZS")
+  receipt_prefix              String   @default("RCT")
+  // Department expenses at or above this amount need central approval (Treasurer -> Secretary -> Chairperson).
+  major_expense_threshold     Decimal? @db.Decimal(12, 2)
+  budget_warning_percent      Int      @default(80)
+  financial_year_start_month  Int      @default(1)
+  payment_methods             String[] @default(["cash", "bank_transfer", "mobile_money", "cheque", "other"])
+  updated_by                  String?  @db.Uuid
+  created_at                  DateTime @default(now())
+  updated_at                  DateTime @updatedAt
+
+  @@map("finance_settings")
+}
+
+// Per-fellowship, per-year sequence for receipt, expense, request, project and other reference numbers.
+model FinanceCounter {
+  fellowship_id  String @db.Uuid
+  key            String
+  year           Int
+  value          Int    @default(0)
+
+  @@id([fellowship_id, key, year])
+  @@map("finance_counters")
+}
+
+model FinancialAccount {
+  id                  String   @id @default(uuid()) @db.Uuid
+  fellowship_id       String   @db.Uuid
+  // Null for a central fellowship account; set for a department's own account.
+  department_id       String?  @db.Uuid
+  name                String
+  account_type        FinancialAccountType
+  currency            String   @default("TZS")
+  reference           String?
+  description         String?
+  opening_balance     Decimal  @default(0) @db.Decimal(14, 2)
+  // Maintained only by the ledger service, together with each ledger entry.
+  balance             Decimal  @default(0) @db.Decimal(14, 2)
+  is_default          Boolean  @default(false)
+  // "<fellowship>:<department or central>" while the account is its scope's default: one default per scope.
+  default_key         String?  @unique
+  is_active           Boolean  @default(true)
+  last_reconciled_at  DateTime?
+  created_by          String   @db.Uuid
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  department          Department?  @relation(fields: [department_id], references: [id], onDelete: Restrict)
+  entries             LedgerEntry[]
+  transfersOut        FinancialTransfer[] @relation("transfer_from")
+  transfersIn         FinancialTransfer[] @relation("transfer_to")
+  reconciliations     AccountReconciliation[]
+  contributions       Contribution[]
+  expenses            Expense[]
+  income              IncomeRecord[]
+
+  @@index([fellowship_id, department_id])
+  @@map("financial_accounts")
+}
+
+model LedgerEntry {
+  id                 String          @id @default(uuid()) @db.Uuid
+  fellowship_id      String          @db.Uuid
+  account_id         String          @db.Uuid
+  department_id      String?         @db.Uuid
+  project_id         String?         @db.Uuid
+  entry_type         LedgerEntryType
+  // Signed: money into the account is positive, money out is negative.
+  amount             Decimal         @db.Decimal(14, 2)
+  balance_after      Decimal         @db.Decimal(14, 2)
+  entry_date         DateTime
+  // What caused the movement: contribution | income | expense | transfer | account | reconciliation | ...
+  source_type        String
+  source_id          String          @db.Uuid
+  reference          String?
+  description        String?
+  // Set on primary entries so one source can never be posted twice.
+  dedupe_key         String?         @unique
+  // A reversal points at the entry it cancels; unique, so an entry can be reversed only once.
+  reverses_entry_id  String?         @unique @db.Uuid
+  created_by         String          @db.Uuid
+  created_at         DateTime        @default(now())
+
+  account            FinancialAccount @relation(fields: [account_id], references: [id], onDelete: Restrict)
+
+  @@index([fellowship_id, entry_date])
+  @@index([account_id, entry_date])
+  @@index([source_type, source_id])
+  @@index([department_id, entry_date])
+  @@index([project_id])
+  @@map("ledger_entries")
+}
+
+// A movement between two accounts. Never income or expense. Transfers between central and department funds need
+// Fellowship Secretary and Chairperson approval; transfers between two departments are not allowed.
+model FinancialTransfer {
+  id                    String    @id @default(uuid()) @db.Uuid
+  fellowship_id         String    @db.Uuid
+  transfer_number       String
+  from_account_id       String    @db.Uuid
+  to_account_id         String    @db.Uuid
+  amount                Decimal   @db.Decimal(14, 2)
+  transfer_date         DateTime
+  reference             String?
+  description           String?
+  // PENDING | COMPLETED | REJECTED | RETURNED | CANCELLED
+  status                String    @default("COMPLETED")
+  requires_approval     Boolean   @default(false)
+  approval_workflow_id  String?   @db.Uuid
+  recorded_by           String    @db.Uuid
+  completed_at          DateTime?
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  fromAccount           FinancialAccount @relation("transfer_from", fields: [from_account_id], references: [id], onDelete: Restrict)
+  toAccount             FinancialAccount @relation("transfer_to", fields: [to_account_id], references: [id], onDelete: Restrict)
+
+  @@unique([fellowship_id, transfer_number])
+  @@index([from_account_id])
+  @@index([to_account_id])
+  @@map("financial_transfers")
+}
+
+model AccountReconciliation {
+  id                   String   @id @default(uuid()) @db.Uuid
+  fellowship_id        String   @db.Uuid
+  account_id           String   @db.Uuid
+  statement_date       DateTime
+  statement_balance    Decimal  @db.Decimal(14, 2)
+  system_balance       Decimal  @db.Decimal(14, 2)
+  difference           Decimal  @db.Decimal(14, 2)
+  adjustment_entry_id  String?  @db.Uuid
+  notes                String?
+  reconciled_by        String   @db.Uuid
+  created_at           DateTime @default(now())
+
+  account              FinancialAccount @relation(fields: [account_id], references: [id], onDelete: Restrict)
+
+  @@index([account_id, statement_date])
+  @@map("account_reconciliations")
+}
+
+model Project {
+  id                          String        @id @default(uuid()) @db.Uuid
+  fellowship_id               String        @db.Uuid
+  project_number              String
+  // fellowship: central finances (even when a department coordinates it); department: that department's finances.
+  scope                       String        @default("fellowship")
+  department_id               String?       @db.Uuid
+  coordinating_department_id  String?       @db.Uuid
+  name                        String
+  purpose                     String
+  description                 String?
+  project_type                String?
+  coordinator_member_id       String?       @db.Uuid
+  start_date                  DateTime?
+  end_date                    DateTime?
+  location                    String?
+  budget_amount               Decimal       @default(0) @db.Decimal(14, 2)
+  attachments                 Json          @default("[]")
+  status                      ProjectStatus @default(DRAFT)
+  approval_workflow_id        String?       @db.Uuid
+  submitted_at                DateTime?
+  approved_at                 DateTime?
+  closure_workflow_id         String?       @db.Uuid
+  // pending | returned | rejected | approved
+  closure_status              String?
+  final_report                String?
+  // return_to_general_fund | carry_forward
+  unspent_disposition         String?
+  carry_forward_project_id    String?       @db.Uuid
+  closed_at                   DateTime?
+  created_by                  String        @db.Uuid
+  created_at                  DateTime      @default(now())
+  updated_at                  DateTime      @updatedAt
+
+  fundingSources              ProjectFundingSource[]
+  allocations                 ContributionAllocation[]
+  fundAllocations             ProjectAllocation[]
+
+  @@unique([fellowship_id, project_number])
+  @@index([fellowship_id, status])
+  @@index([department_id])
+  @@map("projects")
+}
+
+model ProjectFundingSource {
+  id               String   @id @default(uuid()) @db.Uuid
+  project_id       String   @db.Uuid
+  // contributions | general_fund | grant | sponsorship | fundraising | department | other
+  source_type      String
+  name             String
+  expected_amount  Decimal  @default(0) @db.Decimal(14, 2)
+  notes            String?
+  created_at       DateTime @default(now())
+
+  project          Project  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@index([project_id])
+  @@map("project_funding_sources")
+}
+
+// How much of one contribution goes to one project. A contribution can be unallocated, go to one project, or be
+// split; the active allocations never exceed the contribution. Changing allocations ends the old rows (history).
+model ContributionAllocation {
+  id               String    @id @default(uuid()) @db.Uuid
+  fellowship_id    String    @db.Uuid
+  contribution_id  String    @db.Uuid
+  project_id       String    @db.Uuid
+  amount           Decimal   @db.Decimal(12, 2)
+  is_active        Boolean   @default(true)
+  created_by       String    @db.Uuid
+  created_at       DateTime  @default(now())
+  ended_at         DateTime?
+  ended_by         String?   @db.Uuid
+  end_reason       String?
+
+  contribution     Contribution @relation(fields: [contribution_id], references: [id], onDelete: Restrict)
+  project          Project      @relation(fields: [project_id], references: [id], onDelete: Restrict)
+
+  @@index([contribution_id, is_active])
+  @@index([project_id, is_active])
+  @@map("contribution_allocations")
+}
+
+// Internal earmarking of General Fund money for a project, and returns of unspent money at closure. Not income.
+model ProjectAllocation {
+  id                    String    @id @default(uuid()) @db.Uuid
+  fellowship_id         String    @db.Uuid
+  allocation_number     String
+  project_id            String    @db.Uuid
+  // general_fund_allocation | return_to_general_fund | carry_forward_out | carry_forward_in
+  kind                  String
+  // Signed: positive adds to the project's funds, negative takes from them.
+  amount                Decimal   @db.Decimal(14, 2)
+  // PENDING | APPROVED | REJECTED | RETURNED | CANCELLED
+  status                String    @default("PENDING")
+  approval_workflow_id  String?   @db.Uuid
+  related_project_id    String?   @db.Uuid
+  notes                 String?
+  created_by            String    @db.Uuid
+  approved_at           DateTime?
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  project               Project   @relation(fields: [project_id], references: [id], onDelete: Restrict)
+
+  @@unique([fellowship_id, allocation_number])
+  @@index([project_id])
+  @@map("project_allocations")
+}
+
+model CampaignUpdate {
+  id             String   @id @default(uuid()) @db.Uuid
+  fellowship_id  String?  @db.Uuid
+  campaign_id    String   @db.Uuid
+  title          String
+  body           String
+  is_published   Boolean  @default(true)
+  created_by     String   @db.Uuid
+  created_at     DateTime @default(now())
+
+  campaign       ContributionCampaign @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
+
+  @@index([campaign_id, created_at])
+  @@map("campaign_updates")
+}
+
+model BudgetLineItem {
+  id           String   @id @default(uuid()) @db.Uuid
+  budget_id    String   @db.Uuid
+  name         String
+  category_id  String?  @db.Uuid
+  amount       Decimal  @db.Decimal(14, 2)
+  notes        String?
+  sort_order   Int      @default(0)
+  // A line removed by a revision stays (expenses may point at it) but is no longer part of the budget.
+  is_active    Boolean  @default(true)
+  created_at   DateTime @default(now())
+
+  budget       Budget   @relation(fields: [budget_id], references: [id], onDelete: Cascade)
+
+  @@index([budget_id])
+  @@map("budget_line_items")
+}
+
+model BudgetRevision {
+  id                    String         @id @default(uuid()) @db.Uuid
+  fellowship_id         String?        @db.Uuid
+  budget_id             String         @db.Uuid
+  from_version          Int
+  reason                String
+  proposed_lines        Json
+  proposed_amount       Decimal        @db.Decimal(14, 2)
+  // The approved version this revision replaced, kept for history once it is applied.
+  previous_lines        Json?
+  previous_amount       Decimal?       @db.Decimal(14, 2)
+  status                ApprovalStatus @default(SUBMITTED)
+  approval_workflow_id  String?        @db.Uuid
+  created_by            String         @db.Uuid
+  applied_at            DateTime?
+  created_at            DateTime       @default(now())
+  updated_at            DateTime       @updatedAt
+
+  budget                Budget         @relation(fields: [budget_id], references: [id], onDelete: Cascade)
+
+  @@index([budget_id])
+  @@map("budget_revisions")
+}
+
+// The Fellowship Secretary's instruction to departments to submit their annual budgets.
+model BudgetCall {
+  id               String   @id @default(uuid()) @db.Uuid
+  fellowship_id    String   @db.Uuid
+  title            String
+  fiscal_year      String
+  period_start     DateTime
+  period_end       DateTime
+  instructions     String?
+  deadline         DateTime
+  all_departments  Boolean  @default(true)
+  department_ids   Json     @default("[]")
+  // open | closed
+  status           String   @default("open")
+  created_by       String   @db.Uuid
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  @@index([fellowship_id, status])
+  @@map("budget_calls")
+}
+
+// A department's membership fee or recurring contribution. Payments are contributions with membership_fee_id.
+model MembershipFee {
+  id                   String       @id @default(uuid()) @db.Uuid
+  fellowship_id        String       @db.Uuid
+  department_id        String       @db.Uuid
+  name                 String
+  amount               Decimal      @db.Decimal(12, 2)
+  frequency            FeeFrequency
+  start_date           DateTime
+  end_date             DateTime?
+  // Explicit due dates for a custom schedule.
+  due_dates            Json         @default("[]")
+  // Null means every current member of the department.
+  eligible_member_ids  Json?
+  allow_partial        Boolean      @default(true)
+  is_active            Boolean      @default(true)
+  created_by           String       @db.Uuid
+  created_at           DateTime     @default(now())
+  updated_at           DateTime     @updatedAt
+
+  @@index([department_id, is_active])
+  @@map("membership_fees")
 }
 
 // ---------- Resources & assets (Phase 16) ----------
