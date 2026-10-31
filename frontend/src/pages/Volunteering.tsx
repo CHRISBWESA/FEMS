@@ -228,11 +228,10 @@ function ReportsTab() {
       {error ? <Alert tone="danger">{error}</Alert> : !data ? <PageLoader /> : (
         <>
           {data.scope === 'department' && <p className="text-sm text-ink-muted">Showing your department only.</p>}
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             {[
               ['Volunteers', data.participation.volunteers],
               ['Hours served', data.participation.hoursServed],
-              ['Attendance rate', data.participation.attendanceRate == null ? '—' : `${data.participation.attendanceRate}%`],
               ['Shifts filled', data.participation.fillRate == null ? '—' : `${data.participation.fillRate}%`],
               ['Unfilled (next 14 days)', `${data.upcoming.unfilled} of ${data.upcoming.next14Days}`],
             ].map(([l, v]) => <div key={l as string} className="card"><p className="text-sm text-ink-muted">{l}</p><p className="text-2xl font-semibold text-ink">{v}</p></div>)}

@@ -51,8 +51,6 @@ interface MemberFetchParams {
   serviceInterests?: string;
   joinedFrom?: string;
   joinedTo?: string;
-  attendance?: 'attended' | 'not_attended';
-  days?: string;
 }
 
 interface CreateMemberData {
@@ -94,8 +92,6 @@ export function MembersProvider({ children }: { children: ReactNode }) {
       if (fetchParams.serviceInterests) params.set('serviceInterests', fetchParams.serviceInterests);
       if (fetchParams.joinedFrom) params.set('joinedFrom', fetchParams.joinedFrom);
       if (fetchParams.joinedTo) params.set('joinedTo', fetchParams.joinedTo);
-      if (fetchParams.attendance) params.set('attendance', fetchParams.attendance);
-      if (fetchParams.days) params.set('days', fetchParams.days);
       params.set('page', (fetchParams.page || 1).toString());
       params.set('limit', (fetchParams.limit || 20).toString());
 

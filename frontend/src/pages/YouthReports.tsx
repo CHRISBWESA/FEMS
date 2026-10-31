@@ -26,7 +26,7 @@ export default function YouthReports() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Youth &amp; Children Reports</h1>
-          <p className="page-desc">Aggregate participation and attendance overview.</p>
+          <p className="page-desc">Aggregate participation overview.</p>
         </div>
       </div>
 

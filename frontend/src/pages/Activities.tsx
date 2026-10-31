@@ -7,7 +7,7 @@ import { totalFromHeaders } from '../lib/list-total';
 import { PageLoader } from '../components/ui';
 import {
   CalendarIcon, MapPinIcon, ClockIcon, PlusIcon, XMarkIcon,
-  LinkIcon, NoSymbolIcon, PencilSquareIcon,
+  NoSymbolIcon, PencilSquareIcon,
 } from '@heroicons/react/24/outline';
 
 const emptyForm = {
@@ -118,19 +118,6 @@ export default function Activities() {
     }
   };
 
-  const generateLink = async (a: any) => {
-    try {
-      const res = await axios.post(`/activities/${a.id}/attendance-link`, {}, { withCredentials: true });
-      const url = res.data?.url || res.data?.link || `${window.location.origin}/attendance/${a.id}`;
-      await navigator.clipboard.writeText(url);
-      alert(`Attendance link copied:\n${url}`);
-    } catch {
-      // Fallback: show the canonical URL even if the API call fails
-      navigator.clipboard.writeText(`${window.location.origin}/attendance/${a.id}`).catch(() => {});
-      alert(`Attendance link: ${window.location.origin}/attendance/${a.id}`);
-    }
-  };
-
   return (
     <div className="mx-auto max-w-7xl">
       <div className="page-header">
@@ -198,10 +185,6 @@ export default function Activities() {
                   <button onClick={(e) => { e.stopPropagation(); openEdit(a); }} className="btn btn-secondary btn-sm">
                     <PencilSquareIcon className="h-4 w-4" />
                     Edit
-                  </button>
-                  <button onClick={(e) => { e.stopPropagation(); generateLink(a); }} className="btn btn-secondary btn-sm">
-                    <LinkIcon className="h-4 w-4" />
-                    Attendance Link
                   </button>
                   {a.status !== 'cancelled' && (
                     <button onClick={(e) => { e.stopPropagation(); cancelActivity(a); }} className="btn btn-secondary btn-sm text-rose-600">

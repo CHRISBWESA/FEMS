@@ -6,8 +6,8 @@ import { CsvTable, downloadCsv } from '../lib/csv';
 import { DataTable, type Column } from '../components/DataTable';
 import { EmptyState, PageLoader, Alert } from '../components/ui';
 
-type Section = 'membership' | 'participation' | 'finance' | 'youth' | 'resources' | 'volunteers';
-const LABEL: Record<Section, string> = { membership: 'Membership', participation: 'Participation', finance: 'Finance', youth: 'Youth', resources: 'Resources', volunteers: 'Volunteers' };
+type Section = 'membership' | 'finance' | 'youth' | 'resources' | 'volunteers';
+const LABEL: Record<Section, string> = { membership: 'Membership', finance: 'Finance', youth: 'Youth', resources: 'Resources', volunteers: 'Volunteers' };
 
 const Card = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <div className="card"><h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">{title}</h3>{children}</div>
@@ -50,7 +50,8 @@ export default function Analytics() {
   }, []);
 
   if (error) return <div className="mx-auto max-w-7xl"><Alert tone="danger">{error}</Alert></div>;
-  const available: Section[] = overview?.available ?? [];
+  // Attendance-based participation analytics are not shown.
+  const available: Section[] = (overview?.available ?? []).filter((s: string) => s !== 'participation');
 
   return (
     <div className="mx-auto max-w-7xl">
@@ -101,13 +102,12 @@ function OverviewTab({ data, go }: { data: any; go: (s: Section) => void }) {
   const k = data.kpis;
   const groups: [Section, [string, any, string?][]][] = [
     ['membership', k.membership ? [['Members', k.membership.total], ['Active', k.membership.active], ['New in period', k.membership.newInPeriod]] : []],
-    ['participation', k.participation ? [['Events', k.participation.events], ['Unique attendees', k.participation.uniqueAttendees], ['Participation rate', pct(k.participation.participationRate), 'of active members'], ['Avg per event', k.participation.averagePerEvent]] : []],
     ['finance', k.finance ? [
       ...(k.finance.contributions != null ? [['Contributions', money(k.finance.contributions)] as [string, any]] : []),
       ['Approved expenses', money(k.finance.expensesApproved)], ['Awaiting approval', k.finance.pendingApprovals], ['Awaiting release', k.finance.moneyRequestsAwaitingRelease]] : []],
     ['youth', k.youth ? [['Participants', k.youth.participants], ['Active', k.youth.active]] : []],
     ['resources', k.resources ? [['Available', k.resources.available], ['On loan', k.resources.onLoan], ['In maintenance', k.resources.inMaintenance], ['Overdue loans', k.resources.overdueLoans]] : []],
-    ['volunteers', k.volunteers ? [['Volunteers', k.volunteers.volunteers], ['Hours served', k.volunteers.hoursServed], ['Attendance rate', pct(k.volunteers.attendanceRate)], ['Unfilled shifts (14d)', k.volunteers.unfilledShifts]] : []],
+    ['volunteers', k.volunteers ? [['Volunteers', k.volunteers.volunteers], ['Hours served', k.volunteers.hoursServed], ['Unfilled shifts (14d)', k.volunteers.unfilledShifts]] : []],
   ];
   const shown = groups.filter(([, items]) => items.length > 0);
   if (shown.length === 0) return <EmptyState title="No analytics are available for your role." />;
@@ -119,7 +119,7 @@ function OverviewTab({ data, go }: { data: any; go: (s: Section) => void }) {
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">{items.map(([l, v, h]) => <Stat key={l} label={l} value={v} hint={h} />)}</div>
         </div>
       ))}
-      {data.unavailable?.length > 0 && <p className="text-sm text-amber-700">Some figures could not be loaded: {data.unavailable.map((s: Section) => LABEL[s]).join(', ')}.</p>}
+      {data.unavailable?.some((s: Section) => LABEL[s]) && <p className="text-sm text-amber-700">Some figures could not be loaded: {data.unavailable.map((s: Section) => LABEL[s]).filter(Boolean).join(', ')}.</p>}
     </div>
   );
 }
@@ -127,12 +127,10 @@ function OverviewTab({ data, go }: { data: any; go: (s: Section) => void }) {
 function SectionTab({ section, query }: { section: Section; query: string }) {
   const [data, setData] = useState<any>(null);
   const [error, setError] = useState('');
-  const [eventId, setEventId] = useState('');
   useEffect(() => {
     setData(null);
-    const extra = section === 'participation' && eventId ? `&activityId=${eventId}` : '';
-    axios.get(`/analytics/${section}?${query}${extra}`, { withCredentials: true }).then((r) => { setData(r.data); setError(''); }).catch((e) => setError(errMsg(e, 'Could not load this section')));
-  }, [section, query, eventId]);
+    axios.get(`/analytics/${section}?${query}`, { withCredentials: true }).then((r) => { setData(r.data); setError(''); }).catch((e) => setError(errMsg(e, 'Could not load this section')));
+  }, [section, query]);
   if (error) return <Alert tone="danger">{error}</Alert>;
   if (!data) return <PageLoader />;
   const tables = exportTables(section, data);
@@ -140,7 +138,6 @@ function SectionTab({ section, query }: { section: Section; query: string }) {
     <div className="space-y-6">
       <div className="flex justify-end"><button className="btn btn-secondary btn-sm" onClick={() => downloadCsv(`analytics-${section}-${isoDay()}.csv`, tables)}><ArrowDownTrayIcon className="h-4 w-4" /> Export CSV</button></div>
       {section === 'membership' && <Membership d={data} />}
-      {section === 'participation' && <Participation d={data} onEvent={setEventId} eventId={eventId} />}
       {section === 'finance' && <Finance d={data} />}
       {section === 'youth' && <Youth d={data} />}
       {section === 'resources' && <Resources d={data} />}
@@ -176,49 +173,6 @@ function Membership({ d }: { d: any }) {
           caption="Status changes by month"
         />
       </Card>
-    </>
-  );
-}
-
-function Participation({ d, onEvent, eventId }: { d: any; onEvent: (id: string) => void; eventId: string }) {
-  const t = d.totals;
-  return (
-    <>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Events" value={t.events} /><Stat label="Unique attendees" value={t.uniqueAttendees} hint={`of ${t.activeMembers} active members`} />
-        <Stat label="Participation rate" value={pct(t.participationRate)} /><Stat label="Average per event" value={t.averagePerEvent} />
-      </div>
-      {t.memberLinkedShare != null && t.memberLinkedShare < 100 && (
-        <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Only {t.memberLinkedShare}% of attendance records are linked to a member; the rest were recorded by name only and cannot be attributed to a member or a department.</p>
-      )}
-      {d.truncated && <p className="text-sm text-amber-700">Showing the most recent events only; narrow the date range for a complete picture.</p>}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card title="Attendance by month"><Bars rows={d.monthly} label={(r) => r.month} value={(r) => r.linked + r.nameOnly} /></Card>
-        <Card title="By department"><Bars rows={d.byDepartment} label={(r) => r.name ?? 'Unknown'} value={(r) => r.attendance} /></Card>
-      </div>
-      <Card title="Recent events">
-        {d.recentEvents.length === 0 ? <p className="text-sm text-ink-muted">No events in this period.</p> : (
-          <DataTable
-            columns={[
-              { key: 'title', header: 'Event', priority: 'primary', render: (e: any) => <span className="font-medium text-ink">{e.title}</span> },
-              { key: 'date', header: 'Date', priority: 'secondary', render: (e: any) => new Date(e.date).toLocaleDateString() },
-              { key: 'department', header: 'Department', render: (e: any) => e.department || '—' },
-              { key: 'memberLinked', header: 'Members', tabular: true },
-              { key: 'nameOnly', header: 'Name only', tabular: true },
-              { key: 'actions', header: '', render: (e: any) => <button className="btn btn-secondary btn-sm" onClick={() => onEvent(eventId === e.id ? '' : e.id)}>{eventId === e.id ? 'Hide' : 'Details'}</button> },
-            ] as Column<any>[]}
-            rows={d.recentEvents}
-            rowKey={(e) => e.id}
-            caption="Recent events"
-          />
-        )}
-      </Card>
-      {d.event && (
-        <Card title={`Event: ${d.event.title}`}>
-          <p className="text-sm text-ink-muted">{new Date(d.event.date).toLocaleString()} · {d.event.memberLinked} member-linked, {d.event.nameOnly} name-only</p>
-          {d.event.attendeesByDepartment.length > 0 && <div className="mt-3"><Bars rows={d.event.attendeesByDepartment} label={(r) => r.name} value={(r) => r.attendees} /></div>}
-        </Card>
-      )}
     </>
   );
 }
@@ -296,7 +250,7 @@ function Volunteers({ d }: { d: any }) {
   return (
     <>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <Stat label="Volunteers" value={p.volunteers} /><Stat label="Hours served" value={p.hoursServed} /><Stat label="Attendance rate" value={pct(p.attendanceRate)} /><Stat label="Shifts filled" value={pct(p.fillRate)} /><Stat label="Unfilled (14 days)" value={`${d.upcoming.unfilled} of ${d.upcoming.next14Days}`} />
+        <Stat label="Volunteers" value={p.volunteers} /><Stat label="Hours served" value={p.hoursServed} /><Stat label="Shifts filled" value={pct(p.fillRate)} /><Stat label="Unfilled (14 days)" value={`${d.upcoming.unfilled} of ${d.upcoming.next14Days}`} />
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
         <Card title="Service per month"><Bars rows={d.monthly} label={(r) => r.month} value={(r) => r.attended} /></Card>
@@ -330,12 +284,6 @@ function exportTables(section: Section, d: any): CsvTable[] {
         { title: 'Totals', headers: ['Total', 'Active', 'Inactive', 'Graduated'], rows: [[d.totals.total, d.totals.active, d.totals.inactive, d.totals.graduated]] },
         { title: 'Status changes by month', headers: ['Month', 'Registered', 'Deactivated', 'Graduated', 'Reactivated'], rows: d.growth.map((g: any) => [g.month, g.registered, g.deactivated, g.graduated, g.reactivated]) },
         { title: 'Active members by department', headers: ['Department', 'Active members'], rows: d.byDepartment.map((x: any) => [x.name, x.activeMembers]) },
-      ];
-    case 'participation':
-      return [
-        { title: 'Totals', headers: ['Events', 'Attendance records', 'Member-linked', 'Name only', 'Unique attendees', 'Active members'], rows: [[d.totals.events, d.totals.attendanceRecords, d.totals.memberLinked, d.totals.nameOnly, d.totals.uniqueAttendees, d.totals.activeMembers]] },
-        { title: 'By month', headers: ['Month', 'Events', 'Member-linked', 'Name only'], rows: d.monthly.map((m: any) => [m.month, m.events, m.linked, m.nameOnly]) },
-        { title: 'Recent events', headers: ['Event', 'Date', 'Department', 'Member-linked', 'Name only'], rows: d.recentEvents.map((e: any) => [e.title, e.date, e.department, e.memberLinked, e.nameOnly]) },
       ];
     case 'finance':
       return [

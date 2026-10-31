@@ -4,9 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { CalendarIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 import { PageLoader } from '../components/ui';
 
-// Youth "programs" intentionally reuse the existing Activities/Attendance module rather than a
-// separate entity - this page is just a department-filtered view over /activities that links
-// into the existing ActivityDetail page (which already handles attendance recording).
+// Youth "programs" reuse the existing Activities module rather than a separate entity: this page is a
+// department-filtered view over /activities that links into the existing ActivityDetail page.
 export default function YouthPrograms() {
   const [departments, setDepartments] = useState<any[]>([]);
   const [departmentId, setDepartmentId] = useState('');

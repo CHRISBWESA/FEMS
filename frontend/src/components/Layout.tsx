@@ -13,11 +13,10 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { useOfflineSync } from '../offline/hooks';
+import { useOnline } from '../offline/hooks';
 import { onSignOut } from '../offline/session';
-import { pendingCount } from '../offline/outbox';
 import ImpersonationBanner, { SupportSessionBanner } from './platform/ImpersonationBanner';
-import { Avatar, ConfirmDialog } from './ui';
+import { Avatar } from './ui';
 import { useTheme } from '../context/ThemeContext';
 import { useI18n } from '../context/I18nContext';
 import { useInstallPrompt } from '../hooks/useInstallPrompt';
@@ -103,9 +102,8 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [disabledModules, setDisabledModules] = useState<string[]>([]);
-  const [confirmLogout, setConfirmLogout] = useState<null | { waiting: number }>(null);
   const location = useLocation();
-  const offline = useOfflineSync(user?.id);
+  const online = useOnline();
 
   useEffect(() => {
     setSidebarOpen(false);
@@ -149,25 +147,10 @@ export default function Layout() {
   })).filter((section) => section.items.length > 0);
 
   const handleLogout = async () => {
-    // Unsynced offline check-ins would be lost: make that a conscious choice. Downloaded member lists are always wiped.
-    if (user?.id) {
-      const waiting = await pendingCount(user.id).catch(() => 0);
-      if (waiting > 0) {
-        setConfirmLogout({ waiting });
-        return;
-      }
-      await onSignOut(user.id, false).catch(() => undefined);
-    }
+    // Clears anything a device kept from the old offline check-in feature.
+    if (user?.id) await onSignOut(user.id, true).catch(() => undefined);
     await logout();
     navigate('/login');
-  };
-
-  const confirmLogoutAction = async () => {
-    if (!confirmLogout) return;
-    await onSignOut(user!.id, true).catch(() => undefined);
-    await logout();
-    navigate('/login');
-    setConfirmLogout(null);
   };
 
   // The word for the signed-in person, used by the current-page heading so it never disagrees with the sidebar.
@@ -353,32 +336,10 @@ export default function Layout() {
       <ImpersonationBanner />
       <SupportSessionBanner />
 
-      {/* Offline / sync status */}
-        {(!offline.online || offline.pending > 0) && (
-          <div
-            role="status"
-            className={`flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm sm:px-6 ${
-              offline.online ? 'bg-warning-light text-warning' : 'bg-ink text-white'
-            }`}
-          >
-            <span>
-              {!offline.online ? 'You are offline. ' : ''}
-              {offline.pending > 0
-                ? `${offline.pending} attendance check-in${offline.pending === 1 ? ' is' : 's are'} saved on this device and will be sent when you are online.`
-                : 'Pages that need the server will not load until you reconnect.'}
-              {offline.status === 'auth' && ' Your session ended: sign in again to send them.'}
-              {offline.status === 'forbidden' &&
-                ' You no longer have permission to record attendance; open the activity to review them.'}
-            </span>
-            {offline.online && offline.pending > 0 && offline.status !== 'auth' && (
-              <button
-                className="btn btn-sm border border-hairline bg-surface text-ink shadow-card hover:bg-canvas"
-                onClick={() => offline.sync()}
-                disabled={offline.syncing}
-              >
-                {offline.syncing ? 'Sending…' : 'Send now'}
-              </button>
-            )}
+      {/* Offline status */}
+        {!online && (
+          <div role="status" className="bg-ink px-4 py-2.5 text-sm text-white sm:px-6">
+            You are offline. Pages that need the server will not load until you reconnect.
           </div>
         )}
 
@@ -387,15 +348,6 @@ export default function Layout() {
           <Outlet />
         </main>
        </div>
-     {confirmLogout && (
-       <ConfirmDialog
-         open
-         title="Sign out"
-         message={`${confirmLogout.waiting} attendance check-in${confirmLogout.waiting === 1 ? ' has' : 's have'} not been sent to the server yet. Signing out now will delete ${confirmLogout.waiting === 1 ? 'it' : 'them'}. Sign out anyway?`}
-         onConfirm={confirmLogoutAction}
-         onCancel={() => setConfirmLogout(null)}
-/>
-      )}
       </div>
     </>
   );

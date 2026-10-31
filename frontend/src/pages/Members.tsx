@@ -33,7 +33,7 @@ const CSV_TEMPLATE_ROWS = [
 
 const emptyFilters = {
   skills: '', interests: '', serviceInterests: '', joinedFrom: '', joinedTo: '',
-  groupId: '', attendance: undefined as undefined | 'attended' | 'not_attended', days: '90',
+  groupId: '',
 };
 
 export default function Members() {
@@ -43,8 +43,7 @@ export default function Members() {
   // Advanced filters are only offered for the parts the server will actually allow this user to use.
   const canFilterProfile = hasPermission('member.profile_view');
   const canFilterGroup = hasPermission('member.groups_view');
-  const canFilterEngagement = hasPermission('member.engagement_view');
-  const hasAdvanced = canFilterProfile || canFilterGroup || canFilterEngagement;
+  const hasAdvanced = canFilterProfile || canFilterGroup;
   const [showFilters, setShowFilters] = useState(false);
   const [draft, setDraft] = useState(emptyFilters);
   const [applied, setApplied] = useState(emptyFilters);
@@ -83,7 +82,7 @@ export default function Members() {
     setApplied(emptyFilters);
     setPage(1);
   };
-  const activeFilterCount = Object.entries(applied).filter(([k, v]) => v && !(k === 'days')).length;
+  const activeFilterCount = Object.values(applied).filter(Boolean).length;
 
   const fetchProgrammes = async () => {
     try {
@@ -251,21 +250,6 @@ export default function Members() {
                   <option value="">Any group</option>
                   {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
                 </select>
-              </div>
-            )}
-            {canFilterEngagement && (
-              <div>
-                <label className="label">Attendance (member-linked records)</label>
-                <div className="flex gap-2">
-                  <select className="select" value={draft.attendance} onChange={(e) => setDraft({ ...draft, attendance: e.target.value as any })}>
-                    <option value="">Any</option>
-                    <option value="attended">Attended within</option>
-                    <option value="not_attended">Has not attended within</option>
-                  </select>
-                  <select className="select w-28" value={draft.days} onChange={(e) => setDraft({ ...draft, days: e.target.value })}>
-                    {['30', '90', '180', '365'].map((d) => <option key={d} value={d}>{d} days</option>)}
-                  </select>
-                </div>
               </div>
             )}
           </div>

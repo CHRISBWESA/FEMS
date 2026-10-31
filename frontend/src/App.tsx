@@ -26,7 +26,6 @@ import Profile from './pages/Profile';
 import Users from './pages/Users';
 import Platform from './pages/Platform';
 import PlatformTenant from './pages/PlatformTenant';
-import AttendancePublic from './pages/AttendancePublic';
 import Youth from './pages/Youth';
 import YouthDetail from './pages/YouthDetail';
 import YouthAgeGroups from './pages/YouthAgeGroups';
@@ -34,6 +33,7 @@ import YouthPrograms from './pages/YouthPrograms';
 import YouthReports from './pages/YouthReports';
 import MemberInsights from './pages/MemberInsights';
 import MemberGroups from './pages/MemberGroups';
+import MemberGroupDetail from './pages/MemberGroupDetail';
 import MyGiving from './pages/MyGiving';
 import Resources from './pages/Resources';
 import AssetDetail from './pages/AssetDetail';
@@ -257,7 +257,6 @@ export default function App() {
         <Routes>
           <Route path="/login" element={!user ? <Login /> : <Navigate to="/dashboard" replace />} />
           <Route path="/register" element={!user ? <Register /> : <Navigate to="/dashboard" replace />} />
-          <Route path="/attendance/:id" element={<AttendancePublic />} />
           {/* Unauthenticated on purpose: the person arriving has never signed in, which is what an invitation is for.
               The token in the URL is the entire authorisation, and it is single use. */}
           <Route path="/invite/:token" element={<AcceptInvitation />} />
@@ -274,6 +273,7 @@ export default function App() {
             <Route path="members/insights" element={<ExcludeAdmin><MemberInsights /></ExcludeAdmin>} />
             <Route path="members/:id" element={<ExcludeAdmin><MemberDetail /></ExcludeAdmin>} />
             <Route path="member-groups" element={<ExcludeAdmin><MemberGroups /></ExcludeAdmin>} />
+            <Route path="member-groups/:id" element={<ExcludeAdmin><MemberGroupDetail /></ExcludeAdmin>} />
             <Route path="programmes" element={<ExcludeAdmin><RequireRole roles={['secretary']}>{<Programmes />}</RequireRole></ExcludeAdmin>} />
             <Route path="departments" element={<ExcludeAdmin><Departments /></ExcludeAdmin>} />
             <Route path="departments/:id" element={<ExcludeAdmin><DepartmentDetail /></ExcludeAdmin>} />

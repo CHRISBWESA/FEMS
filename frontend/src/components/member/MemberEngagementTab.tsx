@@ -12,43 +12,24 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 export default function MemberEngagementTab({ memberId }: { memberId: string }) {
-  const [days, setDays] = useState(90);
   const [data, setData] = useState<any>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
     setData(null);
-    axios.get(`/members/${memberId}/engagement?days=${days}`, { withCredentials: true })
+    axios.get(`/members/${memberId}/engagement`, { withCredentials: true })
       .then((res) => { setData(res.data); setError(''); })
       .catch((err) => setError(err.response?.status === 403
         ? "You don't have permission to view engagement for this member."
         : 'Could not load engagement.'));
-  }, [memberId, days]);
+  }, [memberId]);
 
   if (error) return <p className="py-6 text-sm text-ink-muted">{error}</p>;
   if (!data) return <PageLoader rows={2} />;
 
-  const a = data.attendance;
-
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-subtle">Engagement</h2>
-        <select className="select w-40" value={days} onChange={(e) => setDays(Number(e.target.value))}>
-          {[30, 90, 180, 365].map((d) => <option key={d} value={d}>Last {d} days</option>)}
-        </select>
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Stat label={`Activities attended (${data.window.days}d)`} value={a.activitiesAttendedInWindow} />
-        <Stat label="Activities attended (all time)" value={a.activitiesAttended} />
-        <Stat label="Last attended" value={a.lastAttendedAt ? new Date(a.lastAttendedAt).toLocaleDateString() : '—'} />
-      </div>
-      <p className="-mt-3 text-xs text-ink-subtle">
-        {a.scope === 'department' ? "Counts your department's activities only. " : ''}
-        Only attendance recorded against this member is counted; attendance captured by name only (for example through the public
-        attendance link) cannot be attributed to a member.
-      </p>
+      <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-subtle">Engagement</h2>
 
       <section>
         <h3 className="mb-2 text-sm font-semibold text-ink">Departments</h3>

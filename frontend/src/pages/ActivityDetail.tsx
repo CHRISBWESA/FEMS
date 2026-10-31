@@ -1,18 +1,13 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon, CalendarIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
-import { useAuth } from '../App';
-import AttendanceCheckIn from '../components/attendance/AttendanceCheckIn';
+import { ArrowLeftIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { PageLoader } from '../components/ui';
 
 export default function ActivityDetail() {
   const { id } = useParams();
-  const { hasPermission } = useAuth();
   const [activity, setActivity] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [attendanceData, setAttendanceData] = useState({ name: '' });
-  const [confirming, setConfirming] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,22 +18,6 @@ export default function ActivityDetail() {
         .finally(() => setLoading(false));
     }
   }, [id]);
-
-  const confirmAttendance = async () => {
-    setConfirming(true);
-    try {
-      await axios.post('/activities/attendance', {
-        activityId: id,
-        memberName: attendanceData.name,
-      }, { withCredentials: true });
-      alert('Attendance confirmed!');
-      setAttendanceData({ name: '' });
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to record attendance');
-    } finally {
-      setConfirming(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -52,8 +31,6 @@ export default function ActivityDetail() {
       </div>
     );
   }
-
-  const isAllMembers = activity.audience_type === 'all_members';
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -94,32 +71,6 @@ export default function ActivityDetail() {
             {activity.audience_type?.replace('_', ' ') || 'All'}
           </span>
         </div>
-
-        {isAllMembers && (
-          <div className="mt-6 rounded-xl bg-canvas p-5 ring-1 ring-inset ring-hairline">
-            <h2 className="text-sm font-semibold text-ink">Confirm Attendance</h2>
-            <p className="mt-1 text-sm text-ink-muted">Confirm your presence at this activity.</p>
-            <div className="mt-3 flex gap-2">
-              <input
-                type="text"
-                placeholder="Enter your name"
-                className="input"
-                value={attendanceData.name}
-                onChange={(e) => setAttendanceData({ name: e.target.value })}
-              />
-              <button
-                onClick={confirmAttendance}
-                disabled={!attendanceData.name.trim() || confirming}
-                className="btn btn-primary"
-              >
-                {confirming ? <span className="spinner border-white" /> : <CheckCircleIcon className="h-5 w-5" />}
-                Confirm
-              </button>
-            </div>
-          </div>
-        )}
-
-        {hasPermission('activity.attendance') && id && <AttendanceCheckIn activityId={id} />}
       </div>
     </div>
   );

@@ -101,8 +101,8 @@ export const FEATURES: FeatureItem[] = [
     icon: 'grid',
   },
   {
-    title: 'Activities & attendance',
-    body: 'Plan activities, record attendance online or offline, and publish an attendance link for visitors.',
+    title: 'Activities',
+    body: 'Plan activities for the whole fellowship or for a single department, and keep everyone informed.',
     icon: 'calendar',
   },
   {
@@ -112,7 +112,7 @@ export const FEATURES: FeatureItem[] = [
   },
   {
     title: 'Youth & children',
-    body: 'Age groups, guardian records, attendance and safeguarding reports.',
+    body: 'Age groups, guardian records and safeguarding reports.',
     icon: 'academic',
   },
   {
@@ -168,7 +168,6 @@ export const SOLUTIONS: SolutionItem[] = [
     points: [
       'Members registered once and visible to the offices that need them',
       'Finance recorded against the person and the department it belongs to',
-      'Attendance that works even when the venue has no signal',
     ],
   },
   {

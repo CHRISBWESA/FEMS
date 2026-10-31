@@ -1593,11 +1593,13 @@ model MemberGroupMember {
   fellowship_id  String?     @db.Uuid
   joined_at      DateTime    @default(now())
   added_by       String?     @db.Uuid
+  leader_role    String?     // 'male_leader' | 'female_leader'; at most one of each per group (CHECK in the migration)
 
   group          MemberGroup @relation(fields: [group_id], references: [id], onDelete: Cascade)
   member         Member      @relation(fields: [member_id], references: [id], onDelete: Cascade)
 
   @@unique([group_id, member_id])
+  @@unique([group_id, leader_role])
   @@index([member_id])
   @@index([fellowship_id])
   @@map("member_group_members")

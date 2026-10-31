@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Put, Body, Param, Query, Req } from '@nestjs/common';
-import { MemberGroupsService, CreateMemberGroupDto, UpdateMemberGroupDto } from './member-groups.service';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, Req } from '@nestjs/common';
+import { MemberGroupsService, CreateMemberGroupDto, UpdateMemberGroupDto, SetGroupLeadersDto } from './member-groups.service';
 import { Roles } from '../shared/decorators/role.decorators';
 import { ROLES } from '../shared/authorization/roles';
 import { RequiresModule } from '../shared/decorators/platform.decorators';
@@ -37,6 +37,18 @@ export class MemberGroupsController {
   @Roles(ROLES.ADMIN, ROLES.SECRETARY, ROLES.ASSISTANT_SECRETARY)
   async addMembers(@Param('id') id: string, @Body() body: { memberIds: string[] }, @Req() req) {
     return this.groupsService.addMembers(id, body?.memberIds, req.user);
+  }
+
+  @Delete(':id')
+  @Roles(ROLES.ADMIN, ROLES.SECRETARY, ROLES.ASSISTANT_SECRETARY)
+  async remove(@Param('id') id: string, @Req() req) {
+    return this.groupsService.remove(id, req.user);
+  }
+
+  @Put(':id/leaders')
+  @Roles(ROLES.ADMIN, ROLES.SECRETARY, ROLES.ASSISTANT_SECRETARY)
+  async setLeaders(@Param('id') id: string, @Body() body: SetGroupLeadersDto, @Req() req) {
+    return this.groupsService.setLeaders(id, body, req.user);
   }
 
   @Post(':id/members/:memberId/remove')

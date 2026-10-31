@@ -3,9 +3,8 @@ import axios from 'axios';
 import { LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { PASSWORD_HINT, storeSessionTokens } from '../lib/session';
 import { onSignOut } from '../offline/session';
-import { pendingCount } from '../offline/outbox';
 import { useAuth } from '../App';
-import { Alert, Button, ConfirmDialog } from '../components/ui';
+import { Alert, Button } from '../components/ui';
 
 // Shown instead of the app while the account still has a temporary password. The server refuses everything else
 // until it has been replaced, so this is the only thing that can work.
@@ -17,7 +16,6 @@ export default function ForcePasswordChange({ onDone }: { onDone: () => void }) 
   const [visible, setVisible] = useState<Record<string, boolean>>({});
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
-  const [confirmSignOut, setConfirmSignOut] = useState<null | { waiting: number }>(null);
 
   // Typing the same password twice and getting it wrong is the most common failure on this screen, so each
   // field can be revealed on its own.
@@ -67,22 +65,9 @@ export default function ForcePasswordChange({ onDone }: { onDone: () => void }) 
   };
 
   const signOut = async () => {
-    if (user?.id) {
-      const waiting = await pendingCount(user.id).catch(() => 0);
-      if (waiting > 0) {
-        setConfirmSignOut({ waiting });
-        return;
-      }
-      await onSignOut(user.id, false).catch(() => undefined);
-    }
+    // Clears anything a device kept from the old offline check-in feature.
+    if (user?.id) await onSignOut(user.id, true).catch(() => undefined);
     await logout();
-  };
-
-  const confirmSignOutAction = async () => {
-    if (!confirmSignOut) return;
-    await onSignOut(user!.id, true).catch(() => undefined);
-    await logout();
-    setConfirmSignOut(null);
   };
 
   return (
@@ -108,15 +93,6 @@ export default function ForcePasswordChange({ onDone }: { onDone: () => void }) 
           Sign out
         </Button>
       </form>
-      {confirmSignOut && (
-        <ConfirmDialog
-          open
-          title="Sign out"
-          message={`${confirmSignOut.waiting} attendance check-in${confirmSignOut.waiting === 1 ? ' has' : 's have'} not been sent yet. Signing out now will delete ${confirmSignOut.waiting === 1 ? 'it' : 'them'}. Sign out anyway?`}
-          onConfirm={confirmSignOutAction}
-          onCancel={() => setConfirmSignOut(null)}
-        />
-      )}
     </div>
   );
 }

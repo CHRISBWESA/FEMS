@@ -9,7 +9,7 @@ import {
   ShieldExclamationIcon, DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 
-const TABS = ['Basic Info', 'Guardians', 'Attendance', 'Documents', 'Safeguarding'] as const;
+const TABS = ['Basic Info', 'Guardians', 'Documents', 'Safeguarding'] as const;
 type Tab = (typeof TABS)[number];
 
 export default function YouthDetail() {
@@ -21,8 +21,6 @@ export default function YouthDetail() {
   const canEdit = hasPermission('youth.edit');
   const canManageGuardians = hasPermission('youth.guardians_manage');
   const canViewGuardians = hasPermission('youth.guardians_view');
-  const canManageAttendance = hasPermission('youth.attendance_manage');
-  const canViewAttendance = hasPermission('youth.attendance_view');
   const canViewSafeguarding = hasPermission('youth.safeguarding_view');
 
   const [participant, setParticipant] = useState<any>(null);
@@ -32,7 +30,6 @@ export default function YouthDetail() {
 
   const [guardians, setGuardians] = useState<any[] | null>(null);
   const [members, setMembers] = useState<any[]>([]);
-  const [attendance, setAttendance] = useState<any[] | null>(null);
   const [documents, setDocuments] = useState<any[] | null>(null);
 
   const [showAddGuardian, setShowAddGuardian] = useState(false);
@@ -65,15 +62,6 @@ export default function YouthDetail() {
     }
   };
 
-  const loadAttendance = async () => {
-    try {
-      const res = await axios.get(`/youth/${id}/attendance`, { withCredentials: true });
-      setAttendance(res.data || []);
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to load attendance');
-    }
-  };
-
   const loadDocuments = async () => {
     try {
       const res = await axios.get('/it-content/documents', { withCredentials: true });
@@ -87,7 +75,6 @@ export default function YouthDetail() {
   const selectTab = (t: Tab) => {
     setTab(t);
     if (t === 'Guardians' && guardians === null && canViewGuardians) loadGuardians();
-    if (t === 'Attendance' && attendance === null && canViewAttendance) loadAttendance();
     if (t === 'Documents' && documents === null) loadDocuments();
   };
 
@@ -131,7 +118,6 @@ export default function YouthDetail() {
 
   const visibleTabs = TABS.filter((t) => {
     if (t === 'Guardians') return canViewGuardians;
-    if (t === 'Attendance') return canViewAttendance;
     if (t === 'Safeguarding') return canViewSafeguarding;
     return true;
   });
@@ -229,34 +215,6 @@ export default function YouthDetail() {
                     </li>
                   ))}
                 </ul>
-              )}
-            </div>
-          )}
-
-          {tab === 'Attendance' && (
-            <div>
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Attendance History</h2>
-              {!attendance?.length ? (
-                <p className="py-4 text-sm text-ink-muted">No attendance recorded yet.</p>
-              ) : (
-                <div className="table-wrap overflow-x-auto">
-                  <table className="table">
-                    <thead><tr><th>Activity</th><th>Date</th></tr></thead>
-                    <tbody>
-                      {attendance.map((a: any) => (
-                        <tr key={a.id}>
-                          <td>{a.activity?.title || a.activity_id}</td>
-                          <td>{a.activity?.date ? new Date(a.activity.date).toLocaleDateString() : '—'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-              {canManageAttendance && (
-                <p className="mt-4 text-xs text-ink-subtle">
-                  Record new attendance from the activity's own attendance page under Youth Programs.
-                </p>
               )}
             </div>
           )}

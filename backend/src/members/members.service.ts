@@ -10,6 +10,7 @@ import { TenantScopeService } from '../shared/tenant/tenant-scope.service';
 import { randomUUID } from 'crypto';
 import { buildHistoryData } from './membership-history.util';
 import { buildAdvancedMemberFilters, AdvancedMemberFilters } from './member-search';
+import { clearMismatchedGroupLeadership } from './member-groups.service';
 
 const MEMBERSHIP_STATUSES = ['active', 'inactive', 'graduated'];
 
@@ -113,6 +114,7 @@ export class MembersService {
     departmentId?: string;
     status?: string;
     search?: string;
+    gender?: string;
     page?: number;
     limit?: number;
   } & AdvancedMemberFilters, currentUser: any): Promise<{ data: any[]; total: number }> {
@@ -156,6 +158,15 @@ export class MembersService {
         { email: { contains: filters.search, mode: 'insensitive' } },
         { member_code: { contains: filters.search, mode: 'insensitive' } },
       ];
+    }
+
+    // Optional gender filter (e.g. when picking group members). Matches the recorded value case-insensitively.
+    // Applied before the gender-leader rule below, which always wins, so it can never widen what a leader sees.
+    if (filters.gender !== undefined && filters.gender !== '') {
+      if (!['male', 'female', 'other'].includes(String(filters.gender).toLowerCase())) {
+        throw new BadRequestException('gender must be male, female or other');
+      }
+      where.gender = { equals: String(filters.gender), mode: 'insensitive' };
     }
 
     // Gender leaders only see their gender members
@@ -443,7 +454,13 @@ export class MembersService {
     this.tenantScope.assertInScope(currentUser, member);
 
     const changes = this.toMemberFields(data);
-    const updated = await this.prisma.member.update({ where: { id }, data: changes });
+    const genderChanged = changes.gender !== undefined && changes.gender !== member.gender;
+    // A gender change and the group leaderships it invalidates are saved together.
+    const [updated, clearedLeadership] = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.member.update({ where: { id }, data: changes });
+      const cleared = genderChanged ? await clearMismatchedGroupLeadership(tx, id, row.gender) : [];
+      return [row, cleared] as const;
+    });
 
     await this.auditService.log({
       userId: currentUser.userId,
@@ -453,6 +470,16 @@ export class MembersService {
       oldValue: member,
       newValue: updated,
     });
+    for (const c of clearedLeadership) {
+      await this.auditService.log({
+        userId: currentUser.userId,
+        action: 'member_group.leader_cleared',
+        entityType: 'member_group',
+        entityId: c.group_id,
+        oldValue: { memberId: id, leaderRole: c.leader_role },
+        newValue: { reason: 'member gender changed' },
+      });
+    }
 
     return updated;
   }

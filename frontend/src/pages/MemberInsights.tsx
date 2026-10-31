@@ -39,28 +39,23 @@ function TagList({ rows }: { rows: { tag: string; count: number }[] }) {
 
 export default function MemberInsights() {
   const [months, setMonths] = useState(12);
-  const [days, setDays] = useState(90);
   const [data, setData] = useState<any>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
     setData(null);
-    axios.get(`/members/reports/summary?months=${months}&days=${days}`, { withCredentials: true })
+    axios.get(`/members/reports/summary?months=${months}`, { withCredentials: true })
       .then((res) => { setData(res.data); setError(''); })
       .catch((err) => setError(err.response?.status === 403
         ? "You don't have permission to view member insights."
         : 'Could not load member insights.'));
-  }, [months, days]);
+  }, [months]);
 
   if (error) return <div className="empty-state"><p className="empty-title">{error}</p></div>;
   if (!data) return <PageLoader rows={2} />;
 
   const growthMax = Math.max(1, ...data.membershipGrowth.map((g: any) => Math.max(g.registered, g.deactivated + g.graduated)));
-  const trendMax = Math.max(1, ...data.participation.trend.map((t: any) => t.linkedRecords + t.nameOnlyRecords));
   const deptMax = Math.max(1, ...data.departmentDistribution.departments.map((d: any) => d.count));
-  const dist = data.participation.distribution;
-  const distTotal = dist.none + dist.oneToTwo + dist.threeOrMore;
-  const quality = data.participation.dataQuality;
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -68,15 +63,12 @@ export default function MemberInsights() {
         <div>
           <h1 className="page-title">Member Insights</h1>
           <p className="page-desc">
-            Aggregate membership and participation figures{data.scope === 'department' ? ' for your department' : ''}. No individual is identified.
+            Aggregate membership figures{data.scope === 'department' ? ' for your department' : ''}. No individual is identified.
           </p>
         </div>
         <div className="flex gap-2">
           <select className="select w-36" value={months} onChange={(e) => setMonths(Number(e.target.value))}>
             {[6, 12, 24].map((m) => <option key={m} value={m}>Last {m} months</option>)}
-          </select>
-          <select className="select w-36" value={days} onChange={(e) => setDays(Number(e.target.value))}>
-            {[30, 90, 180].map((d) => <option key={d} value={d}>Attendance {d}d</option>)}
           </select>
         </div>
       </div>
@@ -134,39 +126,6 @@ export default function MemberInsights() {
           {data.scope !== 'department' && (
             <p className="mt-3 text-xs text-ink-subtle">{data.departmentDistribution.noDepartment} member(s) are not in any department.</p>
           )}
-        </Card>
-
-        <Card title="Participation trend (attendance records)">
-          <ul className="space-y-2">
-            {data.participation.trend.map((t: any) => (
-              <li key={t.month} className="flex items-center gap-3 text-xs">
-                <span className="w-16 text-ink-muted">{t.month}</span>
-                <Bar value={t.linkedRecords + t.nameOnlyRecords} max={trendMax} />
-                <span className="w-24 text-right text-ink-muted">{t.linkedRecords} linked · {t.nameOnlyRecords} name-only</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-
-        <Card title={`Active members by attendance (last ${dist.windowDays} days)`}>
-          <ul className="space-y-2 text-sm">
-            {[
-              { label: 'No recorded attendance', v: dist.none },
-              { label: '1–2 activities', v: dist.oneToTwo },
-              { label: '3 or more activities', v: dist.threeOrMore },
-            ].map((r) => (
-              <li key={r.label} className="flex items-center gap-3">
-                <span className="w-48 text-ink">{r.label}</span>
-                <Bar value={r.v} max={Math.max(1, distTotal)} />
-                <span className="w-8 text-right font-medium text-ink">{r.v}</span>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-4 rounded-lg bg-amber-50 p-3 text-xs text-amber-900 ring-1 ring-inset ring-amber-600/20">
-            Data quality: in the last {quality.windowDays} days, {quality.linkedToMember} attendance record(s) are linked to a member and{' '}
-            {quality.nameOnly} were captured by name only and cannot be attributed. Use “Record attendance for members” on an activity to
-            capture attributable attendance.
-          </div>
         </Card>
 
         {data.topTags && (

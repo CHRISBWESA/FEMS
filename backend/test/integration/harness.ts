@@ -101,7 +101,13 @@ export async function makeUser(
 
 export async function makeMember(
   prisma: PrismaService,
-  opts: { fellowshipId: string | null; name?: string; status?: 'active' | 'inactive' | 'graduated'; userId?: string },
+  opts: {
+    fellowshipId: string | null;
+    name?: string;
+    status?: 'active' | 'inactive' | 'graduated';
+    userId?: string;
+    gender?: string | null;
+  },
 ) {
   return prisma.member.create({
     data: {
@@ -113,6 +119,7 @@ export async function makeMember(
       created_by: randomUUID(),
       fellowship_id: opts.fellowshipId,
       user_id: opts.userId,
+      gender: opts.gender ?? null,
     },
   });
 }
