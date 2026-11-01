@@ -66,6 +66,10 @@ export interface DataTableProps<T> {
 
   /** Rendered in a trailing column, or in the card's action row on mobile. */
   rowActions?: (row: T) => ReactNode;
+  /** Makes the whole row (and its mobile card) open something, e.g. the record's details. */
+  onRowClick?: (row: T) => void;
+  /** Accessible name of what a row click opens, e.g. "Open member". */
+  rowClickLabel?: (row: T) => string;
   selectable?: {
     selected: string[];
     onChange: (selected: string[]) => void;
@@ -84,10 +88,19 @@ export interface DataTableProps<T> {
 export function DataTable<T>({
   columns, rows, rowKey, loading = false, error = null, onRetry, caption,
   total = null, page = 1, pageSize = 25, onPageChange, clientPaging = false,
-  search, sort, clientSort = false, rowActions, selectable, empty,
+  search, sort, clientSort = false, rowActions, onRowClick, rowClickLabel, selectable, empty,
   loadingRows = 8, boundedNotice, mobile = 'card', toolbar,
 }: DataTableProps<T>) {
   const visible = useMemo(() => columns.filter((c) => c.visibleWhen !== false), [columns]);
+  // A click on a button, link or input inside the row keeps its own meaning; anywhere else opens the row.
+  const interactive = (t: EventTarget | null) => t instanceof Element && !!t.closest('a,button,input,select,textarea,label,[role="menu"]');
+  const rowProps = (row: T) => (onRowClick ? {
+    onClick: (e: React.MouseEvent) => { if (!interactive(e.target)) onRowClick(row); },
+    onKeyDown: (e: React.KeyboardEvent) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); onRowClick(row); } },
+    tabIndex: 0,
+    role: 'link' as const,
+    'aria-label': rowClickLabel ? rowClickLabel(row) : undefined,
+  } : {});
   const tableId = useId();
   const [pageSizeState, setPageSizeState] = useState(pageSize);
 
@@ -312,7 +325,7 @@ export function DataTable<T>({
             {windowed.map((row, i) => {
               const key = rowKey(row);
               return (
-                <tr key={key} className={selectable?.selected.includes(key) ? 'bg-primary-light/40' : undefined}>
+                <tr key={key} {...rowProps(row)} className={[selectable?.selected.includes(key) ? 'bg-primary-light/40' : '', onRowClick ? 'cursor-pointer transition-colors hover:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary' : ''].join(' ').trim() || undefined}>
                   {selectable ? (
                     <td>
                       <input
@@ -347,7 +360,7 @@ export function DataTable<T>({
         <>
           <div className="mt-3 space-y-3 md:hidden">
             {windowed.map((row, i) => (
-              <article key={rowKey(row)} className="card card-pad">
+              <article key={rowKey(row)} {...rowProps(row)} className={`card card-pad${onRowClick ? ' cursor-pointer active:bg-surface-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary' : ''}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     {primary ? <p className="text-sm font-semibold text-ink">{primary.render ? primary.render(row, i) : String((row as Record<string, unknown>)[primary.key] ?? '')}</p> : null}

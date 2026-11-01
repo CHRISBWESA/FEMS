@@ -49,6 +49,7 @@ import MemberGroupDetail from './pages/MemberGroupDetail';
 import MyGiving from './pages/MyGiving';
 import InventoryArea, { CENTRAL_ROLES as RESOURCE_CENTRAL_ROLES } from './inv/InventoryArea';
 import WsResources from './inv/WsResources';
+import Leadership from './pages/Leadership';
 import MyLoans from './pages/MyLoans';
 import Volunteering from './pages/Volunteering';
 import VolunteerOpportunity from './pages/VolunteerOpportunity';
@@ -325,6 +326,7 @@ export default function App() {
             <Route path="projects" element={<ExcludeAdmin><RequireRole roles={[...CENTRAL_FINANCE_ROLES, 'department_chairperson', 'department_secretary']}><ProjectsList /></RequireRole></ExcludeAdmin>} />
             <Route path="projects/:id" element={<ExcludeAdmin><RequireRole roles={[...CENTRAL_FINANCE_ROLES, 'department_chairperson', 'department_secretary']}><ProjectDetail /></RequireRole></ExcludeAdmin>} />
             <Route path="my-giving" element={<ExcludeAdmin><MyGiving /></ExcludeAdmin>} />
+            <Route path="leadership" element={<ExcludeAdmin><RequireRole roles={['fellowship_admin', 'secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'treasurer']}><Leadership /></RequireRole></ExcludeAdmin>} />
             <Route path="inventory/*" element={<ExcludeAdmin><RequireRole roles={RESOURCE_CENTRAL_ROLES}>{<InventoryArea />}</RequireRole></ExcludeAdmin>} />
             {/* Old links keep working. */}
             <Route path="resources" element={<Navigate to="/inventory" replace />} />

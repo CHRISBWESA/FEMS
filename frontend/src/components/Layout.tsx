@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate, Link } from 'react-router-dom';
 import {
   HomeIcon, UsersIcon, BuildingOfficeIcon, BuildingLibraryIcon, CalendarIcon,
-  ChartBarIcon, CurrencyDollarIcon, BriefcaseIcon, BellIcon, ShieldCheckIcon,
+  ChartBarIcon, CurrencyDollarIcon, BriefcaseIcon, IdentificationIcon, BellIcon, ShieldCheckIcon,
   TrashIcon, ServerIcon, ComputerDesktopIcon, UserIcon,
   Bars3Icon, XMarkIcon, ArrowRightOnRectangleIcon,
   UserGroupIcon, BookOpenIcon, FaceSmileIcon, ClipboardDocumentCheckIcon, MegaphoneIcon, Squares2X2Icon,
@@ -68,6 +68,7 @@ const NAV_SECTIONS: NavSection[] = [
       { name: 'Analytics', icon: PresentationChartLineIcon, path: '/analytics', roles: ['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'treasurer', 'department_secretary', 'department_chairperson'], module: 'analytics' },
       { name: 'Reports', icon: ChartBarIcon, path: '/reports', roles: ['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'department_secretary', 'department_chairperson'] },
       { name: 'Finance', icon: CurrencyDollarIcon, path: '/finance', roles: ['treasurer', 'secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson'], module: 'finance' },
+      { name: 'Leadership', icon: IdentificationIcon, path: '/leadership', roles: ['fellowship_admin', 'secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'treasurer'] },
       { name: 'Projects', icon: BriefcaseIcon, path: '/projects', roles: ['treasurer', 'secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'department_secretary', 'department_chairperson'], module: 'finance' },
       { name: 'Resources', icon: CubeIcon, path: '/inventory', roles: ['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'treasurer'], module: 'resources' },
       { name: 'Volunteering', icon: HandRaisedIcon, path: '/volunteering', roles: ALL_NON_ADMIN_ROLES, module: 'volunteers', hideFor: NOT_SECRETARY },

@@ -1,13 +1,13 @@
 ﻿import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import { useMembers } from '../context/MembersContext';
 import { DataTable, type Column } from '../components/DataTable';
 import { EmptyState, PageLoader, Alert } from '../components/ui';
 import {
   UsersIcon, MagnifyingGlassIcon, ChevronLeftIcon, ChevronRightIcon, FunnelIcon,
-  PlusIcon, XMarkIcon, UserPlusIcon, CloudArrowUpIcon, DocumentArrowDownIcon,
+  PlusIcon, XMarkIcon, UserPlusIcon, CloudArrowUpIcon, DocumentArrowDownIcon, PencilSquareIcon,
 } from '@heroicons/react/24/outline';
 
 const emptyForm = {
@@ -40,6 +40,8 @@ export default function Members() {
   const { user, hasPermission } = useAuth();
   const { members, total, loading, error: ctxError, fetchMembers, refreshMembers, createMember: ctxCreateMember, updateMember, deleteMember } = useMembers();
   const canManage = user?.roles.includes('secretary') || user?.roles.includes('admin');
+  // Editing a member's details is the Secretary's (the same rule as the member page and the API).
+  const canEdit = !!user?.roles.includes('secretary');
   // Advanced filters are only offered for the parts the server will actually allow this user to use.
   const canFilterProfile = hasPermission('member.profile_view');
   const canFilterGroup = hasPermission('member.groups_view');
@@ -267,14 +269,22 @@ export default function Members() {
       ) : (
         <DataTable
           columns={[
-            { key: 'name', header: 'Name', priority: 'primary', render: (m: any) => <span className="font-medium text-ink">{m.full_name}</span> },
+            { key: 'name', header: 'Name', priority: 'primary', render: (m: any) => <Link to={`/members/${m.id}`} className="font-medium text-primary hover:underline">{m.full_name}</Link> },
             { key: 'code', header: 'Member Code', priority: 'secondary', render: (m: any) => <span className="font-mono text-xs">{m.member_code}</span> },
             { key: 'status', header: 'Status', render: (m: any) => <span className={`status-badge ${getStatusClass(m.membership_status)}`}>{m.membership_status}</span> },
-            { key: 'departments', header: 'Department', render: (m: any) => <span className="text-ink-muted">{m.departments?.filter((d: any) => !d.removed).map((d: any) => d.department_id || '').join(', ') || 'â€”'}</span> },
-            ...(canFilterProfile ? [{ key: 'skills', header: 'Skills', render: (m: any) => <span className="text-ink-muted">{m.profile?.skills?.length ? m.profile.skills.slice(0, 3).join(', ') : 'â€”'}</span> }] : []),
+            { key: 'departments', header: 'Department', render: (m: any) => <span className="text-ink-muted">{m.departments?.filter((d: any) => !d.removed).map((d: any) => d.department?.name ?? '').filter(Boolean).join(', ') || '—'}</span> },
+            ...(canFilterProfile ? [{ key: 'skills', header: 'Skills', render: (m: any) => <span className="text-ink-muted">{m.profile?.skills?.length ? m.profile.skills.slice(0, 3).join(', ') : '—'}</span> }] : []),
           ] as Column<any>[]}
           rows={members}
           rowKey={(m) => m.id}
+          onRowClick={(m: any) => navigate(`/members/${m.id}`)}
+          rowClickLabel={(m: any) => `Open ${m.full_name}`}
+          rowActions={canEdit ? (m: any) => (
+            <span className="inline-flex gap-1">
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => navigate(`/members/${m.id}`)}>View</button>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => navigate(`/members/${m.id}?edit=1`)}><PencilSquareIcon className="h-4 w-4" /> Edit</button>
+            </span>
+          ) : undefined}
           caption="Members"
           empty={{ title: 'No members found', description: 'Try adjusting your search or filter.' }}
           page={page}
@@ -364,7 +374,7 @@ export default function Members() {
                   {programmes.map((p) => (
                     <option key={p.id} value={p.name}>{p.name}</option>
                   ))}
-                  <option value="__other__">Other (write manually)â€¦</option>
+                  <option value="__other__">Other (write manually)…</option>
                 </select>
               </div>
               {selectedProgramme === '__other__' && (

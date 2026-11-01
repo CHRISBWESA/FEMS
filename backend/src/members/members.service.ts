@@ -184,7 +184,7 @@ export class MembersService {
         take: limit,
         orderBy: { created_at: 'desc' },
         include: {
-          departmentMemberships: true,
+          departmentMemberships: { include: { department: { select: { id: true, name: true } } } },
           // Tags only - occupation and emergency contact are never part of list responses.
           ...(includeProfile
             ? { profile: { select: { skills: true, interests: true, service_interests: true, membership_date: true } } }

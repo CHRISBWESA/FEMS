@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import {
   ArrowLeftIcon, PencilSquareIcon, XMarkIcon,
@@ -47,6 +47,17 @@ export default function MemberDetail() {
       .then(res => setProgrammes(Array.isArray(res.data) ? res.data : res.data.data || []))
       .catch(() => setProgrammes([]));
   }, [id]);
+
+  // Opened from the members list with ?edit=1: go straight to the edit form once the member has loaded.
+  const [params, setParams] = useSearchParams();
+  useEffect(() => {
+    if (member && isSecretary && params.get('edit') === '1') {
+      openEdit();
+      params.delete('edit');
+      setParams(params, { replace: true });
+    }
+    // eslint-disable-next-line
+  }, [member]);
 
   const openEdit = () => {
     const programme = member.programme || '';

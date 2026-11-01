@@ -13,6 +13,7 @@ import { ProgrammesModule } from './programmes/programmes.module';
 import { DepartmentsModule } from './departments/departments.module';
 import { DepartmentWorkspaceModule } from './department-workspace/department-workspace.module';
 import { InventoryModule } from './inventory/inventory.controller';
+import { LeadershipModule } from './leadership/leadership.controller';
 import { ActivitiesModule } from './activities/activities.module';
 import { ReportsModule } from './reports/reports.module';
 import { FinanceModule } from './finance/finance.module';
@@ -73,6 +74,7 @@ import { RequestContextMiddleware } from './shared/middleware/request-context.mi
     DepartmentsModule,
     DepartmentWorkspaceModule,
     InventoryModule,
+    LeadershipModule,
     ActivitiesModule,
     ReportsModule,
     FinanceModule,

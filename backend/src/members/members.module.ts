@@ -20,6 +20,6 @@ import { MemberInsightsController } from './member-insights.controller';
     MemberGroupsService,
   ],
   controllers: [MembersController, MemberInsightsController, MemberGroupsController],
-  exports: [MembersService],
+  exports: [MembersService, MemberGroupsService],
 })
 export class MembersModule {}

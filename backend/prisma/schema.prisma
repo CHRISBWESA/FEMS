@@ -570,6 +570,8 @@ model Member {
   department_custom_fields   Json?
   leader_role                String?   // e.g., 'secretary', 'chairperson', 'treasurer', 'assistant_secretary', 'assistant_chairperson', 'department_secretary', 'department_chairperson'
   user_id                    String?   @unique @db.Uuid // Only for leaders who have accounts
+  // Shown in the leadership directory (and anywhere a leader is shown); an initials avatar is used without one.
+  photo_url                  String?
   created_by                 String    @db.Uuid
   created_at                 DateTime  @default(now())
   updated_at                 DateTime  @updatedAt
@@ -586,6 +588,7 @@ model Member {
   groupMemberships           MemberGroupMember[]
   pledges                    ContributionPledge[]
   custodianOfAssets          Asset[]
+  leadershipAppointments     LeadershipAppointment[]
   assetLoans                 AssetLoan[]
   coordinatedOpportunities   ServiceOpportunity[]
   serviceAssignments         ServiceAssignment[]
@@ -669,6 +672,80 @@ model DepartmentLeader {
   @@map("department_leaders")
   // Foreign key without an index (found in the Phase 22 database review): a join or a parent delete scanned the whole table.
   @@index([department_id])
+}
+
+// ---------- Leadership management ----------
+//
+// The central record of who holds which office. Appointments made here are written through to where each office
+// takes effect (account roles for fellowship officers, department_leaders for department offices, the group leader
+// flag for group leaders), and offices changed elsewhere are reconciled back, so every module shows the same current
+// leader. Appointments are never deleted: an ended appointment stays as history.
+
+model LeadershipPosition {
+  id             String   @id @default(uuid()) @db.Uuid
+  // Null for the built-in FEMS offices; a fellowship id for positions that fellowship configured itself.
+  fellowship_id  String?  @db.Uuid
+  key            String
+  name           String
+  // fellowship | department | group
+  level          String
+  // The FEMS role or office this position grants (null for configured positions, which are records only).
+  system_role    String?
+  is_system      Boolean  @default(false)
+  is_active      Boolean  @default(true)
+  description    String?
+  sort_order     Int      @default(100)
+  created_by     String?  @db.Uuid
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  appointments   LeadershipAppointment[]
+
+  @@unique([fellowship_id, key])
+  @@map("leadership_positions")
+}
+
+model LeadershipAppointment {
+  id                 String    @id @default(uuid()) @db.Uuid
+  fellowship_id      String    @db.Uuid
+  position_id        String    @db.Uuid
+  // The registered member. Kept even if the member record is later removed (name and number are snapshotted).
+  member_id          String?   @db.Uuid
+  member_name        String
+  member_code        String?
+  level              String
+  department_id      String?   @db.Uuid
+  group_id           String?   @db.Uuid
+  appointment_date   DateTime
+  term_start         DateTime
+  term_end           DateTime?
+  // active | suspended | former
+  status             String    @default("active")
+  // "<fellowship>:<position>:<department, group or fellowship>" while active: one active holder per office.
+  active_key         String?   @unique
+  ended_at           DateTime?
+  // replaced | resigned | term_completed | removed | other
+  end_reason         String?
+  end_notes          String?
+  suspended_at       DateTime?
+  suspension_reason  String?
+  notes              String?
+  appointed_by       String?   @db.Uuid
+  ended_by           String?   @db.Uuid
+  // leadership (made here) | sync (picked up from a change made in another module) | migration
+  source             String    @default("leadership")
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
+
+  position           LeadershipPosition @relation(fields: [position_id], references: [id], onDelete: Restrict)
+  member             Member?            @relation(fields: [member_id], references: [id], onDelete: SetNull)
+
+  @@index([fellowship_id, status])
+  @@index([member_id])
+  @@index([position_id])
+  @@index([department_id])
+  @@index([group_id])
+  @@map("leadership_appointments")
 }
 
 // ---------- Programmes ----------
