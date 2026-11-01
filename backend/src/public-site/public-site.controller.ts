@@ -4,7 +4,6 @@ import { Throttle } from '@nestjs/throttler';
 import { Public } from '../shared/decorators/public.decorator';
 import { PUBLIC_THROTTLE } from '../shared/throttle';
 import { contentDisposition, SAFE_DOWNLOAD_TYPE } from '../shared/utils/file-storage.util';
-import { platformRobots } from './public-site.seo';
 import { PublicSiteService } from './public-site.service';
 
 /**

@@ -42,31 +42,36 @@ export class InventoryReportsService {
     const fellowshipId = this.scope.fellowship(user);
     const now = new Date();
     const week = new Date(now.getTime() + 7 * 86_400_000);
-    const ids = (await this.prisma.asset.findMany({ where, select: { id: true } })).map((x) => x.id);
-    const [byOwnership, byStatus, damaged, pendingRequests, upcoming, overdue, transfers, acquisitions, disposals, lowStock, maintenanceOpen] = await Promise.all([
+    const central = this.scope.isCentralViewer(user);
+    // Two rounds instead of four: everything that does not need the matching asset ids runs alongside the id lookup
+    // (department summaries included), then the request/transfer/maintenance figures that do.
+    const [ids, byOwnership, byStatus, damaged, acquisitions, disposals, depts, owned, held] = await Promise.all([
+      this.prisma.asset.findMany({ where, select: { id: true } }).then((rows) => rows.map((x) => x.id)),
       this.prisma.asset.groupBy({ by: ['ownership_type'], where, _count: { _all: true } }),
       this.prisma.asset.groupBy({ by: ['status'], where, _count: { _all: true } }),
       this.prisma.asset.count({ where: { ...where, condition: { in: ['damaged', 'under_repair'] } } }),
+      this.prisma.asset.findMany({ where: { ...where, ...OWNED }, orderBy: { created_at: 'desc' }, take: 8, select: { id: true, name: true, asset_tag: true, ownership_type: true, acquisition_date: true, created_at: true } }),
+      this.prisma.asset.findMany({ where: { ...where, status: { in: ['disposed', 'lost'] } }, orderBy: { disposed_at: 'desc' }, take: 8, select: { id: true, name: true, asset_tag: true, status: true, disposed_at: true } }),
+      // Department summaries (central officers only): what each department owns and holds.
+      central ? this.prisma.department.findMany({ where: { fellowship_id: fellowshipId }, select: { id: true, name: true }, orderBy: { name: 'asc' } }) : Promise.resolve([]),
+      central ? this.prisma.asset.groupBy({ by: ['owning_department_id'], where: { fellowship_id: fellowshipId, owning_department_id: { not: null }, ...OWNED, status: { notIn: ['disposed', 'lost', 'retired'] } }, _count: { _all: true } }) : Promise.resolve([]),
+      central ? this.prisma.asset.groupBy({ by: ['assigned_department_id'], where: { fellowship_id: fellowshipId, assigned_department_id: { not: null } }, _count: { _all: true } }) : Promise.resolve([]),
+    ]);
+    const [pendingRequests, upcoming, overdue, transfers, lowStock, maintenanceOpen] = await Promise.all([
       this.prisma.resourceRequest.count({ where: { asset_id: { in: ids }, status: 'PENDING' } }),
       this.prisma.resourceRequest.count({ where: { asset_id: { in: ids }, status: { in: ['ISSUED', 'PARTIALLY_RETURNED'] }, needed_until: { gte: now, lte: week } } }),
       this.prisma.resourceRequest.count({ where: { asset_id: { in: ids }, status: { in: ['ISSUED', 'PARTIALLY_RETURNED'] }, needed_until: { lt: now } } }),
       this.prisma.assetTransfer.findMany({ where: { asset_id: { in: ids } }, orderBy: { created_at: 'desc' }, take: 8 }),
-      this.prisma.asset.findMany({ where: { ...where, ...OWNED }, orderBy: { created_at: 'desc' }, take: 8, select: { id: true, name: true, asset_tag: true, ownership_type: true, acquisition_date: true, created_at: true } }),
-      this.prisma.asset.findMany({ where: { ...where, status: { in: ['disposed', 'lost'] } }, orderBy: { disposed_at: 'desc' }, take: 8, select: { id: true, name: true, asset_tag: true, status: true, disposed_at: true } }),
       this.prisma.$queryRaw<{ n: bigint }[]>`SELECT count(*) AS n FROM "assets" WHERE "id" = ANY(${ids}::uuid[]) AND "is_consumable" AND "reorder_level" IS NOT NULL AND "quantity" <= "reorder_level"`,
       this.prisma.assetMaintenance.count({ where: { asset_id: { in: ids }, status: { in: ['reported', 'pending_review', 'approved', 'in_progress'] } } }),
     ]);
     const count = (rows: any[], key: string, v: string) => rows.find((x) => x[key] === v)?._count._all ?? 0;
-    // Department summaries (central officers only): what each department owns and holds.
-    let departments: any[] = [];
-    if (this.scope.isCentralViewer(user)) {
-      const depts = await this.prisma.department.findMany({ where: { fellowship_id: fellowshipId }, select: { id: true, name: true }, orderBy: { name: 'asc' } });
-      const [owned, held] = await Promise.all([
-        this.prisma.asset.groupBy({ by: ['owning_department_id'], where: { fellowship_id: fellowshipId, owning_department_id: { not: null }, ...OWNED, status: { notIn: ['disposed', 'lost', 'retired'] } }, _count: { _all: true } }),
-        this.prisma.asset.groupBy({ by: ['assigned_department_id'], where: { fellowship_id: fellowshipId, assigned_department_id: { not: null } }, _count: { _all: true } }),
-      ]);
-      departments = depts.map((d) => ({ id: d.id, name: d.name, owned: owned.find((o) => o.owning_department_id === d.id)?._count._all ?? 0, assigned: held.find((h) => h.assigned_department_id === d.id)?._count._all ?? 0 }));
-    }
+    const departments = (depts as { id: string; name: string }[]).map((d) => ({
+      id: d.id,
+      name: d.name,
+      owned: (owned as any[]).find((o) => o.owning_department_id === d.id)?._count._all ?? 0,
+      assigned: (held as any[]).find((h) => h.assigned_department_id === d.id)?._count._all ?? 0,
+    }));
     return {
       cards: {
         fellowshipOwned: count(byOwnership, 'ownership_type', 'fellowship'),

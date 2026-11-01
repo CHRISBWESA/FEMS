@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../shared/audit/audit.service';
@@ -54,7 +54,7 @@ export class AssetsService {
   // Acquisition cost/expense reference are financial: hidden unless the caller holds resources.cost_view.
   present(asset: any, user: any): any {
     if (this.access.canSeeCost(user)) return asset;
-    const { acquisition_cost, acquisition_expense_id, ...rest } = asset;
+    const { acquisition_cost: _hiddenCost, acquisition_expense_id: _hiddenExpense, ...rest } = asset;
     return rest;
   }
 

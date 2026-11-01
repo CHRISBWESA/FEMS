@@ -11,7 +11,6 @@ import { PageHeader, Card, Skeleton, EmptyState, ErrorState, Badge, StatCard, St
 export default function Dashboard() {
   const { user, hasRole } = useAuth();
   const [stats, setStats] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
 
@@ -19,12 +18,9 @@ export default function Dashboard() {
     setLoading(true);
     setFailed(false);
     try {
-      const [statsRes, profileRes] = await Promise.all([
-        axios.get('/dashboard', { withCredentials: true }),
-        axios.get('/profile', { withCredentials: true }).catch(() => null),
-      ]);
+      // The person's name comes from the session (App loads the profile once at start-up).
+      const statsRes = await axios.get('/dashboard', { withCredentials: true });
       setStats(statsRes.data);
-      setProfile(profileRes?.data || null);
     } catch {
       setFailed(true);
     } finally {
@@ -36,9 +32,7 @@ export default function Dashboard() {
     load();
   }, []);
 
-  const name = profile?.firstName
-    ? `${profile.firstName} ${profile.lastName || ''}`.trim()
-    : user?.firstName
+  const name = user?.firstName
       ? `${user.firstName} ${user.lastName || ''}`.trim()
       : user?.email || 'there';
 

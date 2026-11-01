@@ -6,7 +6,7 @@ import { AuditService } from '../shared/audit/audit.service';
 import { PERMISSIONS } from '../shared/authorization/permissions';
 import { PLATFORM_ROLES, ROLES, ROLE_DEFINITIONS, RoleName, permissionsForRoles } from '../shared/authorization/roles';
 import { isModuleKey } from '../shared/modules/modules';
-import { defaultRoleEmail, suggestSubdomain } from '../shared/tenancy/subdomain.util';
+import { suggestSubdomain } from '../shared/tenancy/subdomain.util';
 import { email, requirePermission, requireUuid, temporaryPassword, text } from './platform.util';
 
 export interface AdministratorDto { email?: string; firstName?: string; lastName?: string; phone?: string; roles?: string[] }

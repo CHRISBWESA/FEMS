@@ -11,7 +11,8 @@ import { Accounts } from './Accounts';
 import { Campaigns } from './Campaigns';
 import { Approvals, Periods, Reports, Settings } from './Admin';
 
-export const CENTRAL_FINANCE_ROLES = ['treasurer', 'secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson'];
+import { CENTRAL_FINANCE_ROLES } from '../lib/area-roles';
+export { CENTRAL_FINANCE_ROLES };
 
 interface Section { path: string; key: string; element: JSX.Element; show?: boolean }
 

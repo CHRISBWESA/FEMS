@@ -1,14 +1,42 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import PageLoading from './PageLoading';
+import { loadProfile } from '../lib/profile';
 import { NavLink, Outlet, useLocation, useNavigate, Link } from 'react-router-dom';
 import {
-  HomeIcon, UsersIcon, BuildingOfficeIcon, BuildingLibraryIcon, CalendarIcon,
-  ChartBarIcon, CurrencyDollarIcon, BriefcaseIcon, IdentificationIcon, BellIcon, ShieldCheckIcon,
-  TrashIcon, ServerIcon, ComputerDesktopIcon, UserIcon,
-  Bars3Icon, XMarkIcon, ArrowRightOnRectangleIcon,
-  UserGroupIcon, BookOpenIcon, FaceSmileIcon, ClipboardDocumentCheckIcon, MegaphoneIcon, Squares2X2Icon,
-  ChartPieIcon, RectangleGroupIcon, HeartIcon, CubeIcon, ArchiveBoxIcon, HandRaisedIcon, PresentationChartLineIcon,
+  HomeIcon,
+  UsersIcon,
+  BuildingOfficeIcon,
+  BuildingLibraryIcon,
+  CalendarIcon,
+  ChartBarIcon,
+  CurrencyDollarIcon,
+  BriefcaseIcon,
+  IdentificationIcon,
+  BellIcon,
+  ShieldCheckIcon,
+  TrashIcon,
+  ServerIcon,
+  ComputerDesktopIcon,
+  UserIcon,
+  Bars3Icon,
+  XMarkIcon,
+  ArrowRightOnRectangleIcon,
+  UserGroupIcon,
+  BookOpenIcon,
+  FaceSmileIcon,
+  ClipboardDocumentCheckIcon,
+  MegaphoneIcon,
+  Squares2X2Icon,
+  ChartPieIcon,
+  RectangleGroupIcon,
+  HeartIcon,
+  CubeIcon,
+  ArchiveBoxIcon,
+  HandRaisedIcon,
+  PresentationChartLineIcon,
   GlobeAltIcon,
-  SunIcon, MoonIcon, ComputerDesktopIcon as MonitorIcon,
+  SunIcon,
+  MoonIcon,
   ChevronDownIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../App';
@@ -53,8 +81,11 @@ const ALL_NON_ADMIN_ROLES = [
   'gender_leader', 'ordinary_member',
 ];
 
-// Module availability is fetched once per page load rather than per navigation (see the effect below).
-let profileLoaded = false;
+
+// The unread badge's last value, kept for the current session only (keyed by its access token).
+const UNREAD_REFRESH_MS = 30_000;
+let unreadCache: { token: string | null; at: number; count: number } | null = null;
+const sessionToken = () => { try { return localStorage.getItem('accessToken'); } catch { return null; } };
 
 const NAV_SECTIONS: NavSection[] = [
   {
@@ -123,7 +154,7 @@ export default function Layout() {
     setGroupOpen(next);
     try { localStorage.setItem('fems.navGroups', JSON.stringify(next)); } catch { /* private window: keep it in memory */ }
   };
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(() => (unreadCache && unreadCache.token === sessionToken() ? unreadCache.count : 0));
   const [disabledModules, setDisabledModules] = useState<string[]>([]);
   const location = useLocation();
   const online = useOnline();
@@ -142,19 +173,27 @@ export default function Layout() {
   }, [sidebarOpen]);
 
   useEffect(() => {
-    // Once per session, not on every navigation: this ran on every route change and on its own was enough
-    // traffic to exhaust the API rate limit during ordinary use. Session changes clear the cache.
-    if (profileLoaded) return;
-    profileLoaded = true;
-    axios.get('/profile', { withCredentials: true }).then((res) => { setDisabledModules(res.data?.disabledModules || []); }).catch(() => {});
+    // Once per session, not on every navigation, and shared with app start-up (one request, see lib/profile).
+    let active = true;
+    loadProfile().then((p) => { if (active) setDisabledModules(p?.disabledModules || []); }).catch(() => {});
+    return () => { active = false; };
   }, []);
 
   useEffect(() => {
+    // The badge is refreshed on navigation, but at most every 30 seconds (it used to cost one request per page
+    // change). Opening Notifications always refreshes it, since that is where the count changes.
+    const now = Date.now();
+    const token = sessionToken();
+    const fresh = unreadCache && unreadCache.token === token && now - unreadCache.at < UNREAD_REFRESH_MS;
+    if (fresh && !location.pathname.startsWith('/notifications')) return;
+    unreadCache = { token, at: now, count: unreadCache?.token === token ? unreadCache.count : 0 };
     let active = true;
     axios
       .get('/notifications/unread-count', { withCredentials: true })
       .then((res) => {
-        if (active && res.data?.count !== undefined) setUnreadCount(res.data.count);
+        if (res.data?.count === undefined) return;
+        unreadCache = { token, at: Date.now(), count: res.data.count };
+        if (active) setUnreadCount(res.data.count);
       })
       .catch(() => {});
     return () => {
@@ -402,7 +441,7 @@ export default function Layout() {
 
         {/* Main content */}
         <main id="main-content" className="flex-1 overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6 lg:p-8">
-          <Outlet />
+          <Suspense fallback={<PageLoading />}><Outlet /></Suspense>
         </main>
        </div>
       </div>

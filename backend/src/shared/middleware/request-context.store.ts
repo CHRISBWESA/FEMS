@@ -9,6 +9,8 @@ export interface RequestContext {
   requestId?: string;
   ip?: string;
   userAgent?: string;
+  /** Database work done while serving this request (filled in by PrismaService, read by the request logger). */
+  db?: { queries: number; ms: number };
 }
 
 const storage = new AsyncLocalStorage<RequestContext>();
@@ -19,6 +21,15 @@ export function runInRequestContext<T>(context: RequestContext, fn: () => T): T 
 
 export function currentRequestContext(): RequestContext | undefined {
   return storage.getStore();
+}
+
+/** Counts one database query against the request being served (no-op outside a request, e.g. scheduled jobs). */
+export function recordDbQuery(ms: number): void {
+  const ctx = storage.getStore();
+  if (!ctx) return;
+  if (!ctx.db) ctx.db = { queries: 0, ms: 0 };
+  ctx.db.queries += 1;
+  ctx.db.ms += ms;
 }
 
 /** Best-effort client address. `trust proxy` handling is Express's job; this only normalises the value we store. */

@@ -57,10 +57,8 @@ export default function Leadership() {
   const qs = new URLSearchParams({ tab, page: String(page), limit: '25', ...Object.fromEntries(Object.entries(f).filter(([, v]) => v)) } as any).toString();
   const list = useLoad<any>(`/leadership/appointments?${qs}`, [qs]);
   const positions = useLoad<any[]>('/leadership/positions', []);
-  // KPI row: counts straight from the appointment record.
-  const kActive = useLoad<any>('/leadership/appointments?tab=current&status=active&limit=200', []);
-  const kSuspended = useLoad<any>('/leadership/appointments?tab=current&status=suspended&limit=1', []);
-  const kHistory = useLoad<any>('/leadership/appointments?tab=history&limit=1', []);
+  // KPI row: counts straight from the appointment record, in one request.
+  const kpi = useLoad<{ active: number; suspended: number; former: number; termPassed: number }>('/leadership/summary', []);
   const scopes = useLoad<any>('/leadership/scopes', []);
   const depts = { data: scopes.data?.departments as any[] | undefined };
   const groupList: any[] = scopes.data?.groups ?? [];
@@ -79,7 +77,7 @@ export default function Leadership() {
 
   const posById = new Map((positions.data ?? []).map((p) => [p.id, p]));
   const chosen = appoint ? posById.get(appoint.positionId) : null;
-  const reload = () => { list.reload(); if (profileId) profile.reload(); };
+  const reload = () => { list.reload(); kpi.reload(); if (profileId) profile.reload(); };
   const startAppoint = (prefill: any = {}) => { setMember(null); setAppoint({ positionId: '', departmentId: '', groupId: '', appointmentDate: new Date().toISOString().slice(0, 10), termStart: '', termEnd: '', notes: '', ...prefill }); };
   const act = async (fn: () => Promise<any>, ok: string) => { try { await fn(); toast.push('success', ok); reload(); } catch (e) { toast.push('error', errMsg(e, 'Could not complete that.')); } };
 
@@ -104,10 +102,10 @@ export default function Leadership() {
           {canManage && <Button variant="primary" onClick={() => startAppoint()}><PlusIcon className="h-4 w-4" /> Appoint</Button>}
         </span>} />
       <StatGrid className="print:hidden">
-        <StatCard label="Current leaders" value={kActive.data?.total ?? '—'} icon={<IdentificationIcon className="h-5 w-5" />} tone="primary" />
-        <StatCard label="Suspended" value={kSuspended.data?.total ?? '—'} icon={<PauseCircleIcon className="h-5 w-5" />} tone={kSuspended.data?.total ? 'warning' : 'neutral'} />
-        <StatCard label="Term has passed" value={(kActive.data?.data ?? []).filter((a: any) => a.termEnded).length} icon={<ClockIcon className="h-5 w-5" />} hint="Still serving after the term end" />
-        <StatCard label="Past appointments" value={kHistory.data?.total ?? '—'} icon={<ArchiveBoxIcon className="h-5 w-5" />} />
+        <StatCard label="Current leaders" value={kpi.data?.active ?? '—'} icon={<IdentificationIcon className="h-5 w-5" />} tone="primary" />
+        <StatCard label="Suspended" value={kpi.data?.suspended ?? '—'} icon={<PauseCircleIcon className="h-5 w-5" />} tone={kpi.data?.suspended ? 'warning' : 'neutral'} />
+        <StatCard label="Term has passed" value={kpi.data?.termPassed ?? '—'} icon={<ClockIcon className="h-5 w-5" />} hint="Still serving after the term end" />
+        <StatCard label="Past appointments" value={kpi.data?.former ?? '—'} icon={<ArchiveBoxIcon className="h-5 w-5" />} />
       </StatGrid>
       <Tabs tabs={[{ key: 'current', label: t('lead.current') }, { key: 'history', label: t('lead.history') }]} active={tab} onChange={(k) => { setTab(k); setPage(1); setF({ ...f, status: '' }); }} />
       <div className="flex flex-wrap gap-2 print:hidden">

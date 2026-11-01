@@ -12,7 +12,8 @@ import { Consumables, Maintenance } from './Care';
 import { InvReports, InvSettings } from './Admin';
 import { AssetPage } from './AssetPage';
 
-export const CENTRAL_ROLES = ['treasurer', 'secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson'];
+import { RESOURCE_CENTRAL_ROLES as CENTRAL_ROLES } from '../lib/area-roles';
+export { CENTRAL_ROLES };
 
 export interface InvScope {
   departmentId: string | null;

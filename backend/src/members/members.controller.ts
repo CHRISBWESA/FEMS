@@ -1,10 +1,8 @@
-﻿import { Controller, Get, Post, Put, Body, Param, Query, Req, UseGuards, UseInterceptors, UploadedFile, Res } from '@nestjs/common';
+﻿import { Controller, Get, Post, Put, Body, Param, Query, Req, UseInterceptors, UploadedFile, Res } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { MembersService, CreateMemberDto, UpdateMemberDto, CreateRegistrationLinkDto, RegisterMemberViaLinkDto, VerifyMemberDto, RejectMemberDto, ExportMembersDto } from './members.service';
 import { Roles } from '../shared/decorators/role.decorators';
 import { ROLES } from '../shared/authorization/roles';
-import { PERMISSIONS } from '../shared/authorization/permissions';
-
 @Controller('members')
 export class MembersController {
   constructor(private readonly membersService: MembersService) {}

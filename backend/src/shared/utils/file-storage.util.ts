@@ -1,6 +1,6 @@
 import { mkdir, writeFile, readFile, unlink } from 'fs/promises';
 import { createReadStream } from 'fs';
-import { join, resolve, sep } from 'path';
+import { resolve, sep } from 'path';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 /**

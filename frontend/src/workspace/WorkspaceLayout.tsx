@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, Suspense } from 'react';
+import PageLoading from '../components/PageLoading';
 import axios from 'axios';
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -195,7 +196,7 @@ export default function WorkspaceLayout() {
             </div>
           </header>
           <main id="ws-main" className="flex-1 overflow-y-auto print:overflow-visible p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6 lg:p-8">
-            <Outlet />
+            <Suspense fallback={<PageLoading />}><Outlet /></Suspense>
           </main>
         </div>
       </div>

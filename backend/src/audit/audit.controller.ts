@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Param, Req } from '@nestjs/common';
+import { Controller, Get, Query, Req } from '@nestjs/common';
 import { AuditQueryService } from './audit.service';
 import { Roles } from '../shared/decorators/role.decorators';
 import { ROLES } from '../shared/authorization/roles';

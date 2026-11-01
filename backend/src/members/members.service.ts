@@ -806,7 +806,6 @@ export class MembersService {
   }
 
   async getPendingVerifications(fellowshipId: string, requester: any): Promise<any[]> {
-    const userId = requester.userId;
     const roles = requester.roles || [];
     const isSecretary = roles.includes('secretary') || roles.includes('assistant_secretary');
     if (!isSecretary) throw new ForbiddenException('Only secretaries can view pending verifications');
@@ -847,7 +846,6 @@ export class MembersService {
 
     // Create the member
     const memberCode = await this.generateMemberCode();
-    const currentYear = new Date().getFullYear();
     const member = await this.prisma.member.create({
       data: {
         full_name: `${dto.firstName} ${dto.lastName}`,
@@ -890,7 +888,7 @@ export class MembersService {
     const isSecretary = requesterRoles.includes('secretary') || requesterRoles.includes('assistant_secretary');
     if (!isSecretary) throw new ForbiddenException('Only secretaries can reject members');
 
-    const updateResult = await this.prisma.pendingMemberVerification.update({
+    await this.prisma.pendingMemberVerification.update({
       where: { id: verificationId },
       data: { status: 'rejected', reviewed_by: requester.userId, reviewed_at: new Date(), rejection_reason: dto.reason },
     });

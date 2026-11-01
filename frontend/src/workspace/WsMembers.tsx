@@ -35,7 +35,6 @@ function useList(url: string, deps: unknown[]) {
       .then((r) => { setRows(r.data.data); setTotal(r.data.total); setError(''); })
       .catch((e) => setError(errMsg(e, 'Could not load members.')))
       .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
   useEffect(() => {
     const h = setTimeout(load, 250);

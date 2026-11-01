@@ -2,15 +2,6 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { PageLoader } from '../ui';
 
-function Stat({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="rounded-lg bg-canvas p-4 ring-1 ring-inset ring-hairline">
-      <p className="text-xs uppercase tracking-wider text-ink-subtle">{label}</p>
-      <p className="mt-1 text-xl font-semibold text-ink">{value}</p>
-    </div>
-  );
-}
-
 export default function MemberEngagementTab({ memberId }: { memberId: string }) {
   const [data, setData] = useState<any>(null);
   const [error, setError] = useState('');

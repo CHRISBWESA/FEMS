@@ -3,7 +3,6 @@ import {
   CanActivate,
   ExecutionContext,
   ForbiddenException,
-  BadRequestException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { DEPARTMENT_SCOPED_KEY } from '../decorators/role.decorators';

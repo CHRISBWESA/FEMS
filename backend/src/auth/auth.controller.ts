@@ -7,7 +7,6 @@ import {
   Res,
   HttpCode,
   HttpStatus,
-  ForbiddenException,
   BadRequestException,
   GoneException,
 } from '@nestjs/common';

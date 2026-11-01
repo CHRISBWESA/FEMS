@@ -1,7 +1,7 @@
 import { Injectable, Logger, NestMiddleware } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import type { Request, Response } from 'express';
-import { clientIp, deviceSummary, runInRequestContext } from './request-context.store';
+import { clientIp, deviceSummary, runInRequestContext, type RequestContext } from './request-context.store';
 
 export const REQUEST_ID_HEADER = 'X-Request-Id';
 
@@ -27,10 +27,22 @@ export class RequestContextMiddleware implements NestMiddleware {
     response.setHeader(REQUEST_ID_HEADER, requestId);
     // The address and user agent are captured here so AuditService can attribute any entry written while this
     // request is being served, without every service having to accept and pass a Request through.
-    const context = {
+    const context: RequestContext = {
       requestId,
       ip: clientIp(request.ip) ?? clientIp(request.header('x-forwarded-for')),
       userAgent: deviceSummary(request.header('user-agent')),
+    };
+    // Server-Timing lets the browser's network panel (and the frontend's own timing) show how long the server
+    // and its database took. Written just before the headers go out; durations only, nothing about the data.
+    const writeHead = response.writeHead;
+    (response as any).writeHead = function (...args: any[]) {
+      if (!response.headersSent) {
+        const db = context.db;
+        const parts = [`app;dur=${Date.now() - startedAt}`];
+        if (db) parts.push(`db;dur=${Math.round(db.ms)};desc="${db.queries} queries"`);
+        response.setHeader('Server-Timing', parts.join(', '));
+      }
+      return (writeHead as any).apply(this, args);
     };
     let logged = false;
     const log = () => {
@@ -43,6 +55,8 @@ export class RequestContextMiddleware implements NestMiddleware {
         route: safeRoute(request),
         status: response.statusCode,
         durationMs: Date.now() - startedAt,
+        dbQueries: context.db?.queries ?? 0,
+        dbMs: Math.round(context.db?.ms ?? 0),
       }));
     };
     response.once('finish', log);

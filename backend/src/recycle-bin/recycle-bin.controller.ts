@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Param, Body, Req } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Req } from '@nestjs/common';
 import { RecycleBinService } from './recycle-bin.service';
 import { Roles } from '../shared/decorators/role.decorators';
 import { ROLES } from '../shared/authorization/roles';

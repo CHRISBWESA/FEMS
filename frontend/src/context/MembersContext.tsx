@@ -20,11 +20,6 @@ interface Member {
   leader_role?: string;
 }
 
-interface MemberListResponse {
-  data: Member[];
-  total: number;
-}
-
 interface MembersContextType {
   members: Member[];
   total: number;

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { decodeJwtPayload } from './lib/axios';
@@ -7,61 +7,71 @@ import { ThemeProvider } from './context/ThemeContext';
 import { I18nProvider } from './context/I18nContext';
 import { MembersProvider } from './context/MembersContext';
 import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Members from './pages/Members';
-import MemberDetail from './pages/MemberDetail';
-import Programmes from './pages/Programmes';
-import Departments from './pages/Departments';
-import DepartmentDetail from './pages/DepartmentDetail';
-import Activities from './pages/Activities';
-import ActivityDetail from './pages/ActivityDetail';
-import Reports from './pages/Reports';
-import FinanceArea, { CENTRAL_FINANCE_ROLES } from './fin/FinanceArea';
-import { ProjectsList, ProjectDetail } from './fin/Projects';
-import PublicGive from './fin/PublicGive';
-import WsMoney from './fin/WsMoney';
-import Notifications from './pages/Notifications';
-import Audit from './pages/Audit';
-import RecycleBin from './pages/RecycleBin';
-import Backups from './pages/Backups';
-import ItContent from './pages/ItContent';
-import Profile from './pages/Profile';
-import DepartmentAnnouncements from './pages/DepartmentAnnouncements';
-import DepartmentReviews from './pages/DepartmentReviews';
-import WorkspaceLayout, { WorkspaceRoot } from './workspace/WorkspaceLayout';
-import WsDashboard from './workspace/WsDashboard';
-import WsMembers from './workspace/WsMembers';
-import WsActivities from './workspace/WsActivities';
-import WsReports from './workspace/WsReports';
-import WsFinance from './workspace/WsFinance';
-import { WsAnnouncements, WsLeadership, WsAccount } from './workspace/WsPages';
-import Users from './pages/Users';
-import Platform from './pages/Platform';
-import PlatformTenant from './pages/PlatformTenant';
-import Youth from './pages/Youth';
-import YouthDetail from './pages/YouthDetail';
-import YouthAgeGroups from './pages/YouthAgeGroups';
-import YouthPrograms from './pages/YouthPrograms';
-import YouthReports from './pages/YouthReports';
-import MemberInsights from './pages/MemberInsights';
-import MemberGroups from './pages/MemberGroups';
-import MemberGroupDetail from './pages/MemberGroupDetail';
-import MyGiving from './pages/MyGiving';
-import InventoryArea, { CENTRAL_ROLES as RESOURCE_CENTRAL_ROLES } from './inv/InventoryArea';
-import WsResources from './inv/WsResources';
-import Leadership from './pages/Leadership';
-import MyLoans from './pages/MyLoans';
-import Volunteering from './pages/Volunteering';
-import VolunteerOpportunity from './pages/VolunteerOpportunity';
-import Analytics from './pages/Analytics';
 import ForcePasswordChange from './pages/ForcePasswordChange';
 import NotFound from './pages/NotFound';
 import { DEPARTMENT_LEADER_ROLES, isDepartmentLeaderOnly } from './lib/roles';
-import PlatformSite from './site/PlatformSite';
-import FellowshipSite from './fellowship-site/FellowshipSite';
-import PublicSiteAdmin from './pages/PublicSiteAdmin';
-import AcceptInvitation from './pages/AcceptInvitation';
-import Register from './pages/Register';
+import { CENTRAL_FINANCE_ROLES, RESOURCE_CENTRAL_ROLES } from './lib/area-roles';
+import PageLoading from './components/PageLoading';
+import { lazyPage } from './lib/lazy-page';
+import { clearProfile, loadProfile } from './lib/profile';
+
+// Each page is downloaded the first time it is opened, so signing in only needs the shell, not the whole app.
+const Dashboard = lazyPage(() => import('./pages/Dashboard'));
+const Members = lazyPage(() => import('./pages/Members'));
+const MemberDetail = lazyPage(() => import('./pages/MemberDetail'));
+const Programmes = lazyPage(() => import('./pages/Programmes'));
+const Departments = lazyPage(() => import('./pages/Departments'));
+const DepartmentDetail = lazyPage(() => import('./pages/DepartmentDetail'));
+const Activities = lazyPage(() => import('./pages/Activities'));
+const ActivityDetail = lazyPage(() => import('./pages/ActivityDetail'));
+const Reports = lazyPage(() => import('./pages/Reports'));
+const FinanceArea = lazyPage(() => import('./fin/FinanceArea'));
+const ProjectsList = lazyPage(() => import('./fin/Projects').then((m) => ({ default: m.ProjectsList })));
+const ProjectDetail = lazyPage(() => import('./fin/Projects').then((m) => ({ default: m.ProjectDetail })));
+const PublicGive = lazyPage(() => import('./fin/PublicGive'));
+const WsMoney = lazyPage(() => import('./fin/WsMoney'));
+const Notifications = lazyPage(() => import('./pages/Notifications'));
+const Audit = lazyPage(() => import('./pages/Audit'));
+const RecycleBin = lazyPage(() => import('./pages/RecycleBin'));
+const Backups = lazyPage(() => import('./pages/Backups'));
+const ItContent = lazyPage(() => import('./pages/ItContent'));
+const Profile = lazyPage(() => import('./pages/Profile'));
+const DepartmentAnnouncements = lazyPage(() => import('./pages/DepartmentAnnouncements'));
+const DepartmentReviews = lazyPage(() => import('./pages/DepartmentReviews'));
+const WorkspaceLayout = lazyPage(() => import('./workspace/WorkspaceLayout'));
+const WorkspaceRoot = lazyPage(() => import('./workspace/WorkspaceLayout').then((m) => ({ default: m.WorkspaceRoot })));
+const WsDashboard = lazyPage(() => import('./workspace/WsDashboard'));
+const WsMembers = lazyPage(() => import('./workspace/WsMembers'));
+const WsActivities = lazyPage(() => import('./workspace/WsActivities'));
+const WsReports = lazyPage(() => import('./workspace/WsReports'));
+const WsFinance = lazyPage(() => import('./workspace/WsFinance'));
+const WsAnnouncements = lazyPage(() => import('./workspace/WsPages').then((m) => ({ default: m.WsAnnouncements })));
+const WsLeadership = lazyPage(() => import('./workspace/WsPages').then((m) => ({ default: m.WsLeadership })));
+const WsAccount = lazyPage(() => import('./workspace/WsPages').then((m) => ({ default: m.WsAccount })));
+const Users = lazyPage(() => import('./pages/Users'));
+const Platform = lazyPage(() => import('./pages/Platform'));
+const PlatformTenant = lazyPage(() => import('./pages/PlatformTenant'));
+const Youth = lazyPage(() => import('./pages/Youth'));
+const YouthDetail = lazyPage(() => import('./pages/YouthDetail'));
+const YouthAgeGroups = lazyPage(() => import('./pages/YouthAgeGroups'));
+const YouthPrograms = lazyPage(() => import('./pages/YouthPrograms'));
+const YouthReports = lazyPage(() => import('./pages/YouthReports'));
+const MemberInsights = lazyPage(() => import('./pages/MemberInsights'));
+const MemberGroups = lazyPage(() => import('./pages/MemberGroups'));
+const MemberGroupDetail = lazyPage(() => import('./pages/MemberGroupDetail'));
+const MyGiving = lazyPage(() => import('./pages/MyGiving'));
+const InventoryArea = lazyPage(() => import('./inv/InventoryArea'));
+const WsResources = lazyPage(() => import('./inv/WsResources'));
+const Leadership = lazyPage(() => import('./pages/Leadership'));
+const MyLoans = lazyPage(() => import('./pages/MyLoans'));
+const Volunteering = lazyPage(() => import('./pages/Volunteering'));
+const VolunteerOpportunity = lazyPage(() => import('./pages/VolunteerOpportunity'));
+const Analytics = lazyPage(() => import('./pages/Analytics'));
+const PlatformSite = lazyPage(() => import('./site/PlatformSite'));
+const FellowshipSite = lazyPage(() => import('./fellowship-site/FellowshipSite'));
+const PublicSiteAdmin = lazyPage(() => import('./pages/PublicSiteAdmin'));
+const AcceptInvitation = lazyPage(() => import('./pages/AcceptInvitation'));
+const Register = lazyPage(() => import('./pages/Register'));
 
 interface User {
   id: string;
@@ -95,7 +105,7 @@ function RequireAuth({ children }: { children: JSX.Element }) {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  if (loading) return <PageLoading fullScreen />;
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
   if (user.mustChangePassword) return <ForcePasswordChange onDone={() => window.location.reload()} />;
   return children;
@@ -214,7 +224,7 @@ export default function App() {
         mustChangePassword: !!payload.mustChangePassword,
       });
       try {
-        const profile = await axios.get('/profile', { withCredentials: true });
+        const profile = { data: await loadProfile() };
         setUser((current) => current ? {
           ...current,
           id: profile.data.id || current.id,
@@ -253,6 +263,7 @@ export default function App() {
     }
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    clearProfile();
     setUser(null);
   };
 
@@ -276,6 +287,7 @@ export default function App() {
         <I18nProvider>
           <MembersProvider>
             <Router>
+        <Suspense fallback={<PageLoading fullScreen />}>
         <Routes>
           <Route path="/login" element={!user ? <Login /> : <Navigate to="/dashboard" replace />} />
           <Route path="/register" element={!user ? <Register /> : <Navigate to="/dashboard" replace />} />
@@ -357,6 +369,7 @@ export default function App() {
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
+        </Suspense>
       </Router>
         </MembersProvider>
       </I18nProvider>

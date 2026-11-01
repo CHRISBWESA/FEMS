@@ -22,27 +22,28 @@ export class DashboardController {
     // to be unscoped, which showed every signed-in user the totals of all fellowships.
     if (isPlatformPrincipal(req.user.roles)) {
       // Platform accounts see platform figures only, never a fellowship's operational totals.
-      const [totalFellowships, activeFellowships] = await Promise.all([
-        this.prisma.fellowship.count(),
-        this.prisma.fellowship.count({ where: { status: 'active' } }),
-      ]);
       // Platform-level entries only (platform.* / support.* and a platform account's own actions), so this can
       // never surface a tenant's operational trail. Same scope rule as GET /platform/audit.
-      const recentActions = await this.recentPlatformActions();
+      const [totalFellowships, activeFellowships, recentActions] = await Promise.all([
+        this.prisma.fellowship.count(),
+        this.prisma.fellowship.count({ where: { status: 'active' } }),
+        this.recentPlatformActions(),
+      ]);
       return { platform: true, totalFellowships, activeFellowships, recentActions };
     }
     const where = this.tenantScope.scopeWhere(req.user, {}) as any;
-    const [memberCount, activityCount, deptCount] = await Promise.all([
+    const [memberCount, activityCount, deptCount, recentActions] = await Promise.all([
       this.prisma.member.count({ where }),
       this.prisma.activity.count({ where: { ...where, status: { in: ['APPROVED', 'COMPLETED'] } } }),
       this.prisma.department.count({ where }),
+      this.recentTenantActions(req.user),
     ]);
 
     return {
       totalMembers: memberCount,
       totalActivities: activityCount,
       totalDepartments: deptCount,
-      recentActions: await this.recentTenantActions(req.user, where),
+      recentActions,
     };
   }
 
@@ -68,7 +69,7 @@ export class DashboardController {
   }
 
   // A tenant sees its own audit trail only, matching GET /audit for their role.
-  private async recentTenantActions(user: any, where: any) {
+  private async recentTenantActions(user: any) {
     if (!user.fellowshipId) return [];
     const rows = await this.prisma.auditLog.findMany({
       where: { fellowship_id: user.fellowshipId },

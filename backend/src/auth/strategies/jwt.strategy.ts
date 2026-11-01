@@ -21,6 +21,24 @@ export interface JwtPayload {
   impBy?: string;
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+interface AccountRow {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  gender: string | null;
+  roles: string[] | null;
+  department_id: string | null;
+  fellowship_id: string | null;
+  is_active: boolean;
+  must_change_password: boolean;
+  token_version: number;
+  deleted_at: Date | null;
+  fellowship_status: string | null;
+}
+
 export interface ImpersonationContext {
   sessionId: string;
   adminUserId: string;
@@ -44,13 +62,26 @@ export class JwtStrategyService extends PassportStrategy(JwtStrategy, 'jwt') {
   }
 
   // Users of a suspended fellowship are locked out on every request (platform accounts belong to no fellowship).
-  private async assertTenantActive(fellowshipId: string | null, roles: string[]): Promise<void> {
+  private assertTenantActive(fellowshipId: string | null, fellowshipStatus: string | null, roles: string[]): void {
     if (isPlatformPrincipal(roles)) return;
     if (!fellowshipId) return;
-    const f = await this.prisma.fellowship.findUnique({ where: { id: fellowshipId }, select: { status: true } });
-    if (!f || f.status !== 'active') {
+    if (fellowshipStatus !== 'active') {
       throw new ForbiddenException('Your fellowship is currently suspended. Please contact the platform administrator.');
     }
+  }
+
+  /**
+   * The account and its fellowship's status in ONE query. This runs on every authenticated request, and the
+   * database is a network hop away, so two sequential lookups here added a full round trip to every call.
+   */
+  private async loadAccount(userId: string): Promise<AccountRow | null> {
+    if (!UUID.test(userId)) return null;
+    const rows = await this.prisma.$queryRaw<AccountRow[]>`
+      SELECT u.id, u.email, u.first_name, u.last_name, u.gender, u.roles, u.department_id, u.fellowship_id,
+             u.is_active, u.must_change_password, u.token_version, u.deleted_at, f.status::text AS fellowship_status
+      FROM users u LEFT JOIN fellowships f ON f.id = u.fellowship_id
+      WHERE u.id = ${userId}::uuid`;
+    return rows[0] ?? null;
   }
 
   /**
@@ -85,7 +116,7 @@ export class JwtStrategyService extends PassportStrategy(JwtStrategy, 'jwt') {
     // Checked before the account is even loaded, so an ended session cannot be used at all.
     const impersonation = await this.assertImpersonationLive(payload);
 
-    const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
+    const user = await this.loadAccount(payload.sub);
     // A deactivated or deleted account loses access at once, not whenever its token happens to expire.
     if (!user || user.deleted_at || !user.is_active) {
       throw new UnauthorizedException('User not found');
@@ -98,7 +129,7 @@ export class JwtStrategyService extends PassportStrategy(JwtStrategy, 'jwt') {
     }
 
     const roles = user.roles || [];
-    await this.assertTenantActive(user.fellowship_id, roles);
+    this.assertTenantActive(user.fellowship_id, user.fellowship_status, roles);
     const permissions = ROLE_DEFINITIONS.filter((r) => roles.includes(r.name)).flatMap(
       (r) => r.permissions,
     );

@@ -17,6 +17,7 @@ function safeStartupError(error: unknown): string {
 }
 
 async function bootstrap() {
+  const bootStarted = Date.now();
   // Refuses to start on an unsafe production configuration (weak/missing JWT secret, CORS origin, database URL).
   for (const w of assertProductionConfig()) console.warn(`[config] ${w}`);
 
@@ -26,7 +27,7 @@ async function bootstrap() {
     cors: {
       origin: process.env.FRONTEND_URL || 'http://localhost:5173',
       credentials: true,
-      exposedHeaders: ['X-Total-Count', REQUEST_ID_HEADER],
+      exposedHeaders: ['X-Total-Count', REQUEST_ID_HEADER, 'Server-Timing'],
     },
   });
 
@@ -41,7 +42,7 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
-  console.log(`Fellowship Management API running on port ${port}`);
+  console.log(`Fellowship Management API running on port ${port} (started in ${Date.now() - bootStarted}ms)`);
 }
 bootstrap().catch((err) => {
   // A start-up failure (unsafe production configuration, database unreachable, port in use) must end the process with a

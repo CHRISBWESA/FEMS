@@ -13,7 +13,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     super();
   }
 
-  handleRequest(err, user, info) {
+  handleRequest(err, user, _info) {
     if (err) {
       throw err;
     }

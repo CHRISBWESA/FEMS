@@ -20,7 +20,7 @@ export class AssetMaintenanceService {
 
   private present(m: any, user: any) {
     if (this.access.canSeeCost(user)) return m;
-    const { cost, ...rest } = m;
+    const { cost: _hiddenCost, ...rest } = m;
     return rest;
   }
 

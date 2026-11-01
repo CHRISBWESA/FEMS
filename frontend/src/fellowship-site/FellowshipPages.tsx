@@ -1,7 +1,12 @@
 import { useParams } from 'react-router-dom';
 import {
-  MapPinIcon, CalendarDaysIcon, DocumentTextIcon, SparklesIcon,
-  HandRaisedIcon, BanknotesIcon, InformationCircleIcon, ArrowDownTrayIcon,
+  MapPinIcon,
+  CalendarDaysIcon,
+  DocumentTextIcon,
+  SparklesIcon,
+  HandRaisedIcon,
+  BanknotesIcon,
+  ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline';
 import { useFellowshipList, type FellowshipSite, type PublicPage } from './api';
 import { EmptyState, PageLoader } from '../components/ui';

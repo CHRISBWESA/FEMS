@@ -2,7 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EntitlementsService } from '../billing/entitlements.service';
 
-const TTL_MS = 5_000;
+// Module switches are fellowship settings (not personal data) and changes made through this instance clear the
+// cache at once, so a longer window only delays what another instance sees.
+const TTL_MS = 30_000;
 
 /**
  * Which optional modules a fellowship has switched off. A missing row means "available", so tenants that
@@ -19,9 +21,13 @@ export class ModuleAvailabilityService {
     if (!fellowshipId) return new Set();
     const hit = this.cache.get(fellowshipId);
     if (hit && Date.now() - hit.at < TTL_MS) return hit.disabled;
-    const rows = await this.prisma.fellowshipModuleSetting.findMany({ where: { fellowship_id: fellowshipId, enabled: false }, select: { module_key: true } });
     // Off when the platform switched it off for this fellowship OR its subscription plan does not include it.
-    const disabled = new Set([...rows.map((r) => r.module_key), ...(await this.entitlements.excludedModules(fellowshipId))]);
+    // The two lookups are independent, so they run together.
+    const [rows, excluded] = await Promise.all([
+      this.prisma.fellowshipModuleSetting.findMany({ where: { fellowship_id: fellowshipId, enabled: false }, select: { module_key: true } }),
+      this.entitlements.excludedModules(fellowshipId),
+    ]);
+    const disabled = new Set([...rows.map((r) => r.module_key), ...excluded]);
     this.cache.set(fellowshipId, { at: Date.now(), disabled });
     return disabled;
   }

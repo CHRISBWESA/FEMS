@@ -30,18 +30,28 @@ const target = {
   department_id: null,
 };
 
+const fellowshipAdmin = { userId: '10000000-0000-4000-8000-000000000005', roles: ['fellowship_admin'], fellowshipId: target.fellowship_id };
+const secretary = { userId: '10000000-0000-4000-8000-000000000002', roles: ['secretary'], fellowshipId: target.fellowship_id };
+const platformAdmin = { userId: '10000000-0000-4000-8000-000000000003', roles: ['admin'], fellowshipId: null };
+
 describe('role assignment policy', () => {
-  // A fellowship's Secretary runs their own congregation, including its leadership and finance roles. The
-  // platform administrator does not do this: it can enter a fellowship as one of its users instead, so it does
-  // not need to hand out job titles as well.
-  it('lets a secretary grant the finance and approval roles', async () => {
+  // Only the Fellowship Administrator appoints the fellowship's officers (USER_ROLE_ASSIGN_GOV). A Secretary,
+  // Treasurer or Chairperson appoints ordinary members and department leaders, never an officer.
+  it('lets the fellowship administrator appoint the officers', async () => {
     for (const role of ['treasurer', 'chairperson', 'assistant_chairperson', 'secretary'] as const) {
       const { service } = makeService(target);
-      await expect(service.assignRoles(target.id, [role], {
-        userId: '10000000-0000-4000-8000-000000000002',
-        roles: ['secretary'],
-        fellowshipId: target.fellowship_id,
-      })).resolves.toMatchObject({ roles: [role] });
+      await expect(service.assignRoles(target.id, [role], fellowshipAdmin)).resolves.toMatchObject({ roles: [role] });
+    }
+  });
+
+  it('refuses a secretary, treasurer or chairperson who tries to appoint an officer', async () => {
+    for (const requesterRole of ['secretary', 'treasurer', 'chairperson', 'assistant_secretary'] as const) {
+      for (const role of ['treasurer', 'chairperson', 'secretary'] as const) {
+        const { service, prisma } = makeService(target);
+        await expect(service.assignRoles(target.id, [role], { ...secretary, roles: [requesterRole] }))
+          .rejects.toThrow(/Only the fellowship administrator may appoint/);
+        expect(prisma.user.update).not.toHaveBeenCalled();
+      }
     }
   });
 
@@ -76,13 +86,9 @@ describe('role assignment policy', () => {
     }));
   });
 
-  it('no longer lets a platform administrator hand out a fellowship role', async () => {
+  it("lets a platform administrator manage a tenant's roles (an explicit platform permission)", async () => {
     const { service } = makeService(target);
-    await expect(service.assignRoles(target.id, ['chairperson'], {
-      userId: '10000000-0000-4000-8000-000000000003',
-      roles: ['admin'],
-      fellowshipId: null,
-    })).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.assignRoles(target.id, ['chairperson'], platformAdmin)).resolves.toMatchObject({ roles: ['chairperson'] });
   });
 
   it('still refuses platform roles even for an administrator, pointing at the system-accounts screen', async () => {
@@ -114,61 +120,46 @@ describe('role assignment policy', () => {
 });
 
 describe('a fellowship administrator manages every role in their own fellowship', () => {
-  // These targets already HOLD the role in question. Managing an account used to be refused purely because of the
-  // job title it carried, which meant a Secretary could create a Treasurer but never re-role or disable one.
+  // These targets already HOLD the role in question: the fellowship administrator can re-role them, and the
+  // last-Secretary guard still stops anyone from leaving the fellowship without a Secretary.
   const leadership = { ...target, roles: ['treasurer'] };
   const coSecretary = { ...target, roles: ['secretary'] };
 
-  it('lets the Secretary re-role an existing Treasurer', async () => {
+  it('lets the fellowship administrator re-role an existing Treasurer', async () => {
     const { service } = makeService(leadership);
-    await expect(service.assignRoles(leadership.id, ['chairperson'], {
-      userId: '10000000-0000-4000-8000-000000000002',
-      roles: ['secretary'],
-      fellowshipId: target.fellowship_id,
-    })).resolves.toMatchObject({ roles: ['chairperson'] });
+    await expect(service.assignRoles(leadership.id, ['chairperson'], fellowshipAdmin)).resolves.toMatchObject({ roles: ['chairperson'] });
   });
 
-  it('lets the Secretary change another Secretary while another one remains', async () => {
+  it('does not let the Secretary move a Treasurer into another office', async () => {
+    const { service } = makeService(leadership);
+    await expect(service.assignRoles(leadership.id, ['chairperson'], secretary)).rejects.toThrow(/Only the fellowship administrator/);
+  });
+
+  it('lets the fellowship administrator change a Secretary while another one remains', async () => {
     const { service } = makeService(coSecretary, 1);
-    await expect(service.assignRoles(coSecretary.id, ['assistant_secretary'], {
-      userId: '10000000-0000-4000-8000-000000000002',
-      roles: ['secretary'],
-      fellowshipId: target.fellowship_id,
-    })).resolves.toMatchObject({ roles: ['assistant_secretary'] });
+    await expect(service.assignRoles(coSecretary.id, ['assistant_secretary'], fellowshipAdmin)).resolves.toMatchObject({ roles: ['assistant_secretary'] });
   });
 
   it('refuses to strip the fellowship of its last Secretary', async () => {
     // The check counts OTHER active secretaries, so the target must be excluded or a fellowship with exactly one
     // would count itself and wrongly be allowed to delete the role that runs it.
     const { service, prisma } = makeService(coSecretary, 0);
-    await expect(service.assignRoles(coSecretary.id, ['chairperson'], {
-      userId: '10000000-0000-4000-8000-000000000002',
-      roles: ['secretary'],
-      fellowshipId: target.fellowship_id,
-    })).rejects.toThrow(/only active Secretary/i);
+    await expect(service.assignRoles(coSecretary.id, ['chairperson'], fellowshipAdmin)).rejects.toThrow(/only active Secretary/i);
     expect(prisma.user.count).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ NOT: { id: coSecretary.id } }) }),
     );
     expect(prisma.user.update).not.toHaveBeenCalled();
   });
 
-  it('lets a platform administrator remove the last Secretary, who can restore one', async () => {
-    const { service } = makeService(coSecretary, 0);
-    await expect(service.assignRoles(coSecretary.id, ['chairperson'], {
-      userId: '10000000-0000-4000-8000-000000000003',
-      roles: ['admin'],
-      fellowshipId: null,
-    })).rejects.toBeInstanceOf(ForbiddenException); // blocked earlier: admins do not hand out fellowship roles
-    expect(makeService(coSecretary, 0).prisma.user.update).not.toHaveBeenCalled();
+  it('lets a platform administrator remove the last Secretary, since they can restore one', async () => {
+    const { service, prisma } = makeService(coSecretary, 0);
+    await expect(service.assignRoles(coSecretary.id, ['chairperson'], platformAdmin)).resolves.toMatchObject({ roles: ['chairperson'] });
+    expect(prisma.user.count).not.toHaveBeenCalled();
   });
 
   it('does not apply the last-Secretary guard to roles that are not Secretary', async () => {
     const { service, prisma } = makeService(leadership, 0);
-    await service.assignRoles(leadership.id, ['chairperson'], {
-      userId: '10000000-0000-4000-8000-000000000002',
-      roles: ['secretary'],
-      fellowshipId: target.fellowship_id,
-    });
+    await service.assignRoles(leadership.id, ['chairperson'], fellowshipAdmin);
     expect(prisma.user.count).not.toHaveBeenCalled();
   });
 });

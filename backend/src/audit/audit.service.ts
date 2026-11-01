@@ -1,6 +1,6 @@
 import { Injectable, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { AuditLog, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { isPlatformPrincipal } from '../shared/authorization/platform-boundary.guard';
 
 export interface AuditFilters {

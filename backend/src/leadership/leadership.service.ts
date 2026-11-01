@@ -146,14 +146,28 @@ export class LeadershipService {
    * away in another screen (Users, Departments, Groups) start or end an appointment here, so every module and this
    * directory always agree. Suspended appointments are left alone.
    */
-  async reconcile(fellowshipId: string) {
-    const positions = await this.prisma.leadershipPosition.findMany({ where: { fellowship_id: null, is_system: true } });
-    const byRole = new Map(positions.map((p) => [p.system_role!, p]));
-    const [dl, gl, officers] = await Promise.all([
+  async reconcile(fellowshipId: string): Promise<void> {
+    // Requests that arrive while a sync for the same fellowship is already running share it instead of each
+    // repeating the same reads (and racing each other's writes).
+    const running = this.reconciling.get(fellowshipId);
+    if (running) return running;
+    const run = this.reconcileNow(fellowshipId).finally(() => this.reconciling.delete(fellowshipId));
+    this.reconciling.set(fellowshipId, run);
+    return run;
+  }
+
+  private reconciling = new Map<string, Promise<void>>();
+
+  private async reconcileNow(fellowshipId: string) {
+    // Everything the comparison needs is read in one round of parallel queries.
+    const [positions, dl, gl, officers, current] = await Promise.all([
+      this.prisma.leadershipPosition.findMany({ where: { fellowship_id: null, is_system: true } }),
       this.prisma.departmentLeader.findMany({ where: { active_role: { not: null }, member_id: { not: null }, department: { fellowship_id: fellowshipId } }, include: { member: { select: { full_name: true, member_code: true } } } }),
       this.prisma.memberGroupMember.findMany({ where: { leader_role: { not: null }, group: { fellowship_id: fellowshipId } }, include: { member: { select: { full_name: true, member_code: true } } } }),
       this.prisma.user.findMany({ where: { fellowship_id: fellowshipId, is_active: true, deleted_at: null, roles: { hasSome: FELLOWSHIP_ROLES } }, select: { roles: true, created_at: true, member: { select: { id: true, full_name: true, member_code: true } } }, orderBy: { created_at: 'asc' } }),
+      this.prisma.leadershipAppointment.findMany({ where: { fellowship_id: fellowshipId, status: { in: ['active', 'suspended'] }, position: { is_system: true } } }),
     ]);
+    const byRole = new Map(positions.map((p) => [p.system_role!, p]));
     type Want = { position: any; scope: string | null; dept?: string; group?: string; memberId: string; name: string; code: string | null; start: Date };
     const want: Want[] = [];
     for (const r of dl) { const p = byRole.get(r.active_role!); if (p) want.push({ position: p, scope: r.department_id, dept: r.department_id, memberId: r.member_id!, name: r.member!.full_name, code: r.member!.member_code, start: r.start_date }); }
@@ -167,7 +181,6 @@ export class LeadershipService {
     }
     const k = (positionId: string, scope: string | null, member: string | null) => `${positionId}|${scope ?? 'f'}|${member}`;
     const wanted = new Set(want.map((w) => k(w.position.id, w.scope, w.memberId)));
-    const current = await this.prisma.leadershipAppointment.findMany({ where: { fellowship_id: fellowshipId, status: { in: ['active', 'suspended'] }, position: { is_system: true } } });
     const have = new Set(current.map((a) => k(a.position_id, a.department_id ?? a.group_id, a.member_id)));
     for (const a of current) {
       if (a.status !== 'active' || wanted.has(k(a.position_id, a.department_id ?? a.group_id, a.member_id))) continue;
@@ -463,6 +476,20 @@ export class LeadershipService {
       this.prisma.leadershipAppointment.count({ where }),
     ]);
     return { data: await this.decorate(rows), total, page, limit, tab };
+  }
+
+  /** The KPI figures for the directory page, in one call (it used to take three list requests, each re-syncing). */
+  async summary(user: any) {
+    const fellowshipId = this.requireViewer(user);
+    await this.reconcile(fellowshipId);
+    const base = { fellowship_id: fellowshipId };
+    const [active, suspended, former, termPassed] = await Promise.all([
+      this.prisma.leadershipAppointment.count({ where: { ...base, status: 'active' } }),
+      this.prisma.leadershipAppointment.count({ where: { ...base, status: 'suspended' } }),
+      this.prisma.leadershipAppointment.count({ where: { ...base, status: 'former' } }),
+      this.prisma.leadershipAppointment.count({ where: { ...base, status: 'active', term_end: { lt: new Date() } } }),
+    ]);
+    return { active, suspended, former, termPassed };
   }
 
   async detail(user: any, id: string) {

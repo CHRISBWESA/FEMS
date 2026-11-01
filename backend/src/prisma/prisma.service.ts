@@ -1,5 +1,9 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
+import { recordDbQuery } from '../shared/middleware/request-context.store';
+
+// A single query slower than this is logged by name (model + action only, never its arguments).
+const SLOW_QUERY_MS = Number(process.env.SLOW_QUERY_MS) || 500;
 
 // Prisma reads and writes every DateTime as a UTC wall-clock value in `timestamp` (without time zone) columns. Raw SQL
 // (`now()`, or a JS Date compared with such a column) uses the database SESSION time zone instead, so on a database whose
@@ -31,6 +35,25 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       // their account) can exceed when the database is in another region. Still bounded, so nothing hangs.
       transactionOptions: { maxWait: 10_000, timeout: 30_000 },
     });
+    // Lightweight measurement: every query is timed (including any wait for a free connection) and counted against
+    // the request being served, so the request log shows how much of each request was database time. Returning the
+    // extended client keeps every method of this class (Nest's lifecycle hooks included) while routing all queries,
+    // transactions included, through the timer.
+    const logger = this.logger;
+    return this.$extends({
+      query: {
+        async $allOperations({ args, query, model, operation }) {
+          const started = performance.now();
+          try {
+            return await query(args);
+          } finally {
+            const ms = performance.now() - started;
+            recordDbQuery(ms);
+            if (ms >= SLOW_QUERY_MS) logger.warn(`Slow query ${model ?? 'raw'}.${operation} took ${Math.round(ms)}ms`);
+          }
+        },
+      },
+    }) as unknown as this;
   }
 
   async onModuleInit() {

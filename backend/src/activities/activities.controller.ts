@@ -7,7 +7,6 @@
   Param,
   Query,
   Req,
-  UseGuards,
   Res,
 } from '@nestjs/common';
 import { withTotalHeader } from '../shared/utils/paging.util';

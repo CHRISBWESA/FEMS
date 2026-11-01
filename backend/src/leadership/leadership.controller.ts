@@ -23,6 +23,7 @@ export class LeadershipController {
   @Post('positions') @Roles(ROLES.FELLOWSHIP_ADMIN, ROLES.SECRETARY) createPosition(@Req() req, @Body() b) { return this.leadership.createPosition(req.user, b); }
   @Put('positions/:id') @Roles(ROLES.FELLOWSHIP_ADMIN, ROLES.SECRETARY) updatePosition(@Req() req, @Param('id') id: string, @Body() b) { return this.leadership.updatePosition(req.user, id, b); }
 
+  @Get('summary') @Roles(...VIEWERS) summary(@Req() req) { return this.leadership.summary(req.user); }
   @Get('appointments') @Roles(...VIEWERS) list(@Req() req, @Query() q) { return this.leadership.list(req.user, q); }
   @Post('appointments') @Roles(...MANAGERS) appoint(@Req() req, @Body() b) { return this.leadership.appoint(req.user, b); }
   @Get('appointments/:id') @Roles(...VIEWERS) detail(@Req() req, @Param('id') id: string) { return this.leadership.detail(req.user, id); }

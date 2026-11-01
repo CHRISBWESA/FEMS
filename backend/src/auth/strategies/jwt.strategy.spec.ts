@@ -7,16 +7,15 @@ import { JwtStrategyService } from './jwt.strategy';
 function strategyWith(session: any) {
   const prisma: any = {
     impersonationSession: { findUnique: jest.fn(async () => session) },
-    user: {
-      findUnique: jest.fn(async () => ({
-        id: '99999999-9999-4999-8999-999999999999',
-        email: 'secretary@tenant.test',
-        first_name: 'Grace', last_name: 'Mwangi',
-        roles: ['secretary'], fellowship_id: '11111111-1111-4111-8111-111111111111',
-        department_id: null, is_active: true, deleted_at: null, token_version: 0, must_change_password: false,
-      })),
-    },
-    fellowship: { findUnique: jest.fn(async () => ({ status: 'active' })) },
+    // The account and its fellowship status come back from one joined query.
+    $queryRaw: jest.fn(async () => [{
+      id: '99999999-9999-4999-8999-999999999999',
+      email: 'secretary@tenant.test',
+      first_name: 'Grace', last_name: 'Mwangi', gender: null,
+      roles: ['secretary'], fellowship_id: '11111111-1111-4111-8111-111111111111',
+      department_id: null, is_active: true, deleted_at: null, token_version: 0, must_change_password: false,
+      fellowship_status: 'active',
+    }]),
   };
   const config: any = { get: jest.fn(() => 'test-secret-test-secret-test-secret-test-secret-1234') };
   const s = new JwtStrategyService(config, prisma);
@@ -96,6 +95,50 @@ describe('impersonation tokens are only honoured while the session is live', () 
   it('checks the session BEFORE the account, so a dead session cannot read a live account', async () => {
     const { s, prisma } = strategyWith({ ...liveSession, status: 'expired' });
     await expect(s.validate(basePayload({ imp: liveSession.id }) as any)).rejects.toBeInstanceOf(UnauthorizedException);
-    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    expect(prisma.$queryRaw).not.toHaveBeenCalled();
+  });
+});
+
+describe('account checks share one query', () => {
+  const row = (extra: any = {}) => ({
+    id: '99999999-9999-4999-8999-999999999999', email: 'secretary@tenant.test', first_name: 'Grace', last_name: 'Mwangi',
+    gender: null, roles: ['secretary'], fellowship_id: '11111111-1111-4111-8111-111111111111', department_id: null,
+    is_active: true, deleted_at: null, token_version: 0, must_change_password: false, fellowship_status: 'active', ...extra,
+  });
+  const make = (r: any) => {
+    const prisma: any = { $queryRaw: jest.fn(async () => (r ? [r] : [])) };
+    const config: any = { get: jest.fn(() => 'test-secret-test-secret-test-secret-test-secret-1234') };
+    return { s: new JwtStrategyService(config, prisma), prisma };
+  };
+
+  it('authenticates with a single database query', async () => {
+    const { s, prisma } = make(row());
+    await expect(s.validate(basePayload() as any)).resolves.toMatchObject({ fellowshipId: '11111111-1111-4111-8111-111111111111' });
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+  });
+
+  it('refuses a user of a suspended or missing fellowship', async () => {
+    for (const fellowship_status of ['suspended', null]) {
+      const { s } = make(row({ fellowship_status }));
+      await expect(s.validate(basePayload() as any)).rejects.toThrow(/suspended/);
+    }
+  });
+
+  it('still lets a platform account in without a fellowship', async () => {
+    const { s } = make(row({ roles: ['platform_admin'], fellowship_id: null, fellowship_status: null }));
+    await expect(s.validate(basePayload({ roles: ['platform_admin'] }) as any)).resolves.toBeTruthy();
+  });
+
+  it('refuses a deactivated, deleted, unknown or stale-session account', async () => {
+    for (const r of [row({ is_active: false }), row({ deleted_at: new Date() }), null, row({ token_version: 3 })]) {
+      const { s } = make(r);
+      await expect(s.validate(basePayload() as any)).rejects.toBeInstanceOf(UnauthorizedException);
+    }
+  });
+
+  it('refuses a malformed subject without querying', async () => {
+    const { s, prisma } = make(row());
+    await expect(s.validate(basePayload({ sub: "x' or 1=1" }) as any)).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(prisma.$queryRaw).not.toHaveBeenCalled();
   });
 });

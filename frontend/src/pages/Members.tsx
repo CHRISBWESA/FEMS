@@ -6,7 +6,18 @@ import { useMembers } from '../context/MembersContext';
 import { DataTable, type Column } from '../components/DataTable';
 import { EmptyState, PageLoader, Alert, StatCard, StatGrid } from '../components/ui';
 import {
-  UsersIcon, MagnifyingGlassIcon, ChevronLeftIcon, ChevronRightIcon, FunnelIcon, PlusIcon, XMarkIcon, UserPlusIcon, CloudArrowUpIcon, DocumentArrowDownIcon, PencilSquareIcon, CheckCircleIcon, PauseCircleIcon, AcademicCapIcon,
+  UsersIcon,
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  PlusIcon,
+  XMarkIcon,
+  UserPlusIcon,
+  CloudArrowUpIcon,
+  DocumentArrowDownIcon,
+  PencilSquareIcon,
+  CheckCircleIcon,
+  PauseCircleIcon,
+  AcademicCapIcon,
 } from '@heroicons/react/24/outline';
 
 const emptyForm = {
@@ -37,7 +48,7 @@ const emptyFilters = {
 
 export default function Members() {
   const { user, hasPermission } = useAuth();
-  const { members, total, loading, error: ctxError, fetchMembers, refreshMembers, createMember: ctxCreateMember, updateMember, deleteMember } = useMembers();
+  const { members, total, loading, fetchMembers, refreshMembers } = useMembers();
   const canManage = user?.roles.includes('secretary') || user?.roles.includes('admin');
   // Editing a member's details is the Secretary's (the same rule as the member page and the API).
   const canEdit = !!user?.roles.includes('secretary');
@@ -165,7 +176,6 @@ export default function Members() {
   };
 
   const pageSize = 20;
-  const totalPages = Math.ceil(total / pageSize);
 
   return (
     <div className="mx-auto max-w-7xl">
