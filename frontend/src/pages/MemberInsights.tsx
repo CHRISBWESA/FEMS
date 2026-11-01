@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { UsersIcon, UserPlusIcon, ChartBarIcon } from '@heroicons/react/24/outline';
-import { PageLoader } from '../components/ui';
+import { PageLoader, StatCard, StatGrid } from '../components/ui';
 
 function Bar({ value, max, className = 'bg-primary' }: { value: number; max: number; className?: string }) {
   const pct = max > 0 ? Math.max(2, Math.round((value / max) * 100)) : 0;
@@ -73,22 +73,12 @@ export default function MemberInsights() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          { label: 'Members', value: data.totals.total, icon: UsersIcon, color: 'bg-primary-light text-primary' },
-          { label: 'Active', value: data.totals.active, icon: UserPlusIcon, color: 'bg-emerald-50 text-success' },
-          { label: 'Inactive', value: data.totals.inactive, icon: ChartBarIcon, color: 'bg-amber-50 text-amber-600' },
-          { label: 'Graduated', value: data.totals.graduated, icon: ChartBarIcon, color: 'bg-surface-sunken text-ink-muted' },
-        ].map((c) => (
-          <div key={c.label} className="card flex items-center gap-4">
-            <div className={`stat-icon ${c.color}`}><c.icon className="h-6 w-6" /></div>
-            <div>
-              <p className="text-sm text-ink-muted">{c.label}</p>
-              <p className="text-2xl font-semibold text-ink">{c.value}</p>
-            </div>
-          </div>
-        ))}
-      </div>
+      <StatGrid>
+        <StatCard label="Members" value={data.totals.total} icon={<UsersIcon className="h-5 w-5" />} tone="primary" to="/members" />
+        <StatCard label="Active" value={data.totals.active} icon={<UserPlusIcon className="h-5 w-5" />} tone="success" />
+        <StatCard label="Inactive" value={data.totals.inactive} icon={<ChartBarIcon className="h-5 w-5" />} tone="warning" />
+        <StatCard label="Graduated" value={data.totals.graduated} icon={<ChartBarIcon className="h-5 w-5" />} />
+      </StatGrid>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Card title="Membership growth">

@@ -9,7 +9,7 @@ import {
   ChartPieIcon, RectangleGroupIcon, HeartIcon, CubeIcon, ArchiveBoxIcon, HandRaisedIcon, PresentationChartLineIcon,
   GlobeAltIcon,
   SunIcon, MoonIcon, ComputerDesktopIcon as MonitorIcon,
-  GlobeAltIcon as GlobeIcon,
+  ChevronDownIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../App';
 import axios from 'axios';
@@ -28,7 +28,16 @@ interface NavItem {
   roles: string[];
   module?: string; // optional module a platform administrator can switch off per fellowship
   hideFor?: string[]; // roles that never see this item, even if another of their roles would allow it
+  group?: keyof typeof NAV_GROUPS; // shown inside this collapsible group (when the person sees more than one of its pages)
 }
+
+// Related pages share one collapsible entry in the sidebar. A group that would hold a single visible page is shown
+// as that page instead, so nobody gets a dropdown with one item.
+const NAV_GROUPS = {
+  members: { name: 'Members', icon: UsersIcon },
+  departments: { name: 'Departments', icon: BuildingOfficeIcon },
+  finance: { name: 'Finance & Projects', icon: CurrencyDollarIcon },
+} as const;
 
 // Pages the Secretary does not use. App.tsx blocks the same routes with <HideFor>.
 const NOT_SECRETARY = ['secretary'];
@@ -55,21 +64,21 @@ const NAV_SECTIONS: NavSection[] = [
   {
     title: 'Management',
     items: [
-      { name: 'Members', icon: UsersIcon, path: '/members', roles: ['secretary', 'assistant_secretary'] },
-      { name: 'Member Insights', icon: ChartPieIcon, path: '/members/insights', roles: ['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'department_secretary', 'department_chairperson'], module: 'member_engagement' },
-      { name: 'Member Groups', icon: RectangleGroupIcon, path: '/member-groups', roles: ['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson'], module: 'member_engagement' },
+      { name: 'All Members', icon: UsersIcon, path: '/members', roles: ['secretary', 'assistant_secretary'], group: 'members' },
+      { name: 'Member Groups', icon: RectangleGroupIcon, path: '/member-groups', roles: ['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson'], module: 'member_engagement', group: 'members' },
+      { name: 'Member Insights', icon: ChartPieIcon, path: '/members/insights', roles: ['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'department_secretary', 'department_chairperson'], module: 'member_engagement', group: 'members' },
       { name: 'Programmes', icon: BookOpenIcon, path: '/programmes', roles: ['secretary'] },
-      { name: 'Departments', icon: BuildingOfficeIcon, path: '/departments', roles: ['secretary', 'assistant_secretary'] },
-      { name: 'Department Reviews', icon: ClipboardDocumentCheckIcon, path: '/department-reviews', roles: ['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'treasurer'] },
-      { name: 'Dept. Announcements', icon: MegaphoneIcon, path: '/department-announcements', roles: ['secretary', 'assistant_secretary'] },
+      { name: 'All Departments', icon: BuildingOfficeIcon, path: '/departments', roles: ['secretary', 'assistant_secretary'], group: 'departments' },
+      { name: 'Department Reviews', icon: ClipboardDocumentCheckIcon, path: '/department-reviews', roles: ['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'treasurer'], group: 'departments' },
+      { name: 'Dept. Announcements', icon: MegaphoneIcon, path: '/department-announcements', roles: ['secretary', 'assistant_secretary'], group: 'departments' },
       { name: 'Department Workspace', icon: Squares2X2Icon, path: '/workspace', roles: ['department_chairperson', 'department_secretary'] },
       { name: 'Activities', icon: CalendarIcon, path: '/activities', roles: ALL_NON_ADMIN_ROLES },
       { name: 'Youth & Children', icon: FaceSmileIcon, path: '/youth', roles: ['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'department_secretary', 'department_chairperson'], module: 'youth', hideFor: NOT_SECRETARY },
       { name: 'Analytics', icon: PresentationChartLineIcon, path: '/analytics', roles: ['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'treasurer', 'department_secretary', 'department_chairperson'], module: 'analytics' },
       { name: 'Reports', icon: ChartBarIcon, path: '/reports', roles: ['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'department_secretary', 'department_chairperson'] },
-      { name: 'Finance', icon: CurrencyDollarIcon, path: '/finance', roles: ['treasurer', 'secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson'], module: 'finance' },
       { name: 'Leadership', icon: IdentificationIcon, path: '/leadership', roles: ['fellowship_admin', 'secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'treasurer'] },
-      { name: 'Projects', icon: BriefcaseIcon, path: '/projects', roles: ['treasurer', 'secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'department_secretary', 'department_chairperson'], module: 'finance' },
+      { name: 'Finance', icon: CurrencyDollarIcon, path: '/finance', roles: ['treasurer', 'secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson'], module: 'finance', group: 'finance' },
+      { name: 'Projects', icon: BriefcaseIcon, path: '/projects', roles: ['treasurer', 'secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'department_secretary', 'department_chairperson'], module: 'finance', group: 'finance' },
       { name: 'Resources', icon: CubeIcon, path: '/inventory', roles: ['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'treasurer'], module: 'resources' },
       { name: 'Volunteering', icon: HandRaisedIcon, path: '/volunteering', roles: ALL_NON_ADMIN_ROLES, module: 'volunteers', hideFor: NOT_SECRETARY },
       { name: 'IT Content', icon: ComputerDesktopIcon, path: '/it-content', roles: ALL_NON_ADMIN_ROLES, hideFor: NOT_SECRETARY },
@@ -105,6 +114,15 @@ export default function Layout() {
   const { isInstallable, isInstalled, install } = useInstallPrompt();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Groups the person opened or closed themselves; otherwise a group is open while one of its pages is showing.
+  const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(localStorage.getItem('fems.navGroups') || '{}'); } catch { return {}; }
+  });
+  const toggleGroup = (key: string, open: boolean) => {
+    const next = { ...groupOpen, [key]: !open };
+    setGroupOpen(next);
+    try { localStorage.setItem('fems.navGroups', JSON.stringify(next)); } catch { /* private window: keep it in memory */ }
+  };
   const [unreadCount, setUnreadCount] = useState(0);
   const [disabledModules, setDisabledModules] = useState<string[]>([]);
   const location = useLocation();
@@ -161,34 +179,68 @@ export default function Layout() {
   // The word for the signed-in person, used by the current-page heading so it never disagrees with the sidebar.
   const currentItem = NAV_SECTIONS.flatMap((s) => s.items).find((i) => i.path === location.pathname);
 
+  const navLink = (item: NavItem) => (
+    <NavLink
+      key={item.path}
+      to={item.path}
+      end={item.path === '/members'}
+      className={({ isActive }) =>
+        `group flex items-center gap-3 rounded-control px-3 py-2 text-sm font-medium transition-colors duration-150 ${
+          isActive
+            ? 'bg-primary text-white shadow-card'
+            : 'text-ink-muted hover:bg-surface-sunken hover:text-ink'
+        }`
+      }
+    >
+      <item.icon className="h-5 w-5 shrink-0" />
+      <span className="flex-1 truncate">{item.name}</span>
+      {item.path === '/notifications' && unreadCount > 0 && (
+        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-danger px-1.5 py-0.5 text-xxs font-semibold text-white">
+          {unreadCount > 99 ? '99+' : unreadCount}
+        </span>
+      )}
+    </NavLink>
+  );
+
   const navList = () => (
     <nav className="flex-1 space-y-7 overflow-y-auto px-3 py-5">
       {visibleSections.map((section) => (
         <div key={section.title}>
           <p className="mb-2 px-3 text-xxs font-semibold uppercase tracking-wider text-ink-subtle">{section.title}</p>
           <div className="space-y-0.5">
-            {section.items.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                end={item.path === '/members'}
-                className={({ isActive }) =>
-                  `group flex items-center gap-3 rounded-control px-3 py-2 text-sm font-medium transition-colors duration-150 ${
-                    isActive
-                      ? 'bg-primary text-white shadow-card'
-                      : 'text-ink-muted hover:bg-surface-sunken hover:text-ink'
-                  }`
+            {section.items.map((item, i) => {
+              if (item.group) {
+                const members = section.items.filter((x) => x.group === item.group);
+                if (members.length > 1) {
+                  if (section.items.findIndex((x) => x.group === item.group) !== i) return null; // rendered with its group
+                  const g = NAV_GROUPS[item.group];
+                  const active = members.some((x) => (x.path === '/members' ? location.pathname === '/members' || /^\/members\/(?!insights)/.test(location.pathname) : location.pathname.startsWith(x.path)));
+                  const open = groupOpen[item.group] ?? active;
+                  const id = `nav-group-${item.group}`;
+                  return (
+                    <div key={item.group}>
+                      <button
+                        type="button"
+                        aria-expanded={open}
+                        aria-controls={id}
+                        onClick={() => toggleGroup(item.group!, open)}
+                        className={`group flex w-full items-center gap-3 rounded-control px-3 py-2 text-sm font-medium transition-colors duration-150 ${active ? 'text-primary' : 'text-ink-muted hover:bg-surface-sunken hover:text-ink'}`}
+                      >
+                        <g.icon className="h-5 w-5 shrink-0" />
+                        <span className="flex-1 truncate text-left">{g.name}</span>
+                        <ChevronDownIcon className={`h-4 w-4 shrink-0 transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
+                      </button>
+                      {open && (
+                        <div id={id} className="ml-5 mt-0.5 space-y-0.5 border-l border-hairline pl-2">
+                          {members.map((child) => navLink(child))}
+                        </div>
+                      )}
+                    </div>
+                  );
                 }
-              >
-                <item.icon className="h-5 w-5 shrink-0" />
-                <span className="flex-1 truncate">{item.name}</span>
-                {item.path === '/notifications' && unreadCount > 0 && (
-                  <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-danger px-1.5 py-0.5 text-xxs font-semibold text-white">
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </span>
-                )}
-              </NavLink>
-            ))}
+              }
+              return navLink(item);
+            })}
           </div>
         </div>
       ))}

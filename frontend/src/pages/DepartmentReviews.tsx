@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
-import { CheckIcon, ArrowUturnLeftIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { Alert, Badge, Button, ErrorState, Field, Modal, PageLoader, Tabs, Textarea, useToast } from '../components/ui';
+import {
+  CheckIcon, ArrowUturnLeftIcon, XMarkIcon, ClockIcon, CalendarDaysIcon, DocumentTextIcon, BanknotesIcon,
+} from '@heroicons/react/24/outline';
+import { Alert, Badge, Button, ErrorState, Field, Modal, PageLoader, Tabs, Textarea, useToast, StatCard, StatGrid } from '../components/ui';
 import { DataTable, type Column } from '../components/DataTable';
 import { AttachmentList, Detail, HistoryTimeline, StatusBadge, errMsg, fmtDate, fmtDateTime, fmtMoney } from '../workspace/shared';
 
@@ -66,6 +68,12 @@ export default function DepartmentReviews() {
           <p className="page-desc">Department activities, reports and financial requests waiting for your decision.</p>
         </div>
       </div>
+      <StatGrid>
+        <StatCard label="Waiting for me" value={summary.kinds.reduce((n: number, k: Kind) => n + (summary.pending[k] ?? 0), 0)} icon={<ClockIcon className="h-5 w-5" />} tone={summary.kinds.some((k: Kind) => summary.pending[k]) ? 'warning' : 'neutral'} />
+        {summary.kinds.includes('activity') && <StatCard label="Activities" value={summary.pending.activity ?? 0} icon={<CalendarDaysIcon className="h-5 w-5" />} hint="Waiting for you" onClick={() => setKind('activity' as Kind)} />}
+        {summary.kinds.includes('report') && <StatCard label="Reports" value={summary.pending.report ?? 0} icon={<DocumentTextIcon className="h-5 w-5" />} hint="Waiting for you" onClick={() => setKind('report' as Kind)} />}
+        {summary.kinds.includes('financial') && <StatCard label="Financial requests" value={summary.pending.financial ?? 0} icon={<BanknotesIcon className="h-5 w-5" />} hint="Waiting for you" onClick={() => setKind('financial' as Kind)} />}
+      </StatGrid>
       <Tabs tabs={summary.kinds.map((k: Kind) => ({ key: k, label: <>{KIND_LABEL[k]}{summary.pending[k] ? <span className="ml-1.5 rounded-full bg-primary px-1.5 text-xxs text-white">{summary.pending[k]}</span> : null}</> }))} active={kind} onChange={setKind} />
       <Tabs tabs={[{ key: 'pending', label: 'Waiting for me' }, { key: 'all', label: 'All submitted' }]} active={view} onChange={setView} />
       <DataTable columns={columns} rows={rows} rowKey={(it) => it.id} loading={rows === null} caption={KIND_LABEL[kind]}

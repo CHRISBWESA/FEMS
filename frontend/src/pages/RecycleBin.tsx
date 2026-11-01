@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { TrashIcon, ArchiveBoxXMarkIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
+import {
+  TrashIcon, ArchiveBoxXMarkIcon, ShieldCheckIcon, Squares2X2Icon, ClockIcon,
+} from '@heroicons/react/24/outline';
 import { useAuth } from '../App';
-import { PageLoader, ConfirmDialog } from '../components/ui';
+import { PageLoader, ConfirmDialog, StatCard, StatGrid } from '../components/ui';
 
 export default function RecycleBin() {
   const { hasRole } = useAuth();
@@ -41,6 +43,11 @@ export default function RecycleBin() {
           <p className="page-desc">Deleted records visible to your fellowship for the last 30 days.</p>
         </div>
       </div>
+      <StatGrid className="mb-6 lg:grid-cols-3">
+        <StatCard label="Deleted items" value={items.length} icon={<TrashIcon className="h-5 w-5" />} tone="primary" />
+        <StatCard label="Kinds of record" value={new Set(items.map((i: any) => i.original_collection)).size} icon={<Squares2X2Icon className="h-5 w-5" />} />
+        <StatCard label="Deleted this week" value={items.filter((i: any) => i.deleted_at && Date.now() - new Date(i.deleted_at).getTime() < 7 * 86400000).length} icon={<ClockIcon className="h-5 w-5" />} hint="Restore within 30 days" />
+      </StatGrid>
 
       <div className="rounded-lg bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-inset ring-amber-600/20">
         Restoring is not available yet. Records are kept in the bin; there is no automatic 30-day purge.

@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
-import { BuildingOfficeIcon, PlusIcon, SparklesIcon, MagnifyingGlassIcon, UsersIcon } from '@heroicons/react/24/outline';
-import { Alert, Badge, Button, EmptyState, ErrorState, Field, Input, Modal, PageLoader, Switch, Textarea, useToast } from '../components/ui';
+import {
+  BuildingOfficeIcon, PlusIcon, SparklesIcon, MagnifyingGlassIcon, UsersIcon, CheckCircleIcon, ExclamationTriangleIcon,
+} from '@heroicons/react/24/outline';
+import { Alert, Badge, Button, EmptyState, ErrorState, Field, Input, Modal, PageLoader, Switch, Textarea, useToast, StatCard, StatGrid } from '../components/ui';
 
 export type DepartmentSummary = {
   id: string; name: string; description: string | null; isActive: boolean; createdAt: string;
@@ -61,6 +63,14 @@ export default function Departments() {
           <Button variant="primary" onClick={() => setEditing('new')}><PlusIcon className="h-4 w-4" /> New department</Button>
         </div>
       </div>
+      {rows && rows.length > 0 && (
+        <StatGrid className="mb-6">
+          <StatCard label="Departments" value={rows.length} icon={<BuildingOfficeIcon className="h-5 w-5" />} tone="primary" />
+          <StatCard label="Active" value={rows.filter((d) => d.isActive).length} icon={<CheckCircleIcon className="h-5 w-5" />} tone="success" />
+          <StatCard label="Members in departments" value={rows.reduce((n, d) => n + (d.memberCount ?? 0), 0)} icon={<UsersIcon className="h-5 w-5" />} />
+          <StatCard label="Vacant offices" value={rows.filter((d) => d.isActive).reduce((n, d) => n + (d.chairperson ? 0 : 1) + (d.secretary ? 0 : 1), 0)} icon={<ExclamationTriangleIcon className="h-5 w-5" />} tone={rows.some((d) => d.isActive && (!d.chairperson || !d.secretary)) ? 'warning' : 'neutral'} hint="Chairperson or Secretary not appointed" />
+        </StatGrid>
+      )}
 
       {error ? <ErrorState message={error} onRetry={load} /> : rows === null ? <PageLoader rows={2} /> : rows.length === 0 ? (
         <EmptyState icon={<BuildingOfficeIcon className="h-8 w-8" />} title="No departments yet"

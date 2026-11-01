@@ -4,10 +4,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import { useMembers } from '../context/MembersContext';
 import { DataTable, type Column } from '../components/DataTable';
-import { EmptyState, PageLoader, Alert } from '../components/ui';
+import { EmptyState, PageLoader, Alert, StatCard, StatGrid } from '../components/ui';
 import {
-  UsersIcon, MagnifyingGlassIcon, ChevronLeftIcon, ChevronRightIcon, FunnelIcon,
-  PlusIcon, XMarkIcon, UserPlusIcon, CloudArrowUpIcon, DocumentArrowDownIcon, PencilSquareIcon,
+  UsersIcon, MagnifyingGlassIcon, ChevronLeftIcon, ChevronRightIcon, FunnelIcon, PlusIcon, XMarkIcon, UserPlusIcon, CloudArrowUpIcon, DocumentArrowDownIcon, PencilSquareIcon, CheckCircleIcon, PauseCircleIcon, AcademicCapIcon,
 } from '@heroicons/react/24/outline';
 
 const emptyForm = {
@@ -64,6 +63,12 @@ export default function Members() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadResult, setUploadResult] = useState<any>(null);
   const navigate = useNavigate();
+  // Membership totals for the KPI row (needs the member reports permission; hidden without it).
+  const [totals, setTotals] = useState<any>(null);
+  useEffect(() => {
+    if (!hasPermission('member.reports_view')) return;
+    axios.get('/members/reports/summary?months=12', { withCredentials: true }).then((r) => setTotals(r.data?.totals ?? null)).catch(() => setTotals(null));
+  }, []);
 
   useEffect(() => {
     fetchMembers({ search, status: statusFilter, page, ...applied });
@@ -182,6 +187,14 @@ export default function Members() {
           </div>
         )}
       </div>
+      {totals && (
+        <StatGrid className="mb-6">
+          <StatCard label="Total members" value={totals.total} icon={<UsersIcon className="h-5 w-5" />} tone="primary" />
+          <StatCard label="Active" value={totals.active} icon={<CheckCircleIcon className="h-5 w-5" />} tone="success" />
+          <StatCard label="Inactive" value={totals.inactive} icon={<PauseCircleIcon className="h-5 w-5" />} tone="warning" />
+          <StatCard label="Graduated" value={totals.graduated} icon={<AcademicCapIcon className="h-5 w-5" />} />
+        </StatGrid>
+      )}
 
       {error && !showCreate && (
         <div className="alert alert-danger mb-4" role="alert">

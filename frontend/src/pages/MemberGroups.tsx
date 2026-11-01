@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
-import { RectangleGroupIcon, PlusIcon, MagnifyingGlassIcon, UsersIcon } from '@heroicons/react/24/outline';
+import {
+  RectangleGroupIcon, PlusIcon, MagnifyingGlassIcon, UsersIcon, CheckCircleIcon, ExclamationTriangleIcon,
+} from '@heroicons/react/24/outline';
 import { useAuth } from '../App';
-import { Badge, Button, EmptyState, ErrorState, PageLoader, useToast } from '../components/ui';
+import { Badge, Button, EmptyState, ErrorState, PageLoader, useToast, StatCard, StatGrid } from '../components/ui';
 import GroupFormModal from '../components/groups/GroupFormModal';
 
 type Leader = { memberId: string; fullName: string } | null;
@@ -51,6 +53,14 @@ export default function MemberGroups() {
           </Button>
         )}
       </div>
+      {groups && groups.length > 0 && (
+        <StatGrid className="mb-6">
+          <StatCard label="Groups" value={groups.length} icon={<RectangleGroupIcon className="h-5 w-5" />} tone="primary" />
+          <StatCard label="Active groups" value={groups.filter((g) => g.isActive).length} icon={<CheckCircleIcon className="h-5 w-5" />} tone="success" />
+          <StatCard label="Group memberships" value={groups.reduce((n, g) => n + (g.memberCount ?? 0), 0)} icon={<UsersIcon className="h-5 w-5" />} />
+          <StatCard label="Missing a leader" value={groups.filter((g) => g.isActive && (!g.maleLeader || !g.femaleLeader)).length} icon={<ExclamationTriangleIcon className="h-5 w-5" />} tone={groups.some((g) => g.isActive && (!g.maleLeader || !g.femaleLeader)) ? 'warning' : 'neutral'} hint="Active groups without a male or female leader" />
+        </StatGrid>
+      )}
 
       {error ? (
         <ErrorState message={error} onRetry={() => { setGroups(null); load(); }} />

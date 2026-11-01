@@ -6,7 +6,7 @@ import {
   UsersIcon, BuildingOfficeIcon, CalendarIcon, ChartBarIcon,
   BellIcon, DocumentTextIcon, CurrencyDollarIcon, ArrowRightIcon, ServerIcon,
 } from '@heroicons/react/24/outline';
-import { PageHeader, Card, Skeleton, EmptyState, ErrorState, Badge } from '../components/ui';
+import { PageHeader, Card, Skeleton, EmptyState, ErrorState, Badge, StatCard, StatGrid } from '../components/ui';
 
 export default function Dashboard() {
   const { user, hasRole } = useAuth();
@@ -45,9 +45,9 @@ export default function Dashboard() {
   const isAdmin = hasRole('admin');
 
   const statCards = [
-    { name: 'Total members', value: stats?.totalMembers, icon: UsersIcon, tone: 'bg-primary-light text-primary', href: '/members' },
-    { name: 'Departments', value: stats?.totalDepartments, icon: BuildingOfficeIcon, tone: 'bg-success-light text-success', href: '/departments' },
-    { name: 'Activities', value: stats?.totalActivities, icon: CalendarIcon, tone: 'bg-warning-light text-warning', href: '/activities' },
+    { name: 'Total members', value: stats?.totalMembers, icon: UsersIcon, tone: 'primary' as const, href: '/members' },
+    { name: 'Departments', value: stats?.totalDepartments, icon: BuildingOfficeIcon, tone: 'success' as const, href: '/departments' },
+    { name: 'Activities', value: stats?.totalActivities, icon: CalendarIcon, tone: 'warning' as const, href: '/activities' },
   ];
 
   const quickLinks = [
@@ -106,21 +106,11 @@ export default function Dashboard() {
             </div>
           ) : (
             !isAdmin && (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <StatGrid className="lg:grid-cols-3">
                 {statCards.map((card) => (
-                  <Link key={card.name} to={card.href} className="card card-interactive card-pad flex items-center gap-4">
-                    <div className={`stat-icon ${card.tone}`}>
-                      <card.icon className="h-6 w-6" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm text-ink-muted">{card.name}</p>
-                      <p className="mt-0.5 text-2xl font-semibold tabular-nums text-ink">
-                        {card.value ?? 0}
-                      </p>
-                    </div>
-                  </Link>
+                  <StatCard key={card.name} label={card.name} value={card.value ?? 0} icon={<card.icon className="h-5 w-5" />} tone={card.tone} to={card.href} />
                 ))}
-              </div>
+              </StatGrid>
             )
           )}
 

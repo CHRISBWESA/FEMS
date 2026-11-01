@@ -4,10 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import ListLimitNotice from '../components/ListLimitNotice';
 import { totalFromHeaders } from '../lib/list-total';
-import { PageLoader } from '../components/ui';
+import { PageLoader, StatCard, StatGrid } from '../components/ui';
 import {
-  CalendarIcon, MapPinIcon, ClockIcon, PlusIcon, XMarkIcon,
-  NoSymbolIcon, PencilSquareIcon,
+  CalendarIcon, MapPinIcon, ClockIcon, PlusIcon, XMarkIcon, NoSymbolIcon, PencilSquareIcon, CalendarDaysIcon, CheckCircleIcon,
 } from '@heroicons/react/24/outline';
 
 const emptyForm = {
@@ -132,6 +131,20 @@ export default function Activities() {
           </button>
         )}
       </div>
+      {activities.length > 0 && (() => {
+        const now = new Date();
+        const list = activities as any[];
+        const live = list.filter((a) => a.status !== 'cancelled' && a.status !== 'CANCELLED');
+        const month = live.filter((a) => { const d = new Date(a.date); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); }).length;
+        return (
+          <StatGrid className="mb-6">
+            <StatCard label="Activities" value={listTotal ?? list.length} icon={<CalendarDaysIcon className="h-5 w-5" />} tone="primary" />
+            <StatCard label="Upcoming" value={live.filter((a) => new Date(a.date) >= now).length} icon={<ClockIcon className="h-5 w-5" />} tone="success" />
+            <StatCard label="This month" value={month} icon={<CheckCircleIcon className="h-5 w-5" />} />
+            <StatCard label="Cancelled" value={list.length - live.length} icon={<NoSymbolIcon className="h-5 w-5" />} tone={list.length - live.length ? 'warning' : 'neutral'} />
+          </StatGrid>
+        );
+      })()}
 
       <ListLimitNotice shown={activities.length} total={listTotal} noun="activities" />
       {loading ? (

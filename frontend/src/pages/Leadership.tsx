@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { PlusIcon, PrinterIcon, Cog6ToothIcon, CameraIcon } from '@heroicons/react/24/outline';
-import { Alert, Avatar, Badge, Button, Card, EmptyState, Field, Input, Modal, PageHeader, Select, Tabs, Textarea, useToast } from '../components/ui';
+import {
+  PlusIcon, PrinterIcon, Cog6ToothIcon, CameraIcon, IdentificationIcon, PauseCircleIcon, ClockIcon, ArchiveBoxIcon,
+} from '@heroicons/react/24/outline';
+import { Alert, Avatar, Badge, Button, Card, EmptyState, Field, Input, Modal, PageHeader, Select, Tabs, Textarea, useToast, StatCard, StatGrid } from '../components/ui';
 import { DataTable } from '../components/DataTable';
 import { useAuth } from '../App';
 import { useI18n } from '../context/I18nContext';
@@ -55,6 +57,10 @@ export default function Leadership() {
   const qs = new URLSearchParams({ tab, page: String(page), limit: '25', ...Object.fromEntries(Object.entries(f).filter(([, v]) => v)) } as any).toString();
   const list = useLoad<any>(`/leadership/appointments?${qs}`, [qs]);
   const positions = useLoad<any[]>('/leadership/positions', []);
+  // KPI row: counts straight from the appointment record.
+  const kActive = useLoad<any>('/leadership/appointments?tab=current&status=active&limit=200', []);
+  const kSuspended = useLoad<any>('/leadership/appointments?tab=current&status=suspended&limit=1', []);
+  const kHistory = useLoad<any>('/leadership/appointments?tab=history&limit=1', []);
   const scopes = useLoad<any>('/leadership/scopes', []);
   const depts = { data: scopes.data?.departments as any[] | undefined };
   const groupList: any[] = scopes.data?.groups ?? [];
@@ -97,6 +103,12 @@ export default function Leadership() {
           {canConfigure && <Button size="sm" onClick={() => setShowPositions(true)}><Cog6ToothIcon className="h-4 w-4" /> Positions</Button>}
           {canManage && <Button variant="primary" onClick={() => startAppoint()}><PlusIcon className="h-4 w-4" /> Appoint</Button>}
         </span>} />
+      <StatGrid className="print:hidden">
+        <StatCard label="Current leaders" value={kActive.data?.total ?? '—'} icon={<IdentificationIcon className="h-5 w-5" />} tone="primary" />
+        <StatCard label="Suspended" value={kSuspended.data?.total ?? '—'} icon={<PauseCircleIcon className="h-5 w-5" />} tone={kSuspended.data?.total ? 'warning' : 'neutral'} />
+        <StatCard label="Term has passed" value={(kActive.data?.data ?? []).filter((a: any) => a.termEnded).length} icon={<ClockIcon className="h-5 w-5" />} hint="Still serving after the term end" />
+        <StatCard label="Past appointments" value={kHistory.data?.total ?? '—'} icon={<ArchiveBoxIcon className="h-5 w-5" />} />
+      </StatGrid>
       <Tabs tabs={[{ key: 'current', label: t('lead.current') }, { key: 'history', label: t('lead.history') }]} active={tab} onChange={(k) => { setTab(k); setPage(1); setF({ ...f, status: '' }); }} />
       <div className="flex flex-wrap gap-2 print:hidden">
         <Select className="w-52" value={f.positionId} onChange={(e) => { setF({ ...f, positionId: e.target.value }); setPage(1); }} options={[{ value: '', label: 'All positions' }, ...(positions.data ?? []).map((p) => ({ value: p.id, label: p.name }))]} />

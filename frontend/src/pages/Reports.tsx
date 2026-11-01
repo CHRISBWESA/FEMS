@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../App';
-import { DocumentTextIcon, CheckIcon, XMarkIcon, PlusIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
-import { PageLoader } from '../components/ui';
+import {
+  DocumentTextIcon, CheckIcon, XMarkIcon, PlusIcon, ArrowPathIcon, ClockIcon, CheckCircleIcon, ArrowUturnLeftIcon,
+} from '@heroicons/react/24/outline';
+import { PageLoader, StatCard, StatGrid } from '../components/ui';
 
 const emptyForm = {
   departmentId: '',
@@ -117,6 +119,18 @@ export default function Reports() {
           </button>
         )}
       </div>
+      {reports.length > 0 && (() => {
+        const list = reports as any[];
+        const st = (r: any) => r.status ?? r.approval_status;
+        return (
+          <StatGrid className="mb-6">
+            <StatCard label="Reports" value={list.length} icon={<DocumentTextIcon className="h-5 w-5" />} tone="primary" />
+            <StatCard label="Waiting for review" value={list.filter((r) => ['SUBMITTED', 'UNDER_REVIEW', 'RESUBMITTED'].includes(st(r))).length} icon={<ClockIcon className="h-5 w-5" />} tone="warning" />
+            <StatCard label="Approved" value={list.filter((r) => ['APPROVED', 'FINAL_APPROVED'].includes(st(r))).length} icon={<CheckCircleIcon className="h-5 w-5" />} tone="success" />
+            <StatCard label="Returned or rejected" value={list.filter((r) => ['RETURNED', 'REJECTED'].includes(st(r))).length} icon={<ArrowUturnLeftIcon className="h-5 w-5" />} />
+          </StatGrid>
+        );
+      })()}
 
       {reports.length === 0 ? (
         <div className="empty-state">

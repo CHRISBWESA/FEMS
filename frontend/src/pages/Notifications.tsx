@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { BellIcon, CheckBadgeIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
-import { PageLoader } from '../components/ui';
+import {
+  BellIcon, CheckBadgeIcon, CheckCircleIcon, EnvelopeIcon, EnvelopeOpenIcon,
+} from '@heroicons/react/24/outline';
+import { PageLoader, StatCard, StatGrid } from '../components/ui';
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -70,6 +72,11 @@ export default function Notifications() {
           </button>
         )}
       </div>
+      <StatGrid className="mb-6 lg:grid-cols-3">
+        <StatCard label="Notifications" value={notifications.length} icon={<BellIcon className="h-5 w-5" />} tone="primary" />
+        <StatCard label="Unread" value={unreadCount} icon={<EnvelopeIcon className="h-5 w-5" />} tone={unreadCount ? 'warning' : 'neutral'} />
+        <StatCard label="Read" value={Math.max(0, notifications.length - unreadCount)} icon={<EnvelopeOpenIcon className="h-5 w-5" />} tone="success" />
+      </StatGrid>
 
       {loading ? (
         <PageLoader rows={2} />
