@@ -76,7 +76,7 @@ function DrivesList() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Contribution Drives" description="Create what people contribute to (an event, project, activity, outreach or membership drive), then record pledges, cash and expenses inside it."
+      <PageHeader title="Contribution Drives"
         actions={canManage ? <Button variant="primary" onClick={() => { setF({ kind: 'event', startDate: today() }); setOpen(true); }}><PlusIcon className="h-4 w-4" /> New drive</Button> : undefined} />
       <StatGrid>
         <StatCard label="Drives" value={list.data ? rows.length : '—'} icon={<FlagIcon className="h-5 w-5" />} tone="primary" />
