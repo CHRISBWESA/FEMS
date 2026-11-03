@@ -20,6 +20,8 @@ export interface ContributionInput {
   date: string | Date;
   contributionType?: string;
   categoryId?: string;
+  /** The Contribution Drive this money is for. */
+  campaignId?: string;
   accountId?: string;
   paymentMethod?: string;
   paymentReference?: string;
@@ -107,6 +109,7 @@ export class ContributionsCoreService {
     let contributorPhone = validateText('contributorPhone', dto?.contributorPhone, 30);
     const contributorEmail = validateText('contributorEmail', dto?.contributorEmail, 150);
     const categoryId = validateOptionalUuid('categoryId', dto?.categoryId);
+    const campaignId = validateOptionalUuid('campaignId', dto?.campaignId);
     const accountId = validateOptionalUuid('accountId', dto?.accountId);
     const feeId = validateOptionalUuid('membershipFeeId', dto?.membershipFeeId);
     const receiptDocumentId = validateOptionalUuid('receiptDocumentId', dto?.receiptDocumentId);
@@ -133,6 +136,12 @@ export class ContributionsCoreService {
       const cat = await this.prisma.financeCategory.findFirst({ where: { id: categoryId, fellowship_id: fellowshipId, kind: 'contribution', is_active: true } });
       if (!cat) throw new BadRequestException('The selected category is not available.');
       contributionType = contributionType ?? cat.name;
+    }
+    if (campaignId) {
+      const drive = await this.prisma.contributionCampaign.findFirst({ where: { id: campaignId, fellowship_id: fellowshipId } });
+      if (!drive) throw new BadRequestException('The selected contribution drive is not available.');
+      if ((drive.department_id ?? null) !== (departmentId ?? null)) throw new BadRequestException('That contribution drive belongs to a different fund.');
+      if (drive.status !== 'active') throw new ConflictException('This contribution drive is closed; it accepts no new money.');
     }
     if (receiptDocumentId) {
       const doc = await this.prisma.documentEntity.findFirst({ where: { id: receiptDocumentId, fellowship_id: fellowshipId, is_website_content: false }, select: { id: true } });
@@ -177,6 +186,7 @@ export class ContributionsCoreService {
             contribution_type: contributionType ?? 'general',
             date,
             category_id: categoryId,
+            campaign_id: campaignId,
             account_id: account.id,
             payment_method: method,
             payment_reference: reference,

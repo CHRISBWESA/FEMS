@@ -12,6 +12,7 @@ import { ContributionsCoreService } from './contributions-core.service';
 import { ExpensesFlowService } from './expenses-flow.service';
 import { FeesService } from './fees.service';
 import { ProjectsService } from './projects.service';
+import { DrivesService } from './drives.service';
 import { StatementsService } from './statements.service';
 import { FinanceApprovalsService } from './finance-approvals.service';
 import { receiptToPdf, Report, reportToPdf, reportToXlsx } from './exporters';
@@ -48,6 +49,7 @@ export class AccountingController {
     private expenses: ExpensesFlowService,
     private fees: FeesService,
     private projects: ProjectsService,
+    private drives: DrivesService,
     private statements: StatementsService,
     private approvals: FinanceApprovalsService,
     private uploads: DepartmentUploadsService,
@@ -96,6 +98,15 @@ export class AccountingController {
   @Get('departments/:deptId/summary') @Roles(...ALL)
   async deptSummary(@Req() req, @Param('deptId') d: string, @Query() q, @Res() res: Response) { return sendReport(res, await this.statements.departmentSummary(req.user, d, q), q?.format); }
 
+  // ---- contribution drives: pledges and cash per contributor, target and expenses ----
+  @Get('drives') @Roles(...ALL) listDrives(@Req() req, @Query() q) { return this.drives.list(req.user, q); }
+  @Post('drives') @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.DEPARTMENT_CHAIRPERSON, ROLES.DEPARTMENT_SECRETARY) createDrive(@Req() req, @Body() b) { return this.drives.create(req.user, b); }
+  @Get('drives/:id') @Roles(...ALL) drive(@Req() req, @Param('id') id: string) { return this.drives.detail(req.user, id); }
+  @Put('drives/:id') @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.DEPARTMENT_CHAIRPERSON, ROLES.DEPARTMENT_SECRETARY) updateDrive(@Req() req, @Param('id') id: string, @Body() b) { return this.drives.update(req.user, id, b); }
+  @Get('drives/:id/contributors/:key') @Roles(...ALL) driveContributor(@Req() req, @Param('id') id: string, @Param('key') key: string) { return this.drives.contributor(req.user, id, key); }
+  @Post('drives/:id/pledges') @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.DEPARTMENT_CHAIRPERSON, ROLES.DEPARTMENT_SECRETARY) drivePledge(@Req() req, @Param('id') id: string, @Body() b) { return this.drives.addPledge(req.user, id, b); }
+  @Post('drives/:id/payments') @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.DEPARTMENT_CHAIRPERSON, ROLES.DEPARTMENT_SECRETARY) driveCash(@Req() req, @Param('id') id: string, @Body() b) { return this.drives.addCash(req.user, id, b); }
+
   // ---- approvals inbox ----
   @Get('approvals') @Roles(...ALL) inbox(@Req() req) { return this.approvals.inbox(req.user); }
   @Post('approvals/:id/decide') @Roles(...ALL) decide(@Req() req, @Param('id') id: string, @Body() b) { return this.approvals.decide(req.user, id, b); }
@@ -107,6 +118,7 @@ export class AccountingController {
   async report(@Req() req, @Param('key') key: string, @Query() q, @Res() res: Response) { return sendReport(res, await this.statements.build(req.user, key, q), q?.format); }
 
   // ---- lookups for forms ----
+  @Get('member-search') @Roles(...CENTRAL) memberSearch(@Req() req, @Query() q) { return this.drives.memberSearch(req.user, q); }
   @Get('fundable-projects') @Roles(...ALL) fundable(@Req() req, @Query() q) { return this.projects.fundable(req.user, q); }
 }
 

@@ -14,6 +14,7 @@ import { AccountsService } from './accounting/accounts.service';
 import { ExpensesFlowService } from './accounting/expenses-flow.service';
 import { FeesService } from './accounting/fees.service';
 import { ProjectsService } from './accounting/projects.service';
+import { DrivesService } from './accounting/drives.service';
 import { StatementsService } from './accounting/statements.service';
 import { FinanceApprovalsService } from './accounting/finance-approvals.service';
 import { AccountingController, ProjectsController } from './accounting/accounting.controller';
@@ -32,6 +33,7 @@ import { AccountingController, ProjectsController } from './accounting/accountin
     ExpensesFlowService,
     FeesService,
     ProjectsService,
+    DrivesService,
     StatementsService,
     FinanceApprovalsService,
     DepartmentUploadsService,

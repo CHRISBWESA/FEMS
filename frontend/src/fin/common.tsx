@@ -226,7 +226,7 @@ export function MemberPicker({ value, onChange }: { value: { id: string; name: s
   const [list, setList] = useState<any[]>([]);
   useEffect(() => {
     const h = setTimeout(() => {
-      const url = s.departmentId ? `/department-workspace/${s.departmentId}/members?search=${encodeURIComponent(q)}&limit=20` : `/members?search=${encodeURIComponent(q)}&limit=20`;
+      const url = s.departmentId ? `/department-workspace/${s.departmentId}/members?search=${encodeURIComponent(q)}&limit=20` : `/finance/member-search?search=${encodeURIComponent(q)}`;
       axios.get(url, { withCredentials: true })
         .then((r) => setList((Array.isArray(r.data) ? r.data : r.data.data ?? []).map((m: any) => ({ id: m.memberId ?? m.id, name: m.fullName ?? m.full_name, code: m.memberCode ?? m.member_code }))))
         .catch(() => setList([]));

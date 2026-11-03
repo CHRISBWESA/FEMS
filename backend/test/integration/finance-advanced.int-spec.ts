@@ -180,9 +180,10 @@ describeDb('Phase 15 - advanced finance: validation, scope, periods, income, rep
       for (const url of ['/finance/campaigns', '/finance/pledges', '/analytics/overview', '/finance/budgets', '/finance/money-requests', '/finance/income', '/finance/accounts', '/finance/periods', '/finance/transfers', '/finance/budget-calls']) await get(treas, url).expect(404);
       await post(treas, '/finance/campaigns', { name: 'x', startDate: '2026-01-01' }).expect(404);
       await post(treas, '/finance/pledges', { memberId: m1.id, amount: 10, frequency: 'weekly', startDate: '2026-01-01' }).expect(404);
-      const c = (await contribution({ campaignId: randomUUID(), pledgeId: randomUUID() }).expect(201)).body;
-      expect(c.campaign_id ?? null).toBeNull();
+      // A pledge id on a new record is ignored; a contribution drive id must be a real, open drive of this fund.
+      const c = (await contribution({ pledgeId: randomUUID() }).expect(201)).body;
       expect(c.pledge_id ?? null).toBeNull();
+      await contribution({ campaignId: randomUUID() }).expect(400);
     });
   });
 

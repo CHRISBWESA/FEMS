@@ -47,6 +47,7 @@ export class ExpensesFlowService {
     const categoryId = validateOptionalUuid('categoryId', body?.categoryId);
     const projectId = validateOptionalUuid('projectId', body?.projectId);
     const activityId = validateOptionalUuid('activityId', body?.activityId);
+    const campaignId = validateOptionalUuid('campaignId', body?.campaignId);
     const receiptId = validateOptionalUuid('receiptDocumentId', body?.receiptDocumentId);
     const alreadyIncurred = body?.alreadyIncurred === true;
     const attachments = validateAttachments('attachments', body?.attachments ?? []);
@@ -66,6 +67,10 @@ export class ExpensesFlowService {
       const act = await this.prisma.activity.findFirst({ where: { id: activityId, fellowship_id: fellowshipId }, select: { id: true } });
       if (!act) throw new BadRequestException('The selected activity is not available.');
     }
+    if (campaignId) {
+      const drive = await this.prisma.contributionCampaign.findFirst({ where: { id: campaignId, fellowship_id: fellowshipId }, select: { department_id: true } });
+      if (!drive || (drive.department_id ?? null) !== (fundDept ?? null)) throw new BadRequestException('The selected contribution drive is not available for this fund.');
+    }
     if (receiptId) {
       const doc = await this.prisma.documentEntity.findFirst({ where: { id: receiptId, fellowship_id: fellowshipId, is_website_content: false }, select: { id: true } });
       if (!doc) throw new BadRequestException('The selected receipt document is not available.');
@@ -84,7 +89,7 @@ export class ExpensesFlowService {
       const e = await tx.expense.create({
         data: {
           fellowship_id: fellowshipId, department_id: departmentId, title, description, purpose, amount: amount.toFixed(2), date,
-          category_id: categoryId, project_id: projectId, activity_id: activityId,
+          category_id: categoryId, project_id: projectId, activity_id: activityId, campaign_id: campaignId,
           payee, payment_method: method, receipt_document_id: receiptId, already_incurred: alreadyIncurred,
           attachments: attachments as any, expense_number: number, recorded_by: user.userId, approval_status: 'SUBMITTED',
         },

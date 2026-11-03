@@ -4,21 +4,21 @@ import { useI18n } from '../context/I18nContext';
 import { PageLoader } from '../components/ui';
 import { FinContext, FinScope, useLoad } from './common';
 import FinDashboard from './Dashboard';
-import { Contributions } from './Money';
+import Drives from './Drives';
 import { Expenses } from './Spending';
 import { Reports, Settings } from './Admin';
 
 import { CENTRAL_FINANCE_ROLES } from '../lib/area-roles';
 export { CENTRAL_FINANCE_ROLES };
 
-interface Section { path: string; key: string; element: JSX.Element; show?: boolean }
+interface Section { path: string; key: string; element: JSX.Element; show?: boolean; nested?: boolean }
 
 /** The sections of a finance area, for central money or one department's money. */
 export function sections(scope: FinScope): Section[] {
   const central = !scope.departmentId;
   return [
     { path: '', key: 'fin.nav.dashboard', element: <FinDashboard /> },
-    { path: 'contributions', key: 'fin.nav.contributions', element: <Contributions /> },
+    { path: 'contributions', key: 'fin.nav.contributions', element: <Drives />, nested: true },
     { path: 'expenses', key: 'fin.nav.expenses', element: <Expenses /> },
     { path: 'reports', key: 'fin.nav.reports', element: <Reports /> },
     { path: 'settings', key: 'fin.nav.settings', element: <Settings />, show: central },
@@ -43,7 +43,7 @@ export function FinanceRoutes({ scope, base }: { scope: FinScope; base: string }
   return (
     <Routes>
       {sections(scope).map((s) => (s.path
-        ? <Route key={s.path} path={s.path} element={s.element} />
+        ? <Route key={s.path} path={s.nested ? `${s.path}/*` : s.path} element={s.element} />
         : <Route key="index" index element={s.element} />))}
       <Route path="*" element={<Navigate to={base} replace />} />
     </Routes>

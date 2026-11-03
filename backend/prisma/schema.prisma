@@ -997,16 +997,19 @@ model Expense {
   attachments           Json           @default("[]")
   // The money request this expense pays out (one request, at most one expense).
   money_request_id      String?        @unique @db.Uuid
+  campaign_id           String?        @db.Uuid
   reversed_at           DateTime?
   reversed_by           String?        @db.Uuid
   reversal_reason       String?
 
   category              FinanceCategory? @relation(fields: [category_id], references: [id], onDelete: SetNull)
   account               FinancialAccount? @relation(fields: [account_id], references: [id], onDelete: Restrict)
+  campaign              ContributionCampaign? @relation(fields: [campaign_id], references: [id], onDelete: SetNull)
 
   @@index([fellowship_id])
   @@index([department_id, date])
   @@unique([fellowship_id, expense_number])
+  @@index([campaign_id])
   @@index([project_id])
   @@index([budget_id])
   @@map("expenses")
@@ -1127,11 +1130,13 @@ model ContributionCampaign {
   public_slug       String?   @unique
   is_public         Boolean   @default(false)
   published_at      DateTime?
+  kind              String    @default("event")
 
   contributions  Contribution[]
   income         IncomeRecord[]
   pledges        ContributionPledge[]
   updates        CampaignUpdate[]
+  expenses       Expense[]
 
   @@unique([fellowship_id, name])
   @@index([project_id])
