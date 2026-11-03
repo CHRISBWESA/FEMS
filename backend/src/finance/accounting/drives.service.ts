@@ -78,7 +78,7 @@ export class DrivesService {
   }
 
   private shape(d: any) {
-    return { id: d.id, name: d.name, kind: d.kind, description: d.description, target: d.target_amount ? money(d.target_amount) : null, startDate: d.start_date, endDate: d.end_date, status: d.status === 'active' ? 'active' : 'closed', departmentId: d.department_id, projectId: d.project_id, createdAt: d.created_at };
+    return { id: d.id, name: d.name, kind: d.kind, description: d.description, target: d.target_amount ? money(d.target_amount) : null, startDate: d.start_date, endDate: d.end_date, status: d.status === 'active' ? 'active' : 'closed', departmentId: d.department_id, createdAt: d.created_at };
   }
 
   /** Money in, promised and spent for a set of drives, in four grouped queries. */
@@ -142,14 +142,9 @@ export class DrivesService {
     const departmentId = validateOptionalUuid('departmentId', b?.departmentId);
     await this.manage(user, departmentId);
     const data = this.fields(b, false);
-    const projectId = validateOptionalUuid('projectId', b?.projectId);
-    if (projectId) {
-      const p = await this.prisma.project.findFirst({ where: { id: projectId, fellowship_id: fellowshipId }, select: { scope: true, department_id: true } });
-      if (!p || (p.scope === 'department' ? p.department_id : null) !== (departmentId ?? null)) throw new BadRequestException('The selected project is not available for this fund.');
-    }
     const clash = await this.prisma.contributionCampaign.findFirst({ where: { fellowship_id: fellowshipId, name: data.name }, select: { id: true } });
     if (clash) throw new ConflictException('A contribution drive with this name already exists.');
-    const d = await this.prisma.contributionCampaign.create({ data: { ...(data as any), fellowship_id: fellowshipId, department_id: departmentId, project_id: projectId, status: 'active', created_by: user.userId } });
+    const d = await this.prisma.contributionCampaign.create({ data: { ...(data as any), fellowship_id: fellowshipId, department_id: departmentId, status: 'active', created_by: user.userId } });
     await this.audit(user, 'finance.drive_create', d.id, { name: d.name, kind: d.kind, target: data.target_amount ?? null });
     return this.detail(user, d.id);
   }

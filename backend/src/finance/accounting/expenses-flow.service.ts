@@ -5,7 +5,6 @@ import { isUuid } from '../../shared/utils/uuid.util';
 import { validateAttachments } from '../../department-workspace/department.util';
 import { assertPeriodOpen, validateAmount, validateDate, validateOptionalUuid, validateText } from '../finance.validation';
 import { assertAccountScope, D, defaultAccount, getSettings, money, nextNumber, postEntry } from './ledger';
-import { assertProjectForScope } from './contributions-core.service';
 import { FinanceScopeService } from './finance-scope.service';
 import { FinanceNotifyService } from './finance-notify.service';
 
@@ -45,7 +44,6 @@ export class ExpensesFlowService {
     const purpose = validateText('purpose', body?.purpose, 300);
     const payee = validateText('payee', body?.payee, 150);
     const categoryId = validateOptionalUuid('categoryId', body?.categoryId);
-    const projectId = validateOptionalUuid('projectId', body?.projectId);
     const activityId = validateOptionalUuid('activityId', body?.activityId);
     const campaignId = validateOptionalUuid('campaignId', body?.campaignId);
     const receiptId = validateOptionalUuid('receiptDocumentId', body?.receiptDocumentId);
@@ -62,7 +60,6 @@ export class ExpensesFlowService {
       const cat = await this.prisma.financeCategory.findFirst({ where: { id: categoryId, fellowship_id: fellowshipId, kind: 'expense', is_active: true } });
       if (!cat) throw new BadRequestException('The selected category is not available.');
     }
-    if (projectId) await assertProjectForScope(this.prisma, projectId, fellowshipId, fundDept);
     if (activityId) {
       const act = await this.prisma.activity.findFirst({ where: { id: activityId, fellowship_id: fellowshipId }, select: { id: true } });
       if (!act) throw new BadRequestException('The selected activity is not available.');
@@ -89,7 +86,7 @@ export class ExpensesFlowService {
       const e = await tx.expense.create({
         data: {
           fellowship_id: fellowshipId, department_id: departmentId, title, description, purpose, amount: amount.toFixed(2), date,
-          category_id: categoryId, project_id: projectId, activity_id: activityId, campaign_id: campaignId,
+          category_id: categoryId, activity_id: activityId, campaign_id: campaignId,
           payee, payment_method: method, receipt_document_id: receiptId, already_incurred: alreadyIncurred,
           attachments: attachments as any, expense_number: number, recorded_by: user.userId, approval_status: 'SUBMITTED',
         },

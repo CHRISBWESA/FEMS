@@ -12,7 +12,6 @@ import { FinanceNotifyService } from './finance-notify.service';
 
 export const FINANCE_WORKFLOWS = [
   'expense', 'department_expense', 'department_expense_major',
-  'project', 'project_closure', 'project_allocation',
   'contribution_edit', 'contribution_delete', 'expense_edit', 'expense_delete',
   ...INVENTORY_WORKFLOWS,
 ];
@@ -81,12 +80,6 @@ export class FinanceApprovalsService {
     switch (a.workflow_type) {
       case 'expense': case 'department_expense': case 'department_expense_major': case 'expense_edit': case 'expense_delete':
         s = await this.prisma.expense.findUnique({ where: { id }, select: { title: true, amount: true, expense_number: true, department_id: true } }); s = s && { title: s.title, amount: money(s.amount), number: s.expense_number, departmentId: s.department_id }; break;
-      case 'project': case 'project_closure':
-        s = await this.prisma.project.findUnique({ where: { id }, select: { name: true, budget_amount: true, project_number: true, department_id: true } }); s = s && { title: s.name, amount: money(s.budget_amount), number: s.project_number, departmentId: s.department_id, projectId: id }; break;
-      case 'project_allocation': {
-        const x = await this.prisma.projectAllocation.findUnique({ where: { id }, include: { project: { select: { name: true } } } });
-        s = x && { title: `General Fund to ${x.project.name}`, amount: money(x.amount), number: x.allocation_number, projectId: x.project_id }; break;
-      }
       case 'asset_transfer_department': case 'asset_transfer_fellowship': {
         const t = await this.prisma.assetTransfer.findUnique({ where: { id } });
         const a = t ? await this.prisma.asset.findUnique({ where: { id: t.asset_id }, select: { name: true, asset_tag: true } }) : null;

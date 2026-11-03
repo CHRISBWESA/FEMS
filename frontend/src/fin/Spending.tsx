@@ -6,7 +6,7 @@ import { DataTable } from '../components/DataTable';
 import { useI18n } from '../context/I18nContext';
 import {
   APPROVAL_TYPES, Attachment, AttachmentPicker, Attachments, CategorySelect, errMsg, fmtDate, fmtMoney, FormModal, label, MethodSelect,
-  PendingApprovals, ProjectSelect, Row, scopeQuery, Status, today, Trail, useFin, useLoad,
+  PendingApprovals, Row, scopeQuery, Status, today, Trail, useFin, useLoad,
 } from './common';
 
 /** Plain-language state of an expense (matches the server's). */
@@ -45,7 +45,7 @@ export function Expenses() {
       <PageHeader title={t('fin.nav.expenses')} description={s.departmentId
         ? 'Spending from the department\'s own money. It is approved by the Treasurer, Secretary and Chairperson.'
         : 'Central spending: the Treasurer records, the Secretary reviews, the Chairperson approves, and the Treasurer pays. Approved is not paid.'}
-        actions={canRecord ? <Button variant="primary" onClick={() => { setF({ title: '', amount: '', date: today(), purpose: '', payee: '', categoryId: '', projectId: '', paymentMethod: 'cash', alreadyIncurred: false, description: '' }); setFiles([]); setOpen(true); }}><PlusIcon className="h-4 w-4" /> New expense</Button> : undefined} />
+        actions={canRecord ? <Button variant="primary" onClick={() => { setF({ title: '', amount: '', date: today(), purpose: '', payee: '', categoryId: '', paymentMethod: 'cash', alreadyIncurred: false, description: '' }); setFiles([]); setOpen(true); }}><PlusIcon className="h-4 w-4" /> New expense</Button> : undefined} />
       <PendingApprovals types={APPROVAL_TYPES.expenses} departmentId={s.departmentId} onDone={list.reload} />
       <DataTable rows={list.data} loading={list.loading && !list.data} error={list.error || null} onRetry={list.reload} rowKey={(r: any) => r.id} clientPaging pageSize={25}
         empty={{ title: 'No expenses' }}
@@ -64,7 +64,7 @@ export function Expenses() {
           await axios.post('/finance/expenses', {
             scope: s.departmentId ? 'department' : undefined, departmentId: s.departmentId ?? undefined, title: f.title, amount: Number(f.amount), date: f.date,
             purpose: f.purpose || undefined, payee: f.payee || undefined, description: f.description || undefined, categoryId: f.categoryId || undefined,
-            projectId: f.projectId || undefined, paymentMethod: f.paymentMethod,
+            paymentMethod: f.paymentMethod,
             alreadyIncurred: f.alreadyIncurred, attachments: files,
           }, { withCredentials: true });
           toast.push('success', 'Sent for approval'); list.reload();
@@ -76,7 +76,6 @@ export function Expenses() {
           <Field label="Payee / vendor"><Input value={f.payee} onChange={(e) => setF({ ...f, payee: e.target.value })} /></Field>
           <Field label="Purpose"><Input value={f.purpose} onChange={(e) => setF({ ...f, purpose: e.target.value })} /></Field>
           {!s.departmentId && <Field label="Category"><CategorySelect kind="expense" value={f.categoryId} onChange={(v) => setF({ ...f, categoryId: v })} /></Field>}
-          <Field label="Project"><ProjectSelect value={f.projectId} onChange={(v) => setF({ ...f, projectId: v })} /></Field>
           <Field label="Payment method"><MethodSelect value={f.paymentMethod} onChange={(v) => setF({ ...f, paymentMethod: v })} /></Field>
         </div>
         <Field label="Description"><Textarea rows={2} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field>
@@ -105,7 +104,6 @@ export function Expenses() {
               <Row k="Account" v={detail.data.account?.name} />
               <Row k="Payee" v={detail.data.payee} />
               <Row k="Category" v={detail.data.category?.name} />
-              <Row k="Project" v={detail.data.project?.name} />
               <Row k="Approval route" v={detail.data.workflow ? label(detail.data.workflow.type) : null} />
               <Row k="Why central approval" v={detail.data.workflow?.reason} />
             </div>

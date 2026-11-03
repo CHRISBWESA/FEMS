@@ -30,9 +30,7 @@ export default function FinDashboard() {
             <>
               <h2 className="mb-2 text-sm font-semibold text-ink">{t('fin.generalFund')}</h2>
               <Row k="Central accounts" v={fmtMoney(d.generalFund.centralBalance, s.currency)} />
-              <Row k="Earmarked for projects" v={fmtMoney(d.generalFund.earmarkedForProjects, s.currency)} />
               <Row k="Available" v={<span className="text-success">{fmtMoney(d.generalFund.available, s.currency)}</span>} />
-              <p className="mt-2 text-xs text-ink-subtle">Moving General Fund money to a project is an allocation, not new income.</p>
             </>
           ) : (
             <>

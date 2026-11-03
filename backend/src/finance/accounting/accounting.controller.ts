@@ -11,7 +11,6 @@ import { AccountsService } from './accounts.service';
 import { ContributionsCoreService } from './contributions-core.service';
 import { ExpensesFlowService } from './expenses-flow.service';
 import { FeesService } from './fees.service';
-import { ProjectsService } from './projects.service';
 import { DrivesService } from './drives.service';
 import { StatementsService } from './statements.service';
 import { FinanceApprovalsService } from './finance-approvals.service';
@@ -37,7 +36,7 @@ async function sendReport(res: Response, report: Report, format?: string) {
 }
 
 /**
- * Finance & projects API. @Roles is only a coarse gate; every service checks the exact office, the department the
+ * Finance API. @Roles is only a coarse gate; every service checks the exact office, the department the
  * caller leads (from the database, per request) and the fellowship.
  */
 @RequiresModule('finance')
@@ -48,7 +47,6 @@ export class AccountingController {
     private contributions: ContributionsCoreService,
     private expenses: ExpensesFlowService,
     private fees: FeesService,
-    private projects: ProjectsService,
     private drives: DrivesService,
     private statements: StatementsService,
     private approvals: FinanceApprovalsService,
@@ -80,7 +78,6 @@ export class AccountingController {
     res.setHeader('Content-Disposition', `inline; filename="receipt-${r.receiptNumber}.pdf"`);
     return res.send(await receiptToPdf(r));
   }
-  @Put('contributions/:id/allocations') @Roles(ROLES.TREASURER, ROLES.DEPARTMENT_CHAIRPERSON, ROLES.DEPARTMENT_SECRETARY) allocate(@Req() req, @Param('id') id: string, @Body() b) { return this.contributions.setAllocations(req.user, id, b); }
   @Post('contributions/:id/reverse') @Roles(ROLES.DEPARTMENT_CHAIRPERSON) reverse(@Req() req, @Param('id') id: string, @Body() b) { return this.contributions.reverseDepartment(req.user, id, b); }
 
   // ---- expenses (recording is POST /finance/expenses) ----
@@ -119,20 +116,4 @@ export class AccountingController {
 
   // ---- lookups for forms ----
   @Get('member-search') @Roles(...CENTRAL) memberSearch(@Req() req, @Query() q) { return this.drives.memberSearch(req.user, q); }
-  @Get('fundable-projects') @Roles(...ALL) fundable(@Req() req, @Query() q) { return this.projects.fundable(req.user, q); }
-}
-
-@RequiresModule('finance')
-@Controller('projects')
-export class ProjectsController {
-  constructor(private projects: ProjectsService) {}
-
-  @Get() @Roles(...ALL) list(@Req() req, @Query() q) { return this.projects.list(req.user, q); }
-  @Post() @Roles(...CENTRAL, ROLES.DEPARTMENT_CHAIRPERSON) create(@Req() req, @Body() b) { return this.projects.create(req.user, b); }
-  @Get(':id') @Roles(...ALL) get(@Req() req, @Param('id') id: string) { return this.projects.detail(req.user, id); }
-  @Put(':id') @Roles(...CENTRAL, ROLES.DEPARTMENT_CHAIRPERSON) update(@Req() req, @Param('id') id: string, @Body() b) { return this.projects.update(req.user, id, b); }
-  @Post(':id/submit') @Roles(...CENTRAL, ROLES.DEPARTMENT_CHAIRPERSON) submit(@Req() req, @Param('id') id: string) { return this.projects.submit(req.user, id); }
-  @Post(':id/status') @Roles(...CENTRAL, ROLES.DEPARTMENT_CHAIRPERSON) status(@Req() req, @Param('id') id: string, @Body() b) { return this.projects.setStatus(req.user, id, b); }
-  @Post(':id/allocations') @Roles(ROLES.TREASURER) allocate(@Req() req, @Param('id') id: string, @Body() b) { return this.projects.requestAllocation(req.user, id, b); }
-  @Post(':id/closure') @Roles(...CENTRAL, ROLES.DEPARTMENT_CHAIRPERSON) closure(@Req() req, @Param('id') id: string, @Body() b) { return this.projects.requestClosure(req.user, id, b); }
 }

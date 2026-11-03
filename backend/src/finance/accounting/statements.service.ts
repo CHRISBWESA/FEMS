@@ -6,7 +6,7 @@ import { validateText } from '../finance.validation';
 import { D, getSettings, money, ZERO } from './ledger';
 import { budgetPerformance } from './budget-math';
 import { feeDueDates } from './contributions-core.service';
-import { generalFundPosition, projectFinancials } from './project-finance';
+import { generalFundPosition } from './project-finance';
 import { FinanceScopeService } from './finance-scope.service';
 import { FinanceApprovalsService } from './finance-approvals.service';
 import { Report, ReportColumn } from './exporters';
@@ -18,7 +18,6 @@ export const REPORTS: { key: string; title: string; centralOnly?: boolean }[] = 
   { key: 'contributions', title: 'Contributions report' },
   { key: 'membership-fees', title: 'Membership fee collection' },
   { key: 'expenses', title: 'Expense report' },
-  { key: 'projects', title: 'Project financial report' },
   { key: 'departments', title: 'Department financial report', centralOnly: true },
   { key: 'funding-sources', title: 'Funding source report' },
   { key: 'audit', title: 'Financial audit report', centralOnly: true },
@@ -177,19 +176,6 @@ export class StatementsService {
     return { ...rep, columns: [col('number', 'Number'), col('date', 'Date'), col('title', 'Title'), col('category', 'Category'), col('payee', 'Payee'), col('account', 'Paid from'), col('status', 'Status'), col('requested', 'Amount', true), col('paid', 'Paid', true)], rows: out,
       totals: { paid: paid.toFixed(2) },
       summary: [{ label: 'Paid', value: paid.toFixed(2) }, { label: 'Approved but not yet paid (commitments)', value: committed.toFixed(2) }, { label: 'Waiting for approval', value: requested.toFixed(2) }] };
-  }
-
-  private async r_projects(sc: any, _r: any, q: any, rep: Report) {
-    const where: any = { fellowship_id: sc.fellowshipId, ...(sc.departmentId ? { scope: 'department', department_id: sc.departmentId } : { scope: 'fellowship' }) };
-    if (q?.projectId && isUuid(q.projectId)) where.id = q.projectId;
-    const projects = await this.prisma.project.findMany({ where, orderBy: { created_at: 'desc' }, take: 200 });
-    const rows: any[] = [];
-    for (const p of projects) {
-      const f = await projectFinancials(this.prisma, p);
-      rows.push({ number: p.project_number, name: p.name, status: p.status, budget: f.budget, received: f.fundingReceived, paid: f.expensesPaid, committed: f.commitments, remaining: f.remainingBudget, progress: `${f.fundingProgressPercent}%` });
-    }
-    return { ...rep, columns: [col('number', 'Project'), col('name', 'Name'), col('status', 'Status'), col('budget', 'Budget', true), col('received', 'Funds received', true), col('paid', 'Paid', true), col('committed', 'Committed', true), col('remaining', 'Budget left', true), col('progress', 'Funded')], rows,
-      notes: ['Funds received = contributions allocated + project income + General Fund allocations.'] };
   }
 
   private async r_departments(sc: any, r: any, _q: any, rep: Report) {

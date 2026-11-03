@@ -5,7 +5,7 @@ import { Alert, Badge, Button, Card, Field, Modal, Select, Textarea, useToast } 
 import { useI18n } from '../context/I18nContext';
 
 /**
- * Shared pieces of the Finance and Projects screens. Every screen works for central fellowship money
+ * Shared pieces of the Finance screens. Every screen works for central fellowship money
  * (departmentId = null) or for one department's own money (departmentId = its id), so the department workspace
  * reuses the same screens; the server decides what each person may see and do.
  */
@@ -206,12 +206,6 @@ export function MethodSelect({ value, onChange }: { value: string; onChange: (v:
 }
 
 /** Accounts of this scope for a form. */
-export function ProjectSelect({ value, onChange, placeholder = 'No project' }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
-  const s = useFin();
-  const { data } = useLoad<any[]>(`/finance/fundable-projects?${scopeQuery(s)}`, [s.departmentId]);
-  return <Select value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} options={(data ?? []).map((p) => ({ value: p.id, label: `${p.project_number} · ${p.name}` }))} />;
-}
-
 export function CategorySelect({ kind, value, onChange }: { kind: 'contribution' | 'income' | 'expense'; value: string; onChange: (v: string) => void }) {
   const s = useFin();
   const { data } = useLoad<any[]>(s.departmentId ? null : `/finance/categories?kind=${kind}`, [kind]);
@@ -290,7 +284,6 @@ export function DecisionButtons({ approvalId, onDone }: { approvalId: string; on
 export const APPROVAL_TYPES = {
   expenses: ['expense', 'department_expense', 'department_expense_major', 'expense_edit', 'expense_delete'],
   contributions: ['contribution_edit', 'contribution_delete'],
-  projects: ['project', 'project_closure', 'project_allocation'],
   resources: ['asset_transfer_department', 'asset_transfer_fellowship', 'asset_disposal', 'asset_disposal_department', 'asset_disposal_major'],
 };
 

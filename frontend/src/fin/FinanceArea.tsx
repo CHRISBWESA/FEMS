@@ -69,7 +69,6 @@ export default function FinanceArea() {
   return (
     <FinContext.Provider value={scope}>
       <div className="mx-auto max-w-7xl">
-        <FinanceNav base="/finance" scope={scope} />
         <FinanceRoutes scope={scope} base="/finance" />
       </div>
     </FinContext.Provider>

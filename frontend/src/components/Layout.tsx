@@ -10,7 +10,9 @@ import {
   CalendarIcon,
   ChartBarIcon,
   CurrencyDollarIcon,
-  BriefcaseIcon,
+  ReceiptPercentIcon,
+  DocumentChartBarIcon,
+  Cog6ToothIcon,
   IdentificationIcon,
   BellIcon,
   ShieldCheckIcon,
@@ -63,7 +65,7 @@ interface NavItem {
 const NAV_GROUPS = {
   members: { name: 'Members', icon: UsersIcon },
   departments: { name: 'Departments', icon: BuildingOfficeIcon },
-  finance: { name: 'Finance & Projects', icon: CurrencyDollarIcon },
+  finance: { name: 'Finance & Resources', icon: CurrencyDollarIcon },
 } as const;
 
 // Pages the Secretary does not use. App.tsx blocks the same routes with <HideFor>.
@@ -106,9 +108,12 @@ const NAV_SECTIONS: NavSection[] = [
       { name: 'Youth & Children', icon: FaceSmileIcon, path: '/youth', roles: ['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'department_secretary', 'department_chairperson'], module: 'youth', hideFor: NOT_SECRETARY },
       { name: 'Reports', icon: ChartBarIcon, path: '/reports', roles: ['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'department_secretary', 'department_chairperson'] },
       { name: 'Leadership', icon: IdentificationIcon, path: '/leadership', roles: ['fellowship_admin', 'secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'treasurer'] },
-      { name: 'Finance', icon: CurrencyDollarIcon, path: '/finance', roles: ['treasurer', 'secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson'], module: 'finance', group: 'finance' },
-      { name: 'Projects', icon: BriefcaseIcon, path: '/projects', roles: ['treasurer', 'secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'department_secretary', 'department_chairperson'], module: 'finance', group: 'finance' },
-      { name: 'Resources', icon: CubeIcon, path: '/inventory', roles: ['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'treasurer'], module: 'resources' },
+      { name: 'Dashboard', icon: ChartPieIcon, path: '/finance', roles: ['treasurer', 'secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson'], module: 'finance', group: 'finance' },
+      { name: 'Contribution Drives', icon: HandRaisedIcon, path: '/finance/contributions', roles: ['treasurer', 'secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson'], module: 'finance', group: 'finance' },
+      { name: 'Expenses', icon: ReceiptPercentIcon, path: '/finance/expenses', roles: ['treasurer', 'secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson'], module: 'finance', group: 'finance' },
+      { name: 'Reports', icon: DocumentChartBarIcon, path: '/finance/reports', roles: ['treasurer', 'secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson'], module: 'finance', group: 'finance' },
+      { name: 'Settings', icon: Cog6ToothIcon, path: '/finance/settings', roles: ['treasurer', 'secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson'], module: 'finance', group: 'finance' },
+      { name: 'Resources', icon: CubeIcon, path: '/inventory', roles: ['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'treasurer'], module: 'resources', group: 'finance' },
       { name: 'Volunteering', icon: HandRaisedIcon, path: '/volunteering', roles: ALL_NON_ADMIN_ROLES, module: 'volunteers', hideFor: NOT_SECRETARY },
       { name: 'IT Content', icon: ComputerDesktopIcon, path: '/it-content', roles: ALL_NON_ADMIN_ROLES, hideFor: NOT_SECRETARY },
       { name: 'My Website', icon: GlobeAltIcon, path: '/public-site', roles: ['it_admin', 'secretary', 'assistant_secretary'], hideFor: NOT_SECRETARY },
@@ -220,7 +225,7 @@ export default function Layout() {
     <NavLink
       key={item.path}
       to={item.path}
-      end={item.path === '/members'}
+      end={item.path === '/members' || item.path === '/finance'}
       className={({ isActive }) =>
         `group flex items-center gap-3 rounded-control px-3 py-2 text-sm font-medium transition-colors duration-150 ${
           isActive
@@ -251,7 +256,7 @@ export default function Layout() {
                 if (members.length > 1) {
                   if (section.items.findIndex((x) => x.group === item.group) !== i) return null; // rendered with its group
                   const g = NAV_GROUPS[item.group];
-                  const active = members.some((x) => (x.path === '/members' ? location.pathname === '/members' || /^\/members\/(?!insights)/.test(location.pathname) : location.pathname.startsWith(x.path)));
+                  const active = members.some((x) => (x.path === '/members' ? location.pathname === '/members' || /^\/members\/(?!insights)/.test(location.pathname) : location.pathname === x.path || location.pathname.startsWith(`${x.path}/`)));
                   const open = groupOpen[item.group] ?? active;
                   const id = `nav-group-${item.group}`;
                   return (

@@ -26,8 +26,6 @@ const Activities = lazyPage(() => import('./pages/Activities'));
 const ActivityDetail = lazyPage(() => import('./pages/ActivityDetail'));
 const Reports = lazyPage(() => import('./pages/Reports'));
 const FinanceArea = lazyPage(() => import('./fin/FinanceArea'));
-const ProjectsList = lazyPage(() => import('./fin/Projects').then((m) => ({ default: m.ProjectsList })));
-const ProjectDetail = lazyPage(() => import('./fin/Projects').then((m) => ({ default: m.ProjectDetail })));
 const WsMoney = lazyPage(() => import('./fin/WsMoney'));
 const Notifications = lazyPage(() => import('./pages/Notifications'));
 const Audit = lazyPage(() => import('./pages/Audit'));
@@ -331,8 +329,6 @@ export default function App() {
             <Route path="activities/:id" element={<ExcludeAdmin><ActivityDetail /></ExcludeAdmin>} />
             <Route path="reports" element={<ExcludeAdmin><Reports /></ExcludeAdmin>} />
             <Route path="finance/*" element={<ExcludeAdmin><RequireRole roles={CENTRAL_FINANCE_ROLES}>{<FinanceArea />}</RequireRole></ExcludeAdmin>} />
-            <Route path="projects" element={<ExcludeAdmin><RequireRole roles={[...CENTRAL_FINANCE_ROLES, 'department_chairperson', 'department_secretary']}><ProjectsList /></RequireRole></ExcludeAdmin>} />
-            <Route path="projects/:id" element={<ExcludeAdmin><RequireRole roles={[...CENTRAL_FINANCE_ROLES, 'department_chairperson', 'department_secretary']}><ProjectDetail /></RequireRole></ExcludeAdmin>} />
             <Route path="my-giving" element={<ExcludeAdmin><MyGiving /></ExcludeAdmin>} />
             <Route path="leadership" element={<ExcludeAdmin><RequireRole roles={['fellowship_admin', 'secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'treasurer']}><Leadership /></RequireRole></ExcludeAdmin>} />
             <Route path="inventory/*" element={<ExcludeAdmin><RequireRole roles={RESOURCE_CENTRAL_ROLES}>{<InventoryArea />}</RequireRole></ExcludeAdmin>} />

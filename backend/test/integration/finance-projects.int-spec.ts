@@ -2,13 +2,13 @@ import { INestApplication } from '@nestjs/common';
 import { api, createTestApp, describeDb, getPrisma, makeDepartment, makeFellowship, makeMember, makeUser, uniq } from './harness';
 
 /**
- * Finance, projects and department financial management, end to end over HTTP against real Postgres:
+ * Finance and department financial management, end to end over HTTP against real Postgres:
  * the ledger, receipts, allocations, expenses and payments, membership
- * fees, transfers, isolation, projects and closure, periods, exports and audit.
+ * fees, isolation, exports and audit.
  */
 jest.setTimeout(300_000);
 
-describeDb('Finance, projects and department finances (real Postgres, HTTP)', () => {
+describeDb('Finance and department finances (real Postgres, HTTP)', () => {
   let app: INestApplication;
   let prisma: ReturnType<typeof getPrisma>;
   let f: any, fB: any;
@@ -17,7 +17,6 @@ describeDb('Finance, projects and department finances (real Postgres, HTTP)', ()
   let dept: any, other: any;
   let m1: any, m2: any, m3: any;
   let central: any;
-  let projA: any, projB: any;
 
   const get = (u: any, url: string) => api(app, u.token).get(url);
   const post = (u: any, url: string, body: object = {}) => api(app, u.token).post(url, body);
@@ -38,18 +37,6 @@ describeDb('Finance, projects and department finances (real Postgres, HTTP)', ()
   async function balance(accountId: string) {
     return (await prisma.financialAccount.findUniqueOrThrow({ where: { id: accountId } })).balance.toFixed(2);
   }
-  async function approvedProject(by: any, body: object) {
-    const p = (await post(by, '/projects', { submit: true, ...body }).expect(201)).body;
-    const wf = await workflowOf(p.id, 'project');
-    const steps = await prisma.approvalStep.findMany({ where: { approval_id: wf.id }, orderBy: { stage_order: 'asc' } });
-    for (const s of steps) {
-      if (s.status === 'skipped') continue;
-      const who = s.approver_role === 'treasurer' ? treas : s.approver_role === 'secretary' ? (by.id === sec.id ? asst : sec) : (by.id === chair.id ? asstChair : chair);
-      await decide(who, wf.id);
-    }
-    return (await get(by, `/projects/${p.id}`).expect(200)).body;
-  }
-
   beforeAll(async () => {
     app = await createTestApp();
     prisma = getPrisma(app);
@@ -111,47 +98,6 @@ describeDb('Finance, projects and department finances (real Postgres, HTTP)', ()
       await post(treas, '/finance/contributions', { memberId: m2.id, amount: 3000, date: today(), paymentMethod: 'mobile_money', paymentReference: ref.toLowerCase(), accountId: central.id }).expect(409);
     });
   });
-
-  // ------------------------------------------------------------ projects and allocations
-
-  describe('projects and allocations', () => {
-    it('13. a fellowship project goes Treasurer -> Secretary -> Chairperson before it can be funded', async () => {
-      const draft = (await post(sec, '/projects', { name: `Hall roof ${uniq()}`, purpose: 'Repair the roof', budgetAmount: 300000, coordinatingDepartmentId: dept.id, fundingSources: [{ sourceType: 'contributions', name: 'Members', expectedAmount: 200000 }] }).expect(201)).body;
-      expect(draft.status).toBe('DRAFT');
-      expect(draft.scope).toBe('fellowship'); // coordinated by a department, but central money
-      await post(treas, '/finance/contributions', { memberId: m1.id, amount: 100, date: today(), allocations: [{ projectId: draft.id, amount: 100 }] }).expect(400); // not approved yet
-      const submitted = (await post(sec, `/projects/${draft.id}/submit`).expect(201)).body;
-      expect(submitted.status).toBe('PENDING_APPROVAL');
-      const wf = await workflowOf(draft.id, 'project');
-      await decide(sec, wf.id, 'approved', undefined, 403); // own request / not the stage
-      await decide(treas, wf.id);
-      await decide(sec, wf.id, 'approved', undefined, 403); // creator cannot decide
-      await decide(asst, wf.id);
-      await decide(chair, wf.id);
-      projA = (await get(sec, `/projects/${draft.id}`).expect(200)).body;
-      expect(projA.status).toBe('APPROVED');
-      projB = await approvedProject(chair, { name: `Sound system ${uniq()}`, purpose: 'New speakers', budgetAmount: 50000 });
-      expect(projB.status).toBe('APPROVED');
-    });
-
-    it('3. one contribution split across two projects is counted once', async () => {
-      const before = await balance(central.id);
-      const c = (await post(treas, '/finance/contributions', { memberId: m1.id, amount: 10000, date: today(), accountId: central.id, allocations: [{ projectId: projA.id, amount: 6000 }, { projectId: projB.id, amount: 3000 }] }).expect(201)).body;
-      expect(Number(await balance(central.id)) - Number(before)).toBe(10000);
-      const d = (await get(treas, `/finance/contributions/${c.id}`).expect(200)).body;
-      expect(d).toMatchObject({ allocatedAmount: '9000.00', unallocatedAmount: '1000.00' });
-      await post(treas, '/finance/contributions', { memberId: m1.id, amount: 100, date: today(), allocations: [{ projectId: projA.id, amount: 101 }] }).expect(400);
-      // Re-allocating keeps the history.
-      await put(treas, `/finance/contributions/${c.id}/allocations`, { allocations: [{ projectId: projA.id, amount: 10000 }], reason: 'Donor asked' }).expect(200);
-      const rows = await prisma.contributionAllocation.findMany({ where: { contribution_id: c.id } });
-      expect(rows.filter((r) => r.is_active)).toHaveLength(1);
-      expect(rows.filter((r) => !r.is_active)).toHaveLength(2);
-      const p = (await get(treas, `/projects/${projA.id}`).expect(200)).body;
-      expect(p.financials.contributions).toBe('10000.00');
-    });
-  });
-
-  // ------------------------------------------------------------ expenses
 
   describe('expenses', () => {
 
@@ -247,28 +193,10 @@ describeDb('Finance, projects and department finances (real Postgres, HTTP)', ()
 
   // ------------------------------------------------------------ closure, reports
 
-  describe('closure, reports and audit', () => {
-    it('16. closing a project returns unspent money to the General Fund after Treasurer, Secretary and Chairperson', async () => {
-      await post(treas, '/finance/contributions', { memberId: m3.id, amount: 3000, date: today(), accountId: central.id, allocations: [{ projectId: projB.id, amount: 3000 }] }).expect(201);
-      const before = (await get(treas, '/finance/dashboard').expect(200)).body.generalFund;
-      await post(oChair, `/projects/${projB.id}/closure`, { finalReport: 'Done' }).expect(403); // not its creator, department or the Secretary
-      const req = (await post(chair, `/projects/${projB.id}/closure`, { finalReport: 'Speakers installed', unspentDisposition: 'return_to_general_fund' }).expect(201)).body;
-      expect(req.closure_status).toBe('pending');
-      const wf = await workflowOf(projB.id, 'project_closure');
-      await decide(treas, wf.id);
-      await decide(sec, wf.id);
-      await decide(asstChair, wf.id);
-      const closed = (await get(chair, `/projects/${projB.id}`).expect(200)).body;
-      expect(closed.status).toBe('CLOSED');
-      expect(closed.financials.unspentFunds).toBe('0.00');
-      expect(closed.fundAllocations[0]).toMatchObject({ kind: 'return_to_general_fund', amount: '-3000.00' });
-      const after = (await get(treas, '/finance/dashboard').expect(200)).body.generalFund;
-      expect(Number(after.available) - Number(before.available)).toBe(3000); // the earmark ended: the money is general again
-    });
-
+  describe('reports and audit', () => {
     it('19. reports export as PDF and Excel; departments only export their own', async () => {
       const keys = (await get(treas, '/finance/statements').expect(200)).body.map((r: any) => r.key);
-      expect(keys).toHaveLength(9);
+      expect(keys).toHaveLength(8);
       for (const key of keys.filter((k: string) => k !== 'membership-fees')) {
         await get(treas, `/finance/statements/${key}`).expect(200);
       }
@@ -286,7 +214,7 @@ describeDb('Finance, projects and department finances (real Postgres, HTTP)', ()
     it('18. every financial action is in the audit history', async () => {
       const audit = (await get(treas, '/finance/statements/audit').expect(200)).body;
       const actions = new Set(audit.rows.map((r: any) => r.action));
-      for (const a of ['finance.contribution_create', 'finance.expense_paid', 'project.closed', 'finance.contribution_reversed']) {
+      for (const a of ['finance.contribution_create', 'finance.expense_paid', 'finance.contribution_reversed']) {
         expect(actions).toContain(a);
       }
     });
