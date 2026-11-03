@@ -97,12 +97,14 @@ describeDb('Resource management (real Postgres, HTTP)', () => {
     });
 
     it('5. ownership follows the money: a centrally funded purchase cannot be registered as a department\'s', async () => {
-      const acct = (await post(treas, '/finance/accounts', { name: 'Cash', accountType: 'cash', openingBalance: 100000 }).expect(201)).body;
+      // Fund the fellowship's default cash account first, so the purchase can be paid.
+      const m = await makeMember(prisma, { fellowshipId: f.id, name: 'Giver' });
+      await post(treas, '/finance/contributions', { memberId: m.id, amount: 100000, date: day(0) }).expect(201);
       const e = (await post(treas, '/finance/expenses', { title: 'Laptop', amount: 50000, date: day(0) }).expect(201)).body;
       const w = await wf(e.id);
       await decide(sec, w.id);
       await decide(chair, w.id);
-      await post(treas, `/finance/expenses/${e.id}/pay`, { accountId: acct.id }).expect(201);
+      await post(treas, `/finance/expenses/${e.id}/pay`, {}).expect(201);
       await post(dSec, '/inventory/assets', { name: 'Laptop', ownershipType: 'department', departmentId: dept.id, acquisitionExpenseId: e.id }).expect(400);
       const laptop = (await post(treas, '/inventory/assets', { name: 'Laptop', ownershipType: 'fellowship', acquisitionExpenseId: e.id }).expect(201)).body;
       expect(laptop).toMatchObject({ acquisition_expense_id: e.id, acquisition_cost: '50000.00' });

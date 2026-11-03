@@ -260,7 +260,7 @@ describeDb('Phase 20 - SaaS billing, plans & subscriptions (real Postgres, full 
   // ---------------------------------------------------------------------------------------------------------
   describe('what a subscription entitles a fellowship to (authentication and RBAC are untouched)', () => {
     it('a fellowship without a subscription is unmanaged and unaffected', async () => {
-      for (const url of ['/youth', '/resources/assets', '/volunteers/opportunities', '/finance/periods']) await get(secA, url).expect(200);
+      for (const url of ['/youth', '/resources/assets', '/volunteers/opportunities', '/finance/categories']) await get(secA, url).expect(200);
       expect((await get(secA, '/profile').expect(200)).body.disabledModules).toEqual([]);
     });
 
@@ -268,7 +268,7 @@ describeDb('Phase 20 - SaaS billing, plans & subscriptions (real Postgres, full 
       const t = await tenant();
       await assign(t.id, starter).expect(201); // finance only
       const s = t.sec;
-      await get(s, '/finance/periods').expect(200);
+      await get(s, '/finance/categories').expect(200);
       for (const url of ['/youth', '/resources/assets', '/volunteers/opportunities', '/member-groups']) {
         const r = await get(s, url).expect(403);
         expect(r.body.message).toMatch(/not enabled/i);
@@ -277,7 +277,7 @@ describeDb('Phase 20 - SaaS billing, plans & subscriptions (real Postgres, full 
       await get(s, '/members').expect(200); // core features are never plan-gated
       // RBAC still applies inside an included module: a treasurer-only login could not do a secretary's job
       const ord = await makeUser(prisma, { fellowshipId: t.id, roles: ['ordinary_member'] });
-      await get(ord, '/finance/periods').expect(403);
+      await get(ord, '/finance/categories').expect(403);
       // upgrading opens the modules immediately
       await post(padmin, `${B}/subscriptions/${t.id}/change-plan`, { planId: pro.id }).expect(201);
       await get(s, '/youth').expect(200);
@@ -295,7 +295,7 @@ describeDb('Phase 20 - SaaS billing, plans & subscriptions (real Postgres, full 
       await login(t.email, t.password).expect(201); // authentication is unaffected
       await get(t.sec, '/members').expect(200);
       await get(t.sec, '/profile').expect(200);
-      for (const url of ['/youth', '/finance/periods']) await get(t.sec, url).expect(403);
+      for (const url of ['/youth', '/finance/categories']) await get(t.sec, url).expect(403);
       const m = await makeMember(prisma, { fellowshipId: t.id });
       const blocked = await post(t.sec, '/users', { email: `x${uniq()}@test.local`, password: 'Passw0rd!x', firstName: 'A', lastName: 'B', memberId: m.id }).expect(403);
       expect(blocked.body.message).toMatch(/subscription is not active/);
@@ -446,7 +446,7 @@ describeDb('Phase 20 - SaaS billing, plans & subscriptions (real Postgres, full 
       // access is never removed: the tenant can still sign in and use core features, while modules are off
       await login(trial.email, trial.password).expect(201);
       await get(trial.sec, '/members').expect(200);
-      await get(trial.sec, '/finance/periods').expect(403);
+      await get(trial.sec, '/finance/categories').expect(403);
       // paying the overdue invoice puts it back in good standing
       const inv = await prisma.saasInvoice.findFirst({ where: { fellowship_id: overdue.id } });
       await post(padmin, `${B}/invoices/${inv!.id}/mark-paid`, { reference: 'BANK-OVERDUE-1' }).expect(201);

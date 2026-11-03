@@ -5,8 +5,8 @@ import { Button, Field, Input, PageHeader, Radio, Select, Textarea, useToast, Mo
 import { DataTable } from '../components/DataTable';
 import { useI18n } from '../context/I18nContext';
 import {
-  AccountSelect, Attachment, AttachmentPicker, CategorySelect, errMsg, fmtDate, fmtMoney, FormModal, label, MemberPicker,
-  MethodSelect, openPdf, ProjectSelect, scopeQuery, Status, today, useFin, useLoad,
+  APPROVAL_TYPES, Attachment, AttachmentPicker, CategorySelect, errMsg, fmtDate, fmtMoney, FormModal, MemberPicker,
+  MethodSelect, openPdf, PendingApprovals, ProjectSelect, scopeQuery, Status, today, useFin, useLoad,
 } from './common';
 
 const isChair = (s: ReturnType<typeof useFin>) => s.leaderRole === 'department_chairperson';
@@ -77,6 +77,7 @@ export function Contributions() {
     <div className="space-y-4">
       <PageHeader title={t('fin.nav.contributions')} description="Money received. Each payment has one receipt and is counted once, even when it is split between projects."
         actions={canRecord ? <Button variant="primary" onClick={start}><PlusIcon className="h-4 w-4" /> {t('fin.record')}</Button> : undefined} />
+      <PendingApprovals types={APPROVAL_TYPES.contributions} departmentId={s.departmentId} onDone={list.reload} />
       <DataTable
         rows={list.data} loading={list.loading && !list.data} error={list.error || null} onRetry={list.reload} rowKey={(r: any) => r.id} clientPaging pageSize={25}
         search={{ value: search, onChange: setSearch, placeholder: 'Receipt number or contributor' }}
@@ -122,7 +123,6 @@ export function Contributions() {
           <Field label="Date received" required><Input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>
           <Field label="Payment method"><MethodSelect value={f.paymentMethod} onChange={(v) => setF({ ...f, paymentMethod: v })} /></Field>
           <Field label="Payment reference" hint="Mobile money or bank reference. The same reference cannot be recorded twice."><Input value={f.paymentReference} onChange={(e) => setF({ ...f, paymentReference: e.target.value })} /></Field>
-          <Field label="Received into"><AccountSelect value={f.accountId} onChange={(v) => setF({ ...f, accountId: v })} /></Field>
           {!s.departmentId && <Field label="Category"><CategorySelect kind="contribution" value={f.categoryId} onChange={(v) => setF({ ...f, categoryId: v })} /></Field>}
         </div>
         <Allocations value={alloc} onChange={setAlloc} />
@@ -138,61 +138,6 @@ export function Contributions() {
       <Modal open={!!reverseFor} onClose={() => setReverseFor(null)} title={s.departmentId ? 'Reverse contribution' : 'Request a reversal'}
         description={s.departmentId ? 'The money is taken back out of the account with a reversal entry. Nothing is deleted.' : 'The Secretary and the Chairperson must approve the reversal. Nothing is deleted.'}
         footer={<><Button onClick={() => setReverseFor(null)}>Cancel</Button><Button variant="danger" disabled={!reason.trim()} onClick={reverse}>{s.departmentId ? 'Reverse' : 'Send request'}</Button></>}>
-        <Field label="Reason" required><Textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
-      </Modal>
-    </div>
-  );
-}
-
-// ------------------------------------------------------------------ income
-
-export function Income() {
-  const s = useFin();
-  const { t } = useI18n();
-  const toast = useToast();
-  const list = useLoad<any[]>(`/finance/income?${scopeQuery(s)}&limit=200`, [s.departmentId]);
-  const [open, setOpen] = useState(false);
-  const [f, setF] = useState<any>({});
-  const canRecord = s.departmentId ? !!s.leaderRole : s.roles.some((r) => ['treasurer', 'secretary'].includes(r));
-  const [reverseFor, setReverseFor] = useState<any>(null);
-  const [reason, setReason] = useState('');
-  return (
-    <div className="space-y-4">
-      <PageHeader title={t('fin.nav.income')} description="Grants, sponsorships and organisational donations. A payment is either a contribution or income, never both. Transfers are not income."
-        actions={canRecord ? <Button variant="primary" onClick={() => { setF({ title: '', amount: '', date: today(), source: '', fundingSource: 'grant', projectId: '', accountId: '', categoryId: '', paymentMethod: 'bank_transfer', paymentReference: '' }); setOpen(true); }}><PlusIcon className="h-4 w-4" /> {t('fin.record')}</Button> : undefined} />
-      <DataTable rows={list.data} loading={list.loading && !list.data} error={list.error || null} onRetry={list.reload} rowKey={(r: any) => r.id} clientPaging pageSize={25}
-        empty={{ title: 'No other income recorded' }}
-        columns={[
-          { key: 'n', header: 'Receipt', render: (r: any) => r.receipt_number ?? '—', priority: 'primary' },
-          { key: 'd', header: 'Date', render: (r: any) => fmtDate(r.date) },
-          { key: 't', header: 'Title', render: (r: any) => r.title },
-          { key: 's', header: 'Source', render: (r: any) => [label(r.funding_source), r.source].filter((x) => x && x !== '—').join(' · ') || '—' },
-          { key: 'a', header: 'Account', render: (r: any) => r.account?.name ?? '—', priority: 'meta' },
-          { key: 'amt', header: 'Amount', align: 'right', tabular: true, render: (r: any) => fmtMoney(r.amount, s.currency) },
-          { key: 'st', header: 'Status', render: (r: any) => <Status value={r.status} /> },
-        ]}
-        rowActions={(r: any) => (!s.departmentId && r.status === 'active' && canRecord ? <Button size="sm" variant="ghost" onClick={() => setReverseFor(r)}>Request reversal</Button> : null)}
-      />
-      <FormModal open={open} onClose={() => setOpen(false)} title="Record income" width="lg"
-        onSubmit={async () => {
-          await axios.post('/finance/income', { scope: s.departmentId ? 'department' : undefined, departmentId: s.departmentId ?? undefined, title: f.title, amount: Number(f.amount), date: f.date, source: f.source || undefined, fundingSource: f.fundingSource || undefined, projectId: f.projectId || undefined, accountId: f.accountId || undefined, categoryId: f.categoryId || undefined, paymentMethod: f.paymentMethod, paymentReference: f.paymentReference || undefined }, { withCredentials: true });
-          toast.push('success', 'Income recorded'); list.reload();
-        }}>
-        <Field label="Title" required><Input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label={`Amount (${s.currency})`} required><Input type="number" min="0" step="0.01" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} /></Field>
-          <Field label="Date" required><Input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>
-          <Field label="Kind of income"><Select value={f.fundingSource} onChange={(e) => setF({ ...f, fundingSource: e.target.value })} options={['grant', 'sponsorship', 'organisational_donation', 'fundraising', 'other'].map((v) => ({ value: v, label: label(v) }))} /></Field>
-          <Field label="From (organisation)"><Input value={f.source} onChange={(e) => setF({ ...f, source: e.target.value })} /></Field>
-          <Field label="Project"><ProjectSelect value={f.projectId} onChange={(v) => setF({ ...f, projectId: v })} /></Field>
-          <Field label="Received into"><AccountSelect value={f.accountId} onChange={(v) => setF({ ...f, accountId: v })} /></Field>
-          <Field label="Payment method"><MethodSelect value={f.paymentMethod} onChange={(v) => setF({ ...f, paymentMethod: v })} /></Field>
-          <Field label="Payment reference"><Input value={f.paymentReference} onChange={(e) => setF({ ...f, paymentReference: e.target.value })} /></Field>
-          {!s.departmentId && <Field label="Category"><CategorySelect kind="income" value={f.categoryId} onChange={(v) => setF({ ...f, categoryId: v })} /></Field>}
-        </div>
-      </FormModal>
-      <Modal open={!!reverseFor} onClose={() => setReverseFor(null)} title="Request a reversal" description="The Secretary and the Chairperson must approve it. Nothing is deleted."
-        footer={<><Button onClick={() => setReverseFor(null)}>Cancel</Button><Button variant="danger" disabled={!reason.trim()} onClick={async () => { try { await axios.post(`/finance/income/${reverseFor.id}/delete-request`, { reason }, { withCredentials: true }); toast.push('success', 'Reversal request sent'); setReverseFor(null); setReason(''); } catch (e) { toast.push('error', errMsg(e, 'Could not send.')); } }}>Send request</Button></>}>
         <Field label="Reason" required><Textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
       </Modal>
     </div>

@@ -6,7 +6,7 @@ import { Alert, Button, Card, ErrorState, Field, Input, PageHeader, PageLoader, 
 import { DataTable } from '../components/DataTable';
 import { useAuth } from '../App';
 import { useI18n } from '../context/I18nContext';
-import { Attachments, errMsg, FinContext, fmtDate, fmtMoney, FormModal, label, Row, Status, Trail, useLoad } from './common';
+import { APPROVAL_TYPES, Attachments, errMsg, FinContext, fmtDate, fmtMoney, FormModal, label, PendingApprovals, Row, Status, Trail, useLoad } from './common';
 import { useFinanceSettings } from './FinanceArea';
 
 const CENTRAL = ['treasurer', 'secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson'];
@@ -39,6 +39,7 @@ export function ProjectsList() {
     <div className="mx-auto max-w-7xl space-y-4">
       <PageHeader title={t('fin.nav.projects')} description="Fellowship-wide projects are central finances, even when a department coordinates them. Department projects belong to that department. Every project is approved by the Treasurer, the Fellowship Secretary and the Chairperson before it can receive or spend money."
         actions={canCreate ? <Button variant="primary" onClick={() => { setF({ scope: chairOf.length && !(user?.roles ?? []).some((r) => CENTRAL.includes(r)) ? 'department' : 'fellowship', name: '', purpose: '', description: '', projectType: '', budgetAmount: '', startDate: '', endDate: '', location: '', departmentId: chairOf[0]?.departmentId ?? '', coordinatingDepartmentId: '' }); setSources([]); setOpen(true); }}><PlusIcon className="h-4 w-4" /> New project</Button> : undefined} />
+      <PendingApprovals types={APPROVAL_TYPES.projects} onDone={list.reload} />
       <DataTable rows={list.data?.data} loading={list.loading && !list.data} error={list.error || null} onRetry={list.reload} rowKey={(r: any) => r.id}
         search={{ value: search, onChange: setSearch, placeholder: 'Project name' }}
         toolbar={<Select value={status} onChange={(e) => setStatus(e.target.value)} options={[{ value: '', label: 'All statuses' }, ...['DRAFT', 'PENDING_APPROVAL', 'RETURNED', 'APPROVED', 'ACTIVE', 'ON_HOLD', 'COMPLETED', 'CLOSED', 'REJECTED'].map((v) => ({ value: v, label: label(v) }))]} />}

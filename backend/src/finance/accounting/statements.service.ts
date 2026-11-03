@@ -15,15 +15,12 @@ import { range } from './accounts.service';
 export const REPORTS: { key: string; title: string; centralOnly?: boolean }[] = [
   { key: 'income-expenditure', title: 'Income and expenditure statement' },
   { key: 'cash-position', title: 'Cash position' },
-  { key: 'account-balances', title: 'Account balances' },
   { key: 'contributions', title: 'Contributions report' },
   { key: 'membership-fees', title: 'Membership fee collection' },
   { key: 'expenses', title: 'Expense report' },
-  { key: 'budget-performance', title: 'Budget performance' },
   { key: 'projects', title: 'Project financial report' },
   { key: 'departments', title: 'Department financial report', centralOnly: true },
   { key: 'funding-sources', title: 'Funding source report' },
-  { key: 'transfers', title: 'Transfer report' },
   { key: 'audit', title: 'Financial audit report', centralOnly: true },
 ];
 
@@ -120,18 +117,6 @@ export class StatementsService {
       summary: [{ label: 'Total cash position', value: closingT.toFixed(2) }] };
   }
 
-  private async r_account_balances(sc: any, _r: any, _q: any, rep: Report) {
-    const accounts = await this.prisma.financialAccount.findMany({ where: { fellowship_id: sc.fellowshipId, department_id: sc.departmentId }, orderBy: { name: 'asc' } });
-    const rows = accounts.map((a) => ({ account: a.name, type: a.account_type, reference: a.reference, status: a.is_active ? 'active' : 'inactive', reconciled: a.last_reconciled_at, balance: money(a.balance) }));
-    const total = accounts.reduce((s, a) => s.plus(a.balance), ZERO);
-    const summary = [{ label: 'Total balance', value: total.toFixed(2) }];
-    if (!sc.departmentId) {
-      const gf = await generalFundPosition(this.prisma, sc.fellowshipId);
-      summary.push({ label: 'Earmarked for projects', value: gf.earmarkedForProjects }, { label: 'General Fund available', value: gf.available });
-    }
-    return { ...rep, columns: [col('account', 'Account'), col('type', 'Type'), col('reference', 'Reference'), col('status', 'Status'), col('reconciled', 'Last reconciled'), col('balance', 'Balance', true)], rows, totals: { balance: total.toFixed(2) }, summary };
-  }
-
   private async r_contributions(sc: any, r: any, q: any, rep: Report) {
     const where: Prisma.ContributionWhereInput = { fellowship_id: sc.fellowshipId, department_id: sc.departmentId, ...(r ? { date: r } : {}) };
     if (q?.status === 'reversed') where.status = 'reversed'; else if (q?.status !== 'all') where.status = 'active';
@@ -194,28 +179,6 @@ export class StatementsService {
       summary: [{ label: 'Paid', value: paid.toFixed(2) }, { label: 'Approved but not yet paid (commitments)', value: committed.toFixed(2) }, { label: 'Waiting for approval', value: requested.toFixed(2) }] };
   }
 
-  private async r_budget_performance(sc: any, _r: any, q: any, rep: Report) {
-    const settings = await getSettings(this.prisma as any, sc.fellowshipId);
-    const where: any = { fellowship_id: sc.fellowshipId, department_id: sc.departmentId, approval_status: 'FINAL_APPROVED' };
-    if (q?.budgetId && isUuid(q.budgetId)) where.id = q.budgetId;
-    if (q?.fiscalYear) where.fiscal_year = validateText('fiscalYear', q.fiscalYear, 9);
-    if (q?.projectId && isUuid(q.projectId)) where.project_id = q.projectId;
-    const budgets = await this.prisma.budget.findMany({ where, orderBy: { created_at: 'desc' }, take: 50 });
-    const rows: any[] = [];
-    let a = ZERO, s = ZERO, c = ZERO;
-    for (const b of budgets) {
-      const perf = await budgetPerformance(this.prisma, b.id, settings.budget_warning_percent);
-      if (!perf.lines.length) {
-        const remaining = D(b.amount).minus(perf.totals.spent).minus(perf.totals.committed);
-        rows.push({ budget: `${b.budget_number ?? ''} ${b.title}`.trim(), line: '(whole budget)', approved: money(b.amount), spent: perf.totals.spent, committed: perf.totals.committed, remaining: remaining.toFixed(2), used: D(b.amount).isZero() ? '' : `${Math.round(D(perf.totals.spent).plus(perf.totals.committed).div(b.amount).times(100).toNumber())}%` });
-      }
-      for (const l of perf.lines) rows.push({ budget: `${b.budget_number ?? ''} ${b.title}`.trim(), line: l.isActive ? l.name : `${l.name} (removed)`, approved: l.approved, spent: l.spent, committed: l.committed, remaining: l.remaining, used: `${l.utilisationPercent}%${l.overspent ? ' OVERSPENT' : l.warning ? ' warning' : ''}` });
-      a = a.plus(b.amount); s = s.plus(perf.totals.spent); c = c.plus(perf.totals.committed);
-    }
-    return { ...rep, columns: [col('budget', 'Budget'), col('line', 'Line'), col('approved', 'Approved', true), col('spent', 'Spent', true), col('committed', 'Committed', true), col('remaining', 'Remaining', true), col('used', 'Used')], rows,
-      summary: [{ label: 'Approved budgets', value: a.toFixed(2) }, { label: 'Actually spent', value: s.toFixed(2) }, { label: 'Approved, not yet paid', value: c.toFixed(2) }, { label: 'Remaining', value: a.minus(s).minus(c).toFixed(2) }] };
-  }
-
   private async r_projects(sc: any, _r: any, q: any, rep: Report) {
     const where: any = { fellowship_id: sc.fellowshipId, ...(sc.departmentId ? { scope: 'department', department_id: sc.departmentId } : { scope: 'fellowship' }) };
     if (q?.projectId && isUuid(q.projectId)) where.id = q.projectId;
@@ -248,15 +211,6 @@ export class StatementsService {
     ];
     const total = rows.reduce((s, x) => s.plus(x.amount), ZERO);
     return { ...rep, columns: [col('source', 'Source'), col('count', 'Records'), col('amount', 'Amount', true)], rows, totals: { amount: total.toFixed(2) } };
-  }
-
-  private async r_transfers(sc: any, r: any, _q: any, rep: Report) {
-    const where: any = { fellowship_id: sc.fellowshipId, ...(r ? { transfer_date: r } : {}) };
-    if (sc.departmentId) where.OR = [{ fromAccount: { department_id: sc.departmentId } }, { toAccount: { department_id: sc.departmentId } }];
-    const rows = await this.prisma.financialTransfer.findMany({ where, orderBy: { transfer_date: 'asc' }, take: MAX_ROWS + 1, include: { fromAccount: { select: { name: true } }, toAccount: { select: { name: true } } } });
-    return { ...rep, columns: [col('number', 'Transfer'), col('date', 'Date'), col('from', 'From'), col('to', 'To'), col('status', 'Status'), col('amount', 'Amount', true)],
-      rows: rows.map((t) => ({ number: t.transfer_number, date: t.transfer_date, from: t.fromAccount.name, to: t.toAccount.name, status: t.status, amount: money(t.amount) })),
-      notes: ['Transfers move money between accounts; they are never counted as income or expenditure.'] };
   }
 
   private async r_audit(sc: any, r: any, _q: any, rep: Report) {
@@ -299,25 +253,16 @@ export class StatementsService {
         if (SOURCE_EXPENSE.includes(m.source_type)) expensesYear = expensesYear.plus(D(m.total).negated());
       }
     }
-    const [balance, budgets, recent, inbox] = await Promise.all([
+    const [balance, recent, inbox] = await Promise.all([
       this.prisma.financialAccount.aggregate({ where: { fellowship_id: sc.fellowshipId, department_id: sc.departmentId, is_active: true }, _sum: { balance: true } }),
-      this.prisma.budget.findMany({ where: { fellowship_id: sc.fellowshipId, department_id: sc.departmentId, approval_status: 'FINAL_APPROVED', fiscal_year: { startsWith: String(year) } }, select: { id: true, amount: true } }),
       this.prisma.ledgerEntry.findMany({ where: { fellowship_id: sc.fellowshipId, department_id: sc.departmentId }, orderBy: [{ entry_date: 'desc' }, { created_at: 'desc' }], take: 10, include: { account: { select: { name: true } } } }),
       this.approvals.inbox(user),
     ]);
-    let budgetTotal = ZERO, budgetUsed = ZERO;
-    for (const b of budgets) {
-      const perf = await budgetPerformance(this.prisma, b.id);
-      budgetTotal = budgetTotal.plus(b.amount);
-      budgetUsed = budgetUsed.plus(perf.totals.spent);
-    }
     const out: any = {
       scope: sc.departmentId ? 'department' : 'central', departmentId: sc.departmentId, label: sc.label,
       cards: {
         totalIncome: incomeYear.toFixed(2), totalExpenses: expensesYear.toFixed(2), availableBalance: money(balance._sum.balance),
         pendingApprovals: inbox.length,
-        budgetApproved: budgetTotal.toFixed(2), budgetSpent: budgetUsed.toFixed(2),
-        budgetUtilisationPercent: budgetTotal.isZero() ? null : Math.round(budgetUsed.div(budgetTotal).times(100).toNumber()),
       },
       monthly: Object.values(months).map((m) => ({ month: m.month, income: m.income.toFixed(2), expenses: m.expenses.toFixed(2) })),
       recent: recent.map((e) => ({ id: e.id, date: e.entry_date, type: e.entry_type, description: e.description, reference: e.reference, account: e.account.name, amount: money(e.amount) })),

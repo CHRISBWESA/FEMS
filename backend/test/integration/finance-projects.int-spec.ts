@@ -3,7 +3,7 @@ import { api, createTestApp, describeDb, getPrisma, makeDepartment, makeFellowsh
 
 /**
  * Finance, projects and department financial management, end to end over HTTP against real Postgres:
- * the ledger, receipts, allocations, budgets and revisions, money requests and payments, membership
+ * the ledger, receipts, allocations, expenses and payments, membership
  * fees, transfers, isolation, projects and closure, periods, exports and audit.
  */
 jest.setTimeout(300_000);
@@ -16,7 +16,7 @@ describeDb('Finance, projects and department finances (real Postgres, HTTP)', ()
   let dChair: any, dSec: any, oChair: any;
   let dept: any, other: any;
   let m1: any, m2: any, m3: any;
-  let central: any, bank: any;
+  let central: any;
   let projA: any, projB: any;
 
   const get = (u: any, url: string) => api(app, u.token).get(url);
@@ -79,17 +79,12 @@ describeDb('Finance, projects and department finances (real Postgres, HTTP)', ()
 
   // ------------------------------------------------------------ accounts, contributions, receipts
 
-  describe('accounts and contributions', () => {
-    it('the Treasurer opens accounts; balances come only from the ledger', async () => {
-      central = (await post(treas, '/finance/accounts', { name: 'Cash box', accountType: 'cash', openingBalance: 100000 }).expect(201)).body;
-      bank = (await post(treas, '/finance/accounts', { name: 'CRDB', accountType: 'bank', reference: '0150-111' }).expect(201)).body;
-      expect(central.balance).toBe('100000.00');
-      await put(treas, `/finance/accounts/${central.id}`, { balance: 5 }).expect(400);
-      await post(sec, '/finance/accounts', { name: 'X', accountType: 'cash' }).expect(403);
-      await post(dSec, '/finance/accounts', { name: 'Choir cash', accountType: 'cash', departmentId: dept.id }).expect(403); // the Department Chairperson opens accounts
-      const entries = (await get(treas, `/finance/accounts/${central.id}/entries`).expect(200)).body;
-      expect(entries.data).toHaveLength(1);
-      expect(entries.data[0]).toMatchObject({ entry_type: 'opening_balance', amount: '100000.00' });
+  describe('contributions', () => {
+    it('money goes into the fund\'s default cash account; balances come only from the ledger', async () => {
+      await post(treas, '/finance/contributions', { contributorType: 'external', contributorName: 'Opening funds', amount: 100000, date: today() }).expect(201);
+      central = await prisma.financialAccount.findUniqueOrThrow({ where: { default_key: `${f.id}:central` } });
+      expect(await balance(central.id)).toBe('100000.00');
+      for (const url of ['/finance/accounts', '/finance/transfers', '/finance/ledger', '/finance/general-fund']) await get(treas, url).expect(404);
     });
 
     it('1-2. records member, external and anonymous contributions with unique receipts', async () => {
@@ -156,66 +151,17 @@ describeDb('Finance, projects and department finances (real Postgres, HTTP)', ()
     });
   });
 
-  // ------------------------------------------------------------ budgets, money requests, expenses
+  // ------------------------------------------------------------ expenses
 
-  describe('budgets, money requests and expenses', () => {
-    let budget: any;
+  describe('expenses', () => {
 
-    it('6. a central budget with lines is approved by the Secretary and Chairperson', async () => {
-      budget = (await post(treas, '/finance/budgets', { title: 'Operations', fiscalYear: String(new Date().getFullYear()), lines: [{ name: 'Transport', amount: 20000 }, { name: 'Stationery', amount: 5000 }] }).expect(201)).body;
-      expect(budget).toMatchObject({ amount: '25000.00', approval_status: 'SUBMITTED' });
-      expect(budget.lines).toHaveLength(2);
-      const wf = await workflowOf(budget.id, 'budget');
-      await decide(treas, wf.id, 'approved', undefined, 403);
-      await decide(sec, wf.id);
-      await decide(chair, wf.id);
-      budget = (await get(treas, `/finance/budgets/${budget.id}`).expect(200)).body;
-      expect(budget.approval_status).toBe('FINAL_APPROVED');
-    });
-
-    it('15. a revision needs a reason and approval, keeps the old version, and does nothing while pending', async () => {
-      const lines = budget.lines.map((l: any) => ({ id: l.id, name: l.name, amount: l.name === 'Transport' ? 30000 : l.approved }));
-      await post(treas, `/finance/budgets/${budget.id}/revisions`, { lines }).expect(400);
-      const rev = (await post(treas, `/finance/budgets/${budget.id}/revisions`, { lines, reason: 'Fuel prices rose' }).expect(201)).body;
-      expect((await get(treas, `/finance/budgets/${budget.id}`).expect(200)).body.amount).toBe('25000.00');
-      const wf = await workflowOf(rev.id, 'budget_revision');
-      const steps = await prisma.approvalStep.findMany({ where: { approval_id: wf.id }, orderBy: { stage_order: 'asc' } });
-      expect(steps[0].status).toBe('skipped'); // prepared by the Treasurer
-      await decide(sec, wf.id);
-      await decide(chair, wf.id);
-      const after = (await get(treas, `/finance/budgets/${budget.id}`).expect(200)).body;
-      expect(after).toMatchObject({ amount: '35000.00', version: 2 });
-      expect(after.revisions[0]).toMatchObject({ status: 'FINAL_APPROVED', previous_amount: '25000.00' });
-    });
-
-    it('7-8. a money request goes Treasurer -> Secretary -> Chairperson, then is paid once as an expense', async () => {
-      const line = budget.lines.find((l: any) => l.name === 'Transport');
-      const mr = (await post(sec, '/finance/money-requests', { title: 'Trip', amount: 8000, purpose: 'Conference', budgetLineId: line.id, requiredDate: today() }).expect(201)).body;
-      expect(mr.request_number).toMatch(/^MR-/);
-      const wf = await workflowOf(mr.id, 'money_request');
-      await decide(sec, wf.id, 'approved', undefined, 403); // self
-      await decide(treas, wf.id);
-      await decide(asst, wf.id);
-      await post(treas, `/finance/money-requests/${mr.id}/release`, { method: 'cash' }).expect(409); // not final yet
-      await decide(chair, wf.id);
-      const before = await balance(central.id);
-      await post(treas, `/finance/money-requests/${mr.id}/release`, { method: 'cash', accountId: central.id }).expect(201);
-      await post(treas, `/finance/money-requests/${mr.id}/release`, { method: 'cash', accountId: central.id }).expect(409);
-      expect(Number(before) - Number(await balance(central.id))).toBe(8000);
-      const expense = await prisma.expense.findUniqueOrThrow({ where: { money_request_id: mr.id } });
-      expect(expense).toMatchObject({ payment_status: 'paid', budget_line_id: line.id });
-      const perf = (await get(treas, `/finance/budgets/${budget.id}`).expect(200)).body;
-      expect(perf.lines.find((l: any) => l.id === line.id).spent).toBe('8000.00');
-    });
-
-    it('8. an approved central expense is not paid until the Treasurer pays it; overdrawing is refused', async () => {
-      const e = (await post(treas, '/finance/expenses', { title: 'Printer ink', amount: 4000, date: today(), purpose: 'Office', accountId: bank.id }).expect(201)).body;
+    it('8. an approved central expense is not paid until the Treasurer pays it', async () => {
+      const e = (await post(treas, '/finance/expenses', { title: 'Printer ink', amount: 4000, date: today(), purpose: 'Office' }).expect(201)).body;
       const wf = await workflowOf(e.id, 'expense');
       await decide(sec, wf.id);
       await decide(chair, wf.id);
       let d = (await get(treas, `/finance/expenses/${e.id}`).expect(200)).body;
       expect(d.displayStatus).toBe('approved');
-      await post(treas, `/finance/expenses/${e.id}/pay`, { accountId: bank.id }).expect(409); // the bank account is empty
       await post(sec, `/finance/expenses/${e.id}/pay`, { accountId: central.id }).expect(403);
       await post(treas, `/finance/expenses/${e.id}/pay`, { accountId: central.id }).expect(201);
       d = (await get(treas, `/finance/expenses/${e.id}`).expect(200)).body;
@@ -240,33 +186,24 @@ describeDb('Finance, projects and department finances (real Postgres, HTTP)', ()
   describe('department finances and isolation', () => {
     let dAccount: any, fee: any;
 
-    it('10. a department opens its own account and records its own money', async () => {
-      dAccount = (await post(dChair, '/finance/accounts', { name: 'Choir cash', accountType: 'cash', departmentId: dept.id, openingBalance: 2000 }).expect(201)).body;
-      expect(dAccount.scope).toBe('department');
-      const c = (await post(dSec, '/finance/contributions', { departmentId: dept.id, memberId: m1.id, amount: 3000, date: today(), accountId: dAccount.id }).expect(201)).body;
+    it('10. a department records its own money into its own default account', async () => {
+      const c = (await post(dSec, '/finance/contributions', { departmentId: dept.id, memberId: m1.id, amount: 5000, date: today() }).expect(201)).body;
       expect(c.department_id).toBe(dept.id);
+      dAccount = await prisma.financialAccount.findUniqueOrThrow({ where: { default_key: `${f.id}:${dept.id}` } });
       expect(await balance(dAccount.id)).toBe('5000.00');
       await post(dSec, '/finance/contributions', { departmentId: dept.id, memberId: m1.id, amount: 3000, date: today(), accountId: central.id }).expect(400); // not their account
     });
 
-    it('12. departments never see each other\'s finances, nor central ones', async () => {
-      await get(oChair, `/finance/accounts?departmentId=${dept.id}`).expect(403);
-      await get(oChair, `/finance/accounts/${dAccount.id}`).expect(403);
-      await get(dChair, `/finance/accounts/${central.id}`).expect(403);
+    it('12. a department leader cannot record money for another department', async () => {
       await post(oChair, '/finance/contributions', { departmentId: dept.id, memberId: m1.id, amount: 10, date: today() }).expect(403);
-      const mine = (await get(dChair, '/finance/accounts').expect(200)).body;
-      expect(mine.every((a: any) => a.department_id === dept.id)).toBe(true);
-      const all = (await get(treas, '/finance/accounts').expect(200)).body;
-      expect(all.some((a: any) => a.department_id === dept.id)).toBe(true); // Treasurer oversight
-      await get(secB, `/finance/accounts/${central.id}`).expect(404); // another fellowship: indistinguishable from missing
     });
 
     it('9. membership fees track expected, paid, partial and outstanding', async () => {
       const start = new Date(); start.setUTCMonth(start.getUTCMonth() - 2);
       fee = (await post(dSec, `/finance/departments/${dept.id}/fees`, { name: 'Monthly dues', amount: 1000, frequency: 'monthly', startDate: start.toISOString(), allowPartial: true }).expect(201)).body;
-      await post(dSec, `/finance/departments/${dept.id}/fees/${fee.id}/payments`, { memberId: m1.id, amount: 3000, date: today(), accountId: dAccount.id }).expect(201);
-      await post(dSec, `/finance/departments/${dept.id}/fees/${fee.id}/payments`, { memberId: m2.id, amount: 500, date: today(), accountId: dAccount.id }).expect(201);
-      await post(dSec, `/finance/departments/${dept.id}/fees/${fee.id}/payments`, { memberId: m3.id, amount: 500, date: today(), accountId: dAccount.id }).expect(400); // not a member of this department
+      await post(dSec, `/finance/departments/${dept.id}/fees/${fee.id}/payments`, { memberId: m1.id, amount: 3000, date: today() }).expect(201);
+      await post(dSec, `/finance/departments/${dept.id}/fees/${fee.id}/payments`, { memberId: m2.id, amount: 500, date: today() }).expect(201);
+      await post(dSec, `/finance/departments/${dept.id}/fees/${fee.id}/payments`, { memberId: m3.id, amount: 500, date: today() }).expect(400); // not a member of this department
       const s = (await get(dChair, `/finance/departments/${dept.id}/fees/${fee.id}/status`).expect(200)).body;
       expect(s.totals).toMatchObject({ periodsDue: 3, expected: '6000.00', paid: '3500.00', outstanding: '2500.00' });
       expect(s.rows.find((r: any) => r.memberId === m1.id)).toMatchObject({ status: 'paid', outstanding: '0.00' });
@@ -274,49 +211,22 @@ describeDb('Finance, projects and department finances (real Postgres, HTTP)', ()
       await get(oChair, `/finance/departments/${dept.id}/fees/${fee.id}/status`).expect(403);
     });
 
-    it('routine department spending is approved by the Department Chairperson; others go to central approval', async () => {
-      const dBudget = (await post(dSec, '/finance/budgets', { departmentId: dept.id, title: 'Choir year', fiscalYear: String(new Date().getFullYear()), lines: [{ name: 'Strings', amount: 4000 }] }).expect(201)).body;
-      const bwf = await workflowOf(dBudget.id, 'department_budget');
-      await decide(treas, bwf.id);
-      await decide(sec, bwf.id);
-      await decide(chair, bwf.id);
-      const line = (await get(dSec, `/finance/budgets/${dBudget.id}`).expect(200)).body.lines[0];
-      const routine = (await post(dSec, '/finance/expenses', { scope: 'department', departmentId: dept.id, title: 'Guitar strings', amount: 1500, date: today(), budgetLineId: line.id }).expect(201)).body;
-      expect(routine.workflow.type).toBe('department_expense');
-      const rwf = await workflowOf(routine.id, 'department_expense');
-      await decide(oChair, rwf.id, 'approved', undefined, 403); // another department's chair
-      await decide(dChair, rwf.id);
-      await post(dSec, `/finance/expenses/${routine.id}/pay`, { accountId: dAccount.id }).expect(201);
-      const big = (await post(dSec, '/finance/expenses', { scope: 'department', departmentId: dept.id, title: 'Keyboard', amount: 9000, date: today(), budgetLineId: line.id }).expect(201)).body;
-      expect(big.workflow.type).toBe('department_expense_major'); // over the budget line
-      const own = (await post(dChair, '/finance/expenses', { scope: 'department', departmentId: dept.id, title: 'Rosin', amount: 100, date: today(), budgetLineId: line.id }).expect(201)).body;
-      expect(own.workflow.type).toBe('department_expense_major'); // the Chairperson cannot approve their own
-    });
-
-    it('11. transfers: same scope at once; central <-> department needs approval; department <-> department refused', async () => {
-      const t1 = (await post(treas, '/finance/transfers', { fromAccountId: central.id, toAccountId: bank.id, amount: 1000, date: today() }).expect(201)).body;
-      expect(t1.status).toBe('COMPLETED');
-      expect(await balance(bank.id)).toBe('1000.00');
-      const oAccount = (await post(oChair, '/finance/accounts', { name: 'Media cash', accountType: 'cash', departmentId: other.id }).expect(201)).body;
-      await post(dChair, '/finance/transfers', { fromAccountId: dAccount.id, toAccountId: oAccount.id, amount: 10, date: today() }).expect(403);
-      await post(dChair, '/finance/transfers', { fromAccountId: dAccount.id, toAccountId: central.id, amount: 10, date: today() }).expect(403); // only the Treasurer starts cross-scope moves
-      const t2 = (await post(treas, '/finance/transfers', { fromAccountId: central.id, toAccountId: dAccount.id, amount: 2500, date: today() }).expect(201)).body;
-      expect(t2.status).toBe('PENDING');
-      const before = await balance(dAccount.id);
-      const wf = await workflowOf(t2.id, 'fund_transfer');
+    it('department spending goes to central approval (Treasurer -> Secretary -> Chairperson), then is paid from the department\'s account', async () => {
+      const e = (await post(dSec, '/finance/expenses', { scope: 'department', departmentId: dept.id, title: 'Guitar strings', amount: 1500, date: today() }).expect(201)).body;
+      expect(e.workflow.type).toBe('department_expense_major');
+      const wf = await workflowOf(e.id, 'department_expense_major');
+      await decide(oChair, wf.id, 'approved', undefined, 403); // another department's chair
+      await decide(dSec, wf.id, 'approved', undefined, 403); // the recorder
+      await decide(treas, wf.id);
       await decide(sec, wf.id);
-      expect(await balance(dAccount.id)).toBe(before);
       await decide(chair, wf.id);
-      expect(Number(await balance(dAccount.id)) - Number(before)).toBe(2500);
-      const entries = await prisma.ledgerEntry.findMany({ where: { source_id: t2.id } });
-      expect(entries.map((e) => e.entry_type).sort()).toEqual(['transfer_in', 'transfer_out']);
-      // Transfers are not income in the statement.
-      const ie = (await get(treas, '/finance/statements/income-expenditure').expect(200)).body;
-      expect(JSON.stringify(ie.rows)).not.toContain('transfer');
+      const before = await balance(dAccount.id);
+      await post(dSec, `/finance/expenses/${e.id}/pay`, {}).expect(201);
+      expect(Number(before) - Number(await balance(dAccount.id))).toBe(1500);
     });
 
     it('16 (department). a department contribution is reversed by its Chairperson, never deleted', async () => {
-      const c = (await post(dSec, '/finance/contributions', { departmentId: dept.id, memberId: m2.id, amount: 700, date: today(), accountId: dAccount.id }).expect(201)).body;
+      const c = (await post(dSec, '/finance/contributions', { departmentId: dept.id, memberId: m2.id, amount: 700, date: today() }).expect(201)).body;
       const before = await balance(dAccount.id);
       await post(dSec, `/finance/contributions/${c.id}/reverse`, { reason: 'typo' }).expect(403);
       await post(dChair, `/finance/contributions/${c.id}/reverse`, {}).expect(400);
@@ -335,12 +245,12 @@ describeDb('Finance, projects and department finances (real Postgres, HTTP)', ()
     });
   });
 
-  // ------------------------------------------------------------ closure, periods
+  // ------------------------------------------------------------ closure, reports
 
-  describe('closure, periods, reports and audit', () => {
+  describe('closure, reports and audit', () => {
     it('16. closing a project returns unspent money to the General Fund after Treasurer, Secretary and Chairperson', async () => {
       await post(treas, '/finance/contributions', { memberId: m3.id, amount: 3000, date: today(), accountId: central.id, allocations: [{ projectId: projB.id, amount: 3000 }] }).expect(201);
-      const before = (await get(treas, '/finance/general-fund').expect(200)).body;
+      const before = (await get(treas, '/finance/dashboard').expect(200)).body.generalFund;
       await post(oChair, `/projects/${projB.id}/closure`, { finalReport: 'Done' }).expect(403); // not its creator, department or the Secretary
       const req = (await post(chair, `/projects/${projB.id}/closure`, { finalReport: 'Speakers installed', unspentDisposition: 'return_to_general_fund' }).expect(201)).body;
       expect(req.closure_status).toBe('pending');
@@ -352,29 +262,13 @@ describeDb('Finance, projects and department finances (real Postgres, HTTP)', ()
       expect(closed.status).toBe('CLOSED');
       expect(closed.financials.unspentFunds).toBe('0.00');
       expect(closed.fundAllocations[0]).toMatchObject({ kind: 'return_to_general_fund', amount: '-3000.00' });
-      const after = (await get(treas, '/finance/general-fund').expect(200)).body;
+      const after = (await get(treas, '/finance/dashboard').expect(200)).body.generalFund;
       expect(Number(after.available) - Number(before.available)).toBe(3000); // the earmark ended: the money is general again
-    });
-
-    it('17. a closed period refuses records; reopening needs a reason', async () => {
-      const start = new Date(Date.UTC(2001, 0, 1)).toISOString();
-      const end = new Date(Date.UTC(2001, 11, 31)).toISOString();
-      const p = (await post(treas, '/finance/periods', { name: `FY2001-${uniq()}`, startDate: start, endDate: end, periodType: 'year' }).expect(201)).body;
-      const closing = (await post(treas, `/finance/periods/${p.id}/close`).expect(201)).body;
-      expect(closing).toMatchObject({ is_closed: false, closure_status: 'pending' });
-      const wf = await workflowOf(p.id, 'period_close');
-      await decide(sec, wf.id);
-      await decide(chair, wf.id);
-      expect((await prisma.financialPeriod.findUniqueOrThrow({ where: { id: p.id } })).is_closed).toBe(true);
-      await post(treas, '/finance/contributions', { memberId: m1.id, amount: 10, date: '2001-06-01' }).expect(400);
-      await post(chair, `/finance/periods/${p.id}/reopen`, {}).expect(400);
-      await post(chair, `/finance/periods/${p.id}/reopen`, { reason: 'Late bank statement' }).expect(201);
-      expect(await prisma.financialPeriod.findUniqueOrThrow({ where: { id: p.id } })).toMatchObject({ is_closed: false, reopen_reason: 'Late bank statement' });
     });
 
     it('19. reports export as PDF and Excel; departments only export their own', async () => {
       const keys = (await get(treas, '/finance/statements').expect(200)).body.map((r: any) => r.key);
-      expect(keys).toHaveLength(12);
+      expect(keys).toHaveLength(9);
       for (const key of keys.filter((k: string) => k !== 'membership-fees')) {
         await get(treas, `/finance/statements/${key}`).expect(200);
       }
@@ -392,14 +286,14 @@ describeDb('Finance, projects and department finances (real Postgres, HTTP)', ()
     it('18. every financial action is in the audit history', async () => {
       const audit = (await get(treas, '/finance/statements/audit').expect(200)).body;
       const actions = new Set(audit.rows.map((r: any) => r.action));
-      for (const a of ['finance.contribution_create', 'finance.account_create', 'finance.transfer_create', 'finance.expense_paid', 'finance.budget_revision_applied', 'project.closed', 'finance.contribution_reversed']) {
+      for (const a of ['finance.contribution_create', 'finance.expense_paid', 'project.closed', 'finance.contribution_reversed']) {
         expect(actions).toContain(a);
       }
     });
 
     it('20. nobody approves their own request, and a dashboard is scoped', async () => {
-      const mr = (await post(dSec, '/finance/money-requests', { departmentId: dept.id, title: 'Robes', amount: 100, purpose: 'Choir' }).expect(201)).body;
-      const wf = await workflowOf(mr.id, 'money_request');
+      const mr = (await post(dSec, '/finance/expenses', { scope: 'department', departmentId: dept.id, title: 'Robes', amount: 100, date: today() }).expect(201)).body;
+      const wf = await workflowOf(mr.id, 'department_expense_major');
       await decide(dSec, wf.id, 'approved', undefined, 403);
       const inbox = (await get(treas, '/finance/approvals').expect(200)).body;
       expect(inbox.some((i: any) => i.approvalId === wf.id)).toBe(true);

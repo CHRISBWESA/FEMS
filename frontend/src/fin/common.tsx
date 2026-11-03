@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import axios from 'axios';
 import { ArrowDownTrayIcon, PaperClipIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { Alert, Badge, Button, Field, Modal, Select, Textarea, useToast } from '../components/ui';
+import { Alert, Badge, Button, Card, Field, Modal, Select, Textarea, useToast } from '../components/ui';
 import { useI18n } from '../context/I18nContext';
 
 /**
@@ -206,17 +206,6 @@ export function MethodSelect({ value, onChange }: { value: string; onChange: (v:
 }
 
 /** Accounts of this scope for a form. */
-export function useAccounts() {
-  const s = useFin();
-  return useLoad<any[]>(`/finance/accounts?${scopeQuery(s)}`, [s.departmentId]);
-}
-
-export function AccountSelect({ value, onChange, placeholder = 'Default account (cash in hand)' }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
-  const { data } = useAccounts();
-  const s = useFin();
-  return <Select value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} options={(data ?? []).map((a) => ({ value: a.id, label: `${a.name} · ${fmtMoney(a.balance, s.currency)}` }))} />;
-}
-
 export function ProjectSelect({ value, onChange, placeholder = 'No project' }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
   const s = useFin();
   const { data } = useLoad<any[]>(`/finance/fundable-projects?${scopeQuery(s)}`, [s.departmentId]);
@@ -294,6 +283,47 @@ export function DecisionButtons({ approvalId, onDone }: { approvalId: string; on
         <Field label="Comment" required hint="The requester sees this."><Textarea rows={3} value={comment} onChange={(e) => setComment(e.target.value)} /></Field>
       </Modal>
     </>
+  );
+}
+
+/** Approval kinds, grouped by the page where they are decided. */
+export const APPROVAL_TYPES = {
+  expenses: ['expense', 'department_expense', 'department_expense_major', 'expense_edit', 'expense_delete'],
+  contributions: ['contribution_edit', 'contribution_delete'],
+  projects: ['project', 'project_closure', 'project_allocation'],
+  resources: ['asset_transfer_department', 'asset_transfer_fellowship', 'asset_disposal', 'asset_disposal_department', 'asset_disposal_major'],
+};
+
+/**
+ * The requests of these kinds waiting for YOUR decision, with Approve / Return / Reject, shown at the top of the
+ * page they belong to. Nothing shows when nothing is waiting. In a department's money, only that department's.
+ */
+export function PendingApprovals({ types, departmentId, onDone }: { types: string[]; departmentId?: string | null; onDone?: () => void }) {
+  const { data, reload } = useLoad<any[]>('/finance/approvals', []);
+  const [trail, setTrail] = useState<string | null>(null);
+  const items = (data ?? []).filter((a) => types.includes(a.workflowType)
+    && (!departmentId || a.departmentId === departmentId || a.stageRole?.startsWith('department_')));
+  if (!items.length) return null;
+  return (
+    <Card className="card-pad border-l-4 border-warning">
+      <h2 className="mb-3 text-sm font-semibold text-ink">Waiting for your decision ({items.length})</h2>
+      <ul className="divide-y divide-hairline">
+        {items.map((a) => (
+          <li key={a.approvalId} className="flex flex-wrap items-start justify-between gap-3 py-3">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">{a.label} · stage {a.stage + 1} of {a.stages} ({label(a.stageRole)})</p>
+              <p className="mt-1 font-medium text-ink">{a.number ? `${a.number} · ` : ''}{a.title}</p>
+              <p className="text-sm text-ink-muted">{a.amount ? fmtMoney(a.amount) : ''}{a.previousAmount ? ` (currently ${fmtMoney(a.previousAmount)})` : ''} · submitted {fmtDate(a.submittedAt)}</p>
+              {a.reason && <p className="mt-1 text-sm text-ink">Reason: {a.reason}</p>}
+              {a.changes && <p className="mt-1 text-xs text-ink-muted">Proposed changes: {Object.entries(a.changes).map(([k, v]) => `${k} → ${v}`).join(', ')}</p>}
+              <button className="text-sm text-primary hover:underline" onClick={() => setTrail(a.approvalId)}>History</button>
+            </div>
+            <DecisionButtons approvalId={a.approvalId} onDone={() => { reload(); onDone?.(); }} />
+          </li>
+        ))}
+      </ul>
+      <Modal open={!!trail} onClose={() => setTrail(null)} title="Approval history"><Trail approvalId={trail} /></Modal>
+    </Card>
   );
 }
 

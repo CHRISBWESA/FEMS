@@ -10,12 +10,10 @@ import { ROLES } from '../../shared/authorization/roles';
 import { AccountsService } from './accounts.service';
 import { ContributionsCoreService } from './contributions-core.service';
 import { ExpensesFlowService } from './expenses-flow.service';
-import { BudgetsService } from './budgets.service';
 import { FeesService } from './fees.service';
 import { ProjectsService } from './projects.service';
 import { StatementsService } from './statements.service';
 import { FinanceApprovalsService } from './finance-approvals.service';
-import { FinanceRemindersService } from './finance-reminders.service';
 import { receiptToPdf, Report, reportToPdf, reportToXlsx } from './exporters';
 
 const CENTRAL = [ROLES.TREASURER, ROLES.SECRETARY, ROLES.ASSISTANT_SECRETARY, ROLES.CHAIRPERSON, ROLES.ASSISTANT_CHAIRPERSON];
@@ -48,12 +46,10 @@ export class AccountingController {
     private accounts: AccountsService,
     private contributions: ContributionsCoreService,
     private expenses: ExpensesFlowService,
-    private budgets: BudgetsService,
     private fees: FeesService,
     private projects: ProjectsService,
     private statements: StatementsService,
     private approvals: FinanceApprovalsService,
-    private reminders: FinanceRemindersService,
     private uploads: DepartmentUploadsService,
     private scope: FinanceScopeService,
   ) {}
@@ -67,27 +63,10 @@ export class AccountingController {
     return this.uploads.upload(req.user, { id: dept ?? 'central', fellowship_id: req.user.fellowshipId }, file);
   }
 
-  // ---- dashboard, settings, general fund ----
+  // ---- dashboard and settings ----
   @Get('dashboard') @Roles(...ALL) dashboard(@Req() req, @Query() q) { return this.statements.dashboard(req.user, q); }
   @Get('settings') @Roles(...ALL) settings(@Req() req) { return this.accounts.getSettings(req.user); }
   @Put('settings') @Roles(ROLES.TREASURER) updateSettings(@Req() req, @Body() b) { return this.accounts.updateSettings(req.user, b); }
-  @Get('general-fund') @Roles(...CENTRAL) generalFund(@Req() req, @Query() q) { return this.accounts.generalFund(req.user, q); }
-
-  // ---- accounts and ledger ----
-  @Get('accounts') @Roles(...ALL) listAccounts(@Req() req, @Query() q) { return this.accounts.list(req.user, q); }
-  @Post('accounts') @Roles(ROLES.TREASURER, ROLES.DEPARTMENT_CHAIRPERSON) createAccount(@Req() req, @Body() b) { return this.accounts.create(req.user, b); }
-  @Get('accounts/:id') @Roles(...ALL) getAccount(@Req() req, @Param('id') id: string) { return this.accounts.get(req.user, id); }
-  @Put('accounts/:id') @Roles(ROLES.TREASURER, ROLES.DEPARTMENT_CHAIRPERSON) updateAccount(@Req() req, @Param('id') id: string, @Body() b) { return this.accounts.update(req.user, id, b); }
-  @Get('accounts/:id/entries') @Roles(...ALL) entries(@Req() req, @Param('id') id: string, @Query() q) { return this.accounts.entries(req.user, id, q); }
-  @Post('accounts/:id/reconcile') @Roles(ROLES.TREASURER, ROLES.DEPARTMENT_CHAIRPERSON) reconcile(@Req() req, @Param('id') id: string, @Body() b) { return this.accounts.reconcile(req.user, id, b); }
-  @Get('accounts/:id/reconciliations') @Roles(...ALL) reconciliations(@Req() req, @Param('id') id: string) { return this.accounts.reconciliations(req.user, id); }
-  @Get('ledger') @Roles(...ALL) ledger(@Req() req, @Query() q) { return this.accounts.ledger(req.user, q); }
-
-  // ---- transfers ----
-  @Get('transfers') @Roles(...ALL) transfers(@Req() req, @Query() q) { return this.accounts.listTransfers(req.user, q); }
-  @Post('transfers') @Roles(ROLES.TREASURER, ROLES.DEPARTMENT_CHAIRPERSON, ROLES.DEPARTMENT_SECRETARY) transfer(@Req() req, @Body() b) { return this.accounts.createTransfer(req.user, b); }
-  @Get('transfers/:id') @Roles(...ALL) getTransfer(@Req() req, @Param('id') id: string) { return this.accounts.getTransfer(req.user, id); }
-  @Post('transfers/:id/cancel') @Roles(...ALL) cancelTransfer(@Req() req, @Param('id') id: string) { return this.accounts.cancelTransfer(req.user, id); }
 
   // ---- contributions (recording is POST /finance/contributions) ----
   @Get('contributions/:id') @Roles(...ALL) contribution(@Req() req, @Param('id') id: string) { return this.contributions.detail(req.user, id); }
@@ -108,15 +87,6 @@ export class AccountingController {
   @Post('expenses/:id/pay') @Roles(ROLES.TREASURER, ROLES.DEPARTMENT_CHAIRPERSON, ROLES.DEPARTMENT_SECRETARY) pay(@Req() req, @Param('id') id: string, @Body() b) { return this.expenses.pay(req.user, id, b); }
   @Post('expenses/:id/cancel') @Roles(...ALL) cancelExpense(@Req() req, @Param('id') id: string, @Body() b) { return this.expenses.cancel(req.user, id, b); }
 
-  // ---- budgets ----
-  @Get('budgets/chargeable') @Roles(...ALL) chargeable(@Req() req, @Query() q) { return this.budgets.chargeable(req.user, q); }
-  @Get('budgets/:id') @Roles(...ALL) budget(@Req() req, @Param('id') id: string) { return this.budgets.detail(req.user, id); }
-  @Post('budgets/:id/revisions') @Roles(ROLES.TREASURER, ROLES.DEPARTMENT_CHAIRPERSON, ROLES.DEPARTMENT_SECRETARY) revise(@Req() req, @Param('id') id: string, @Body() b) { return this.budgets.proposeRevision(req.user, id, b); }
-  @Get('budget-calls') @Roles(...ALL) calls(@Req() req) { return this.budgets.listCalls(req.user); }
-  @Post('budget-calls') @Roles(ROLES.SECRETARY, ROLES.ASSISTANT_SECRETARY) createCall(@Req() req, @Body() b) { return this.budgets.createCall(req.user, b); }
-  @Get('budget-calls/:id/status') @Roles(...CENTRAL) callStatus(@Req() req, @Param('id') id: string) { return this.budgets.callStatus(req.user, id); }
-  @Post('budget-calls/:id/close') @Roles(ROLES.SECRETARY, ROLES.ASSISTANT_SECRETARY) closeCall(@Req() req, @Param('id') id: string) { return this.budgets.closeCall(req.user, id); }
-
   // ---- department membership fees and transparency summary ----
   @Get('departments/:deptId/fees') @Roles(...ALL) listFees(@Req() req, @Param('deptId') d: string) { return this.fees.list(req.user, d); }
   @Post('departments/:deptId/fees') @Roles(ROLES.DEPARTMENT_CHAIRPERSON, ROLES.DEPARTMENT_SECRETARY) createFee(@Req() req, @Param('deptId') d: string, @Body() b) { return this.fees.create(req.user, d, b); }
@@ -131,11 +101,10 @@ export class AccountingController {
   @Post('approvals/:id/decide') @Roles(...ALL) decide(@Req() req, @Param('id') id: string, @Body() b) { return this.approvals.decide(req.user, id, b); }
   @Get('approvals/:id/history') @Roles(...ALL) history(@Req() req, @Param('id') id: string) { return this.approvals.history(req.user, id); }
 
-  // ---- reports and reminders ----
+  // ---- reports ----
   @Get('statements') @Roles(...ALL) reports(@Req() req) { return this.statements.list(req.user); }
   @Get('statements/:key') @Roles(...ALL)
   async report(@Req() req, @Param('key') key: string, @Query() q, @Res() res: Response) { return sendReport(res, await this.statements.build(req.user, key, q), q?.format); }
-  @Post('reminders/run') @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.ASSISTANT_SECRETARY) runReminders(@Req() req) { return this.reminders.run(req.user); }
 
   // ---- lookups for forms ----
   @Get('fundable-projects') @Roles(...ALL) fundable(@Req() req, @Query() q) { return this.projects.fundable(req.user, q); }

@@ -25,7 +25,7 @@ const PAGES: Record<string, string[]> = {
   departments: ['/departments'],
   'leadership (before)': ['/leadership/appointments?tab=current&page=1&limit=25', '/leadership/positions', '/leadership/appointments?tab=current&status=active&limit=200', '/leadership/appointments?tab=current&status=suspended&limit=1', '/leadership/appointments?tab=history&limit=1', '/leadership/scopes'],
   leadership: ['/leadership/appointments?tab=current&page=1&limit=25', '/leadership/positions', '/leadership/summary', '/leadership/scopes'],
-  finance: ['/finance/accounts', '/finance/income', '/finance/categories', '/projects', '/finance/settings', '/finance/budgets/chargeable', '/finance/fundable-projects'],
+  finance: ['/finance/categories', '/projects', '/finance/settings', '/finance/fundable-projects'],
   resources: ['/inventory/dashboard'],
   notifications: ['/notifications'],
 };

@@ -5,7 +5,7 @@ import { PlusIcon } from '@heroicons/react/24/outline';
 import { Button, Field, Input, Modal, PageHeader, Select, Tabs, Textarea, useToast } from '../components/ui';
 import { DataTable } from '../components/DataTable';
 import { useI18n } from '../context/I18nContext';
-import { errMsg, fmtDate, FormModal, label, MemberPicker, Status, useLoad } from '../fin/common';
+import { APPROVAL_TYPES, errMsg, fmtDate, FormModal, label, MemberPicker, PendingApprovals, Status, useLoad } from '../fin/common';
 import { invQuery, useInv } from './InventoryArea';
 import { conditionOptions } from './Register';
 
@@ -155,7 +155,7 @@ export function Transfers() {
             { key: 's', header: 'Status', render: (r: any) => <Status value={r.status} /> },
           ]} />
       )}
-      <p className="text-xs text-ink-subtle">Ownership transfers waiting for you appear in Finance → Approvals together with your other approvals.</p>
+      <PendingApprovals types={APPROVAL_TYPES.resources} onDone={list.reload} />
     </div>
   );
 }

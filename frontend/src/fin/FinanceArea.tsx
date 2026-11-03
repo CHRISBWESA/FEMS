@@ -4,11 +4,9 @@ import { useI18n } from '../context/I18nContext';
 import { PageLoader } from '../components/ui';
 import { FinContext, FinScope, useLoad } from './common';
 import FinDashboard from './Dashboard';
-import { Contributions, Income } from './Money';
-import { Expenses, MoneyRequests } from './Spending';
-import { Budgets } from './Budgets';
-import { Accounts } from './Accounts';
-import { Approvals, Periods, Reports, Settings } from './Admin';
+import { Contributions } from './Money';
+import { Expenses } from './Spending';
+import { Reports, Settings } from './Admin';
 
 import { CENTRAL_FINANCE_ROLES } from '../lib/area-roles';
 export { CENTRAL_FINANCE_ROLES };
@@ -20,14 +18,8 @@ export function sections(scope: FinScope): Section[] {
   const central = !scope.departmentId;
   return [
     { path: '', key: 'fin.nav.dashboard', element: <FinDashboard /> },
-    { path: 'approvals', key: 'fin.nav.approvals', element: <Approvals /> },
     { path: 'contributions', key: 'fin.nav.contributions', element: <Contributions /> },
     { path: 'expenses', key: 'fin.nav.expenses', element: <Expenses /> },
-    { path: 'budgets', key: 'fin.nav.budgets', element: <Budgets /> },
-    { path: 'money-requests', key: 'fin.nav.moneyRequests', element: <MoneyRequests />, show: central },
-    { path: 'income', key: 'fin.nav.income', element: <Income /> },
-    { path: 'accounts', key: 'fin.nav.accounts', element: <Accounts /> },
-    { path: 'periods', key: 'fin.nav.periods', element: <Periods />, show: central },
     { path: 'reports', key: 'fin.nav.reports', element: <Reports /> },
     { path: 'settings', key: 'fin.nav.settings', element: <Settings />, show: central },
   ].filter((s) => s.show !== false);

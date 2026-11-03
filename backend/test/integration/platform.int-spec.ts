@@ -465,7 +465,7 @@ describeDb('Phase 19 - platform administration & tenant lifecycle (real Postgres
   // ---------------------------------------------------------------------------------------------------------
   describe('module availability', () => {
     it('a switched-off module is closed to that fellowship only, and can be switched back on', async () => {
-      const probes: [string, string][] = [['youth', '/youth'], ['resources', '/resources/assets'], ['volunteers', '/volunteers/opportunities'], ['finance', '/finance/periods'], ['member_engagement', '/member-groups']];
+      const probes: [string, string][] = [['youth', '/youth'], ['resources', '/resources/assets'], ['volunteers', '/volunteers/opportunities'], ['finance', '/finance/categories'], ['member_engagement', '/member-groups']];
       for (const [key, url] of probes) {
         await get(secA, url).expect(200);
         await put(padmin, `/platform/tenants/${fA.id}/modules`, { modules: { [key]: false } }).expect(200);

@@ -62,9 +62,6 @@ describeDb('Phase 15 - advanced finance: validation, scope, periods, income, rep
       await contribution({ memberId: undefined }).expect(400);
       await contribution({ notes: 'n'.repeat(501) }).expect(400);
       await post(treas, '/finance/expenses', { title: '', amount: 1, date: '2026-09-01' }).expect(400);
-      await post(treas, '/finance/budgets', { title: 'B', amount: 1, fiscalYear: 'next year' }).expect(400);
-      await post(sec, '/finance/money-requests', { title: 'x', amount: 1 }).expect(400); // purpose required
-      await post(treas, '/finance/money-requests', { title: 'x', amount: 1, purpose: 'y' }).expect(403); // the Treasurer cannot raise requests
     });
 
     it('a member/department/category/receipt from ANOTHER fellowship is refused (indistinguishable from missing)', async () => {
@@ -103,22 +100,15 @@ describeDb('Phase 15 - advanced finance: validation, scope, periods, income, rep
   });
 
   describe('visibility and privacy', () => {
-    let d1Request: any, d2Request: any;
     beforeAll(async () => {
-      d1Request = (await post(ds1, '/finance/money-requests', { title: 'D1 tent', amount: 50, purpose: 'p' }).expect(201)).body;
-      d2Request = (await post(ds2, '/finance/money-requests', { title: 'D2 tent', amount: 60, purpose: 'p' }).expect(201)).body;
       await post(treas, '/finance/expenses', { title: 'D1 exp', amount: 5, date: '2026-09-01', departmentId: D1.id }).expect(201);
       await post(treas, '/finance/expenses', { title: 'D2 exp', amount: 6, date: '2026-09-01', departmentId: D2.id }).expect(201);
     });
 
-    it('department leaders see only their own department\'s requests/expenses and NO member giving', async () => {
-      const mine = await get(ds1, '/finance/money-requests').expect(200);
-      expect(mine.body.map((r: any) => r.id)).toContain(d1Request.id);
-      expect(mine.body.map((r: any) => r.id)).not.toContain(d2Request.id);
+    it('department leaders see only their own department\'s expenses and NO member giving', async () => {
       const exp = await get(ds1, '/finance/expenses').expect(200);
       expect(exp.body.every((e: any) => e.department_id === D1.id)).toBe(true);
       await get(ds1, '/finance/contributions').expect(403);
-      await get(ds1, '/finance/income').expect(403);
       await get(ds1, `/finance/members/${m1.id}/statement`).expect(403);
     });
 
@@ -129,7 +119,7 @@ describeDb('Phase 15 - advanced finance: validation, scope, periods, income, rep
 
     it('ordinary members and gender leaders see no finance lists', async () => {
       for (const u of [ord, gl]) {
-        for (const path of ['contributions', 'expenses', 'budgets', 'money-requests', 'income', 'periods', 'categories']) {
+        for (const path of ['contributions', 'expenses', 'categories']) {
           await get(u, `/finance/${path}`).expect(403);
         }
         await get(u, '/finance/reports/summary').expect(403);
@@ -141,8 +131,6 @@ describeDb('Phase 15 - advanced finance: validation, scope, periods, income, rep
       expect(b.body.every((c: any) => c.fellowship_id === fB.id)).toBe(true);
       const crossed = await get(treasB, `/finance/contributions?fellowshipId=${fA.id}`).expect(200);
       expect(crossed.body.every((c: any) => c.fellowship_id === fB.id)).toBe(true);
-      const mrB = await get(treasB, '/finance/money-requests').expect(200);
-      expect(mrB.body.map((r: any) => r.id)).not.toContain(d1Request.id);
       await get(treas, '/finance/contributions?fellowshipId=nope').expect(200); // ignored for non-admins (as elsewhere)
     });
 
@@ -158,7 +146,7 @@ describeDb('Phase 15 - advanced finance: validation, scope, periods, income, rep
     });
   });
 
-  describe('categories and income', () => {
+  describe('categories', () => {
     let cat: any, incomeCat: any;
 
     it('categories are per fellowship and per kind; only Treasurer/Secretary manage them', async () => {
@@ -185,45 +173,11 @@ describeDb('Phase 15 - advanced finance: validation, scope, periods, income, rep
       await put(treas, `/finance/categories/${cat.id}`, { isActive: true }).expect(200);
     });
 
-    it('income records validate, need permission, and appear in listings', async () => {
-      const ok = await post(sec, '/finance/income', { title: 'Grant', amount: 1200, date: '2026-09-02', source: 'Diocese', categoryId: incomeCat.id }).expect(201);
-      expect(ok.body.fellowship_id).toBe(fA.id);
-      await post(treas, '/finance/income', { title: 'x', amount: -1, date: '2026-09-02' }).expect(400);
-      await post(treas, '/finance/income', { title: 'x', amount: 1, date: '2026-09-02', categoryId: cat.id }).expect(400); // contribution category
-      for (const u of [asst, chair, ds1, ord]) await post(u, '/finance/income', { title: 'x', amount: 1, date: '2026-09-02' }).expect(403);
-      const list = await get(chair, '/finance/income').expect(200);
-      expect(list.body.map((r: any) => r.id)).toContain(ok.body.id);
-      const otherFellowship = await get(treasB, '/finance/income').expect(200);
-      expect(otherFellowship.body.map((r: any) => r.id)).not.toContain(ok.body.id);
-    });
-  });
-
-  describe('financial periods lock records', () => {
-    it('a closed period rejects new records and edit requests dated inside it; reopening is a senior action', async () => {
-      const p = (await post(treas, '/finance/periods', { name: `Q1 ${uniq()}`, startDate: '2025-01-01', endDate: '2025-03-31' }).expect(201)).body;
-      await post(treas, '/finance/periods', { name: 'overlap', startDate: '2025-03-01', endDate: '2025-04-30' }).expect(400);
-      await post(treas, '/finance/periods', { name: 'bad', startDate: '2025-06-01', endDate: '2025-05-01' }).expect(400);
-      const before = (await contribution({ date: '2025-02-10' }).expect(201)).body;
-      await post(treas, `/finance/periods/${p.id}/close`).expect(201);
-      await post(treas, `/finance/periods/${p.id}/close`).expect(409); // already closed
-      await contribution({ date: '2025-02-11' }).expect(400);
-      await post(treas, '/finance/income', { title: 'x', amount: 1, date: '2025-02-11' }).expect(400);
-      await post(treas, '/finance/expenses', { title: 'x', amount: 1, date: '2025-02-11' }).expect(400);
-      await post(treas, `/finance/contributions/${before.id}/edit-request`, { amount: 5, reason: 'r' }).expect(400);
-      await post(treas, `/finance/contributions/${before.id}/delete-request`, { reason: 'r' }).expect(400);
-      await contribution({ date: '2025-04-15' }).expect(201); // outside the period is fine
-      await post(treas, `/finance/periods/${p.id}/reopen`, { reason: 'x' }).expect(403);
-      await post(sec, `/finance/periods/${p.id}/reopen`, {}).expect(400); // reason required
-      await post(chair, `/finance/periods/${p.id}/reopen`, { reason: 'Correction agreed at committee' }).expect(201);
-      await contribution({ date: '2025-02-12' }).expect(201);
-      await post(secB, `/finance/periods/${p.id}/close`).expect(403);
-      await post(asst, `/finance/periods/${p.id}/close`).expect(403);
-    });
   });
 
   describe('removed features', () => {
-    it('campaigns, pledges and the analytics pages no longer exist, and their ids are ignored on new records', async () => {
-      for (const url of ['/finance/campaigns', '/finance/pledges', '/analytics/overview']) await get(treas, url).expect(404);
+    it('removed pages (campaigns, pledges, analytics, budgets, money requests, income, accounts, periods) no longer exist', async () => {
+      for (const url of ['/finance/campaigns', '/finance/pledges', '/analytics/overview', '/finance/budgets', '/finance/money-requests', '/finance/income', '/finance/accounts', '/finance/periods', '/finance/transfers', '/finance/budget-calls']) await get(treas, url).expect(404);
       await post(treas, '/finance/campaigns', { name: 'x', startDate: '2026-01-01' }).expect(404);
       await post(treas, '/finance/pledges', { memberId: m1.id, amount: 10, frequency: 'weekly', startDate: '2026-01-01' }).expect(404);
       const c = (await contribution({ campaignId: randomUUID(), pledgeId: randomUUID() }).expect(201)).body;
@@ -242,27 +196,20 @@ describeDb('Phase 15 - advanced finance: validation, scope, periods, income, rep
       const dx = await makeDepartment(prisma, fx.id, `RD-${marker}`);
       const mem = await makeMember(prisma, { fellowshipId: fx.id });
       const today = new Date().toISOString().slice(0, 10);
-      const year = String(new Date().getUTCFullYear());
       const P = (u: any, url: string, body: object) => api(app, u.token).post(url, body);
       await P(t, '/finance/contributions', { memberId: mem.id, amount: 300, contributionType: 'tithe', date: today }).expect(201);
       await P(t, '/finance/contributions', { memberId: mem.id, amount: 200, contributionType: 'offering', date: today }).expect(201);
-      await P(t, '/finance/income', { title: 'Grant', amount: 1000, date: today }).expect(201);
       const approved = (await P(t, '/finance/expenses', { title: 'A', amount: 400, date: today, departmentId: dx.id }).expect(201)).body;
       await P(s, `/finance/expenses/${approved.id}/approve`, { decision: 'approved' }).expect(201);
       await P(c, `/finance/expenses/${approved.id}/approve`, { decision: 'approved' }).expect(201);
       await P(t, '/finance/expenses', { title: 'Pending', amount: 999, date: today, departmentId: dx.id }).expect(201); // never approved
-      const budget = (await P(t, '/finance/budgets', { title: 'Dept', amount: 1000, fiscalYear: year, departmentId: dx.id }).expect(201)).body;
-      await P(s, `/finance/budgets/${budget.id}/approve`, { decision: 'approved' }).expect(201);
-      await P(c, `/finance/budgets/${budget.id}/approve`, { decision: 'approved' }).expect(201);
 
       const r = (await api(app, c.token).get('/finance/reports/summary').expect(200)).body;
       expect(r.scope).toBe('fellowship');
       expect(r.contributions).toMatchObject({ total: '500', count: 2 });
       expect(r.contributions.byType.map((x: any) => [x.type, x.total]).sort()).toEqual([['offering', '200'], ['tithe', '300']]);
-      expect(r.income.total).toBe('1000');
       expect(r.expenses).toMatchObject({ approvedTotal: '400', approvedCount: 1, pendingApprovalCount: 1 });
-      expect(r.operatingPosition).toMatchObject({ contributionsAndIncome: '1500', approvedExpenses: '400', net: '1100' });
-      expect(r.budgetVsActual.find((b: any) => b.departmentId === dx.id)).toMatchObject({ budgeted: '1000', spent: '400', remaining: '600' });
+      expect(r.operatingPosition).toMatchObject({ contributionsAndIncome: '500', approvedExpenses: '400', net: '100' });
       expect(r.contributions.monthly.length).toBe(1);
       expect(JSON.stringify(r)).not.toContain(mem.full_name); // aggregate only: no member names
     });

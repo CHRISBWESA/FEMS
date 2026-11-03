@@ -4,23 +4,18 @@ import { ApprovalEngineService } from '../../shared/approval-engine/approval-eng
 import { isUuid } from '../../shared/utils/uuid.util';
 import { validateAttachments } from '../../department-workspace/department.util';
 import { assertPeriodOpen, validateAmount, validateDate, validateOptionalUuid, validateText } from '../finance.validation';
-import { assertAccountScope, D, getSettings, money, nextNumber, postEntry } from './ledger';
-import { lineUsage } from './budget-math';
+import { assertAccountScope, D, defaultAccount, getSettings, money, nextNumber, postEntry } from './ledger';
 import { assertProjectForScope } from './contributions-core.service';
 import { FinanceScopeService } from './finance-scope.service';
 import { FinanceNotifyService } from './finance-notify.service';
-
-/** Workflows that mean the expense went through central approval (and so may exceed a budget line). */
-const CENTRAL_EXPENSE_WORKFLOWS = ['expense', 'department_expense_major'];
 
 /**
  * Expenses from request to payment.
  *
  *  - Central: the Treasurer records, the Fellowship Secretary reviews, the Chairperson approves, the Treasurer pays.
- *  - Department (its own money): the Department Secretary records. Routine spending inside an approved department
- *    budget line is approved by the Department Chairperson; anything larger, over budget, without a budget line, or
- *    submitted by the Chairperson goes to central approval (Treasurer -> Secretary -> Chairperson).
- *  - Approved is not paid. Payment is a separate step that takes money out of an account through the ledger.
+ *  - Department (its own money): the Department Secretary records, and it goes to central approval
+ *    (Treasurer -> Secretary -> Chairperson).
+ *  - Approved is not paid. Payment is a separate step that takes money out of the fund's account through the ledger.
  *  - Money already spent (a reimbursement) needs evidence and verification before it is paid.
  */
 @Injectable()
@@ -52,9 +47,6 @@ export class ExpensesFlowService {
     const categoryId = validateOptionalUuid('categoryId', body?.categoryId);
     const projectId = validateOptionalUuid('projectId', body?.projectId);
     const activityId = validateOptionalUuid('activityId', body?.activityId);
-    const budgetLineId = validateOptionalUuid('budgetLineId', body?.budgetLineId);
-    let budgetId = validateOptionalUuid('budgetId', body?.budgetId);
-    const accountId = validateOptionalUuid('accountId', body?.accountId);
     const receiptId = validateOptionalUuid('receiptDocumentId', body?.receiptDocumentId);
     const alreadyIncurred = body?.alreadyIncurred === true;
     const attachments = validateAttachments('attachments', body?.attachments ?? []);
@@ -74,34 +66,17 @@ export class ExpensesFlowService {
       const act = await this.prisma.activity.findFirst({ where: { id: activityId, fellowship_id: fellowshipId }, select: { id: true } });
       if (!act) throw new BadRequestException('The selected activity is not available.');
     }
-    if (accountId) await assertAccountScope(this.prisma, accountId, fellowshipId, fundDept);
     if (receiptId) {
       const doc = await this.prisma.documentEntity.findFirst({ where: { id: receiptId, fellowship_id: fellowshipId, is_website_content: false }, select: { id: true } });
       if (!doc) throw new BadRequestException('The selected receipt document is not available.');
-    }
-    let lineRemaining: any = null;
-    if (budgetLineId) {
-      const line = await this.prisma.budgetLineItem.findFirst({ where: { id: budgetLineId, is_active: true }, include: { budget: true } });
-      if (!line || line.budget.fellowship_id !== fellowshipId) throw new BadRequestException('The selected budget line is not available.');
-      if ((line.budget.department_id ?? null) !== (fundDept ?? null)) throw new BadRequestException('That budget belongs to a different fund.');
-      if (line.budget.approval_status !== 'FINAL_APPROVED') throw new BadRequestException('Spending can only be charged to an approved budget.');
-      budgetId = line.budget_id;
-      lineRemaining = (await lineUsage(this.prisma, budgetLineId))!.remaining;
-    } else if (budgetId) {
-      const b = await this.prisma.budget.findFirst({ where: { id: budgetId, fellowship_id: fellowshipId } });
-      if (!b || (b.department_id ?? null) !== (fundDept ?? null)) throw new BadRequestException('The selected budget is not available.');
     }
     await assertPeriodOpen(this.prisma, fellowshipId, date);
 
     let workflow = 'expense';
     let why: string | null = null;
     if (ownFunds) {
-      const threshold = settings.major_expense_threshold ? D(settings.major_expense_threshold) : null;
-      if (role === 'department_chairperson') why = 'submitted by the Department Chairperson';
-      else if (!budgetLineId) why = 'not charged to an approved budget line';
-      else if (lineRemaining && lineRemaining.lessThan(amount)) why = 'more than the budget line has left';
-      else if (threshold && amount.greaterThanOrEqualTo(threshold)) why = `at or above the ${money(threshold)} limit for routine spending`;
-      workflow = why ? 'department_expense_major' : 'department_expense';
+      why = role === 'department_chairperson' ? 'submitted by the Department Chairperson' : 'department spending is approved centrally';
+      workflow = 'department_expense_major';
     }
 
     const expense = await this.prisma.$transaction(async (tx) => {
@@ -109,8 +84,8 @@ export class ExpensesFlowService {
       const e = await tx.expense.create({
         data: {
           fellowship_id: fellowshipId, department_id: departmentId, title, description, purpose, amount: amount.toFixed(2), date,
-          category_id: categoryId, project_id: projectId, activity_id: activityId, budget_id: budgetId, budget_line_id: budgetLineId,
-          payee, payment_method: method, account_id: accountId, receipt_document_id: receiptId, already_incurred: alreadyIncurred,
+          category_id: categoryId, project_id: projectId, activity_id: activityId,
+          payee, payment_method: method, receipt_document_id: receiptId, already_incurred: alreadyIncurred,
           attachments: attachments as any, expense_number: number, recorded_by: user.userId, approval_status: 'SUBMITTED',
         },
       });
@@ -188,8 +163,6 @@ export class ExpensesFlowService {
     if (e.approval_status !== 'FINAL_APPROVED') throw new ConflictException('Only a fully approved expense can be paid.');
     if (e.payment_status !== 'unpaid' || e.reversed_at) throw new ConflictException('This expense has already been paid or reversed.');
     if (e.already_incurred && !e.verified_at) throw new ConflictException('Money already spent must be verified before it is reimbursed.');
-    const accountId = validateOptionalUuid('accountId', body?.accountId) ?? e.account_id;
-    if (!accountId) throw new BadRequestException('Choose the account the money is paid from.');
     const approved = D(e.amount_approved ?? e.amount);
     const paid = body?.amount === undefined || body.amount === '' ? approved : D(validateAmount('amount', body.amount));
     if (paid.greaterThan(approved)) throw new ConflictException('The amount paid cannot exceed the approved amount.');
@@ -200,16 +173,12 @@ export class ExpensesFlowService {
     const reference = validateText('paymentReference', body?.paymentReference, 100);
     await assertPeriodOpen(this.prisma, e.fellowship_id, paidAt);
 
-    const wf = e.approval_workflow_id ? await this.prisma.approval.findUnique({ where: { id: e.approval_workflow_id }, select: { workflow_type: true } }) : null;
-    if (e.budget_line_id && !CENTRAL_EXPENSE_WORKFLOWS.includes(wf?.workflow_type ?? '')) {
-      const usage = await lineUsage(this.prisma, e.budget_line_id, e.id);
-      if (usage && usage.remaining.lessThan(paid)) {
-        throw new ConflictException(`This would overspend the budget line "${usage.line.name}" (${money(usage.remaining)} left). It needs central approval.`);
-      }
-    }
-
     await this.prisma.$transaction(async (tx) => {
-      await assertAccountScope(tx, accountId, e.fellowship_id!, fund);
+      // Paid from the fund's own account (the one the expense named, else the fund's default account).
+      const account = e.account_id
+        ? await assertAccountScope(tx, e.account_id, e.fellowship_id!, fund)
+        : await defaultAccount(tx, e.fellowship_id!, fund, user.userId);
+      const accountId = account.id;
       const locked = await tx.expense.updateMany({
         where: { id, payment_status: 'unpaid', approval_status: 'FINAL_APPROVED', reversed_at: null },
         data: { payment_status: 'paid', amount_paid: paid.toFixed(2), amount_approved: approved.toFixed(2), account_id: accountId, paid_at: paidAt, paid_by: user.userId, payment_method: method, payment_reference: reference },
@@ -222,7 +191,6 @@ export class ExpensesFlowService {
       await tx.auditLog.create({ data: { user_id: user.userId, action: 'finance.expense_paid', entity_type: 'expense', entity_id: id, fellowship_id: e.fellowship_id, new_value: { amount: paid.toFixed(2), accountId, method } as any } });
     });
     await this.notify.send([e.recorded_by], { eventType: 'finance_paid', title: 'Expense paid', message: `${e.expense_number ?? 'An expense'} has been paid.`, entityType: 'expense', entityId: id, fellowshipId: e.fellowship_id }, user.userId);
-    if (e.budget_line_id) await this.budgetWarning(e.budget_line_id, e.fellowship_id!, fund, user.userId);
     return this.detail(user, id);
   }
 
@@ -239,26 +207,6 @@ export class ExpensesFlowService {
       await tx.auditLog.create({ data: { user_id: user.userId, action: 'finance.expense_cancel', entity_type: 'expense', entity_id: id, fellowship_id: e.fellowship_id, comment: reason } });
     });
     return this.detail(user, id);
-  }
-
-  /** Warns the people responsible when a budget line passes the warning threshold or is overspent. */
-  private async budgetWarning(lineId: string, fellowshipId: string, departmentId: string | null, actor: string) {
-    const usage = await lineUsage(this.prisma, lineId);
-    if (!usage) return;
-    const settings = await getSettings(this.prisma as any, fellowshipId);
-    const used = usage.approved.isZero() ? 100 : usage.spent.plus(usage.committed).div(usage.approved).times(100).toNumber();
-    if (used < settings.budget_warning_percent) return;
-    const recipients = [
-      ...(await this.scope.usersWithRoles(fellowshipId, ['treasurer'])),
-      ...(departmentId ? await this.scope.departmentLeaderIds(departmentId) : []),
-    ];
-    const over = usage.remaining.isNegative();
-    await this.notify.send(recipients, {
-      eventType: over ? 'budget_overspent' : 'budget_threshold',
-      title: over ? 'Budget line overspent' : 'Budget line nearly used',
-      message: `"${usage.line.name}" has used ${Math.round(used)}% of its approved amount.`,
-      entityType: 'budget', entityId: usage.line.budget_id, fellowshipId,
-    }, actor);
   }
 
   private async audit(user: any, action: string, id: string) {

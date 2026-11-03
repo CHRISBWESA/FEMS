@@ -11,9 +11,9 @@ import { FinanceScopeService } from './finance-scope.service';
 import { FinanceNotifyService } from './finance-notify.service';
 
 export const FINANCE_WORKFLOWS = [
-  'money_request', 'expense', 'budget', 'department_expense', 'department_expense_major', 'department_budget',
-  'budget_revision', 'project', 'project_closure', 'project_allocation', 'fund_transfer', 'period_close',
-  'contribution_edit', 'contribution_delete', 'income_edit', 'income_delete', 'expense_edit', 'expense_delete', 'budget_edit', 'budget_delete',
+  'expense', 'department_expense', 'department_expense_major',
+  'project', 'project_closure', 'project_allocation',
+  'contribution_edit', 'contribution_delete', 'expense_edit', 'expense_delete',
   ...INVENTORY_WORKFLOWS,
 ];
 
@@ -79,26 +79,14 @@ export class FinanceApprovalsService {
     const id = a.entity_id;
     let s: any = null;
     switch (a.workflow_type) {
-      case 'money_request': s = await this.prisma.moneyRequest.findUnique({ where: { id }, select: { title: true, amount: true, request_number: true, department_id: true } }); s = s && { title: s.title, amount: money(s.amount), number: s.request_number, departmentId: s.department_id }; break;
       case 'expense': case 'department_expense': case 'department_expense_major': case 'expense_edit': case 'expense_delete':
         s = await this.prisma.expense.findUnique({ where: { id }, select: { title: true, amount: true, expense_number: true, department_id: true } }); s = s && { title: s.title, amount: money(s.amount), number: s.expense_number, departmentId: s.department_id }; break;
-      case 'budget': case 'department_budget': case 'budget_edit': case 'budget_delete':
-        s = await this.prisma.budget.findUnique({ where: { id }, select: { title: true, amount: true, budget_number: true, department_id: true } }); s = s && { title: s.title, amount: money(s.amount), number: s.budget_number, departmentId: s.department_id }; break;
-      case 'budget_revision': {
-        const r = await this.prisma.budgetRevision.findUnique({ where: { id }, include: { budget: { select: { title: true, budget_number: true, department_id: true, amount: true } } } });
-        s = r && { title: `${r.budget.title}: revision`, amount: money(r.proposed_amount), previousAmount: money(r.budget.amount), number: r.budget.budget_number, departmentId: r.budget.department_id, budgetId: r.budget_id }; break;
-      }
       case 'project': case 'project_closure':
         s = await this.prisma.project.findUnique({ where: { id }, select: { name: true, budget_amount: true, project_number: true, department_id: true } }); s = s && { title: s.name, amount: money(s.budget_amount), number: s.project_number, departmentId: s.department_id, projectId: id }; break;
       case 'project_allocation': {
         const x = await this.prisma.projectAllocation.findUnique({ where: { id }, include: { project: { select: { name: true } } } });
         s = x && { title: `General Fund to ${x.project.name}`, amount: money(x.amount), number: x.allocation_number, projectId: x.project_id }; break;
       }
-      case 'fund_transfer': {
-        const t = await this.prisma.financialTransfer.findUnique({ where: { id }, include: { fromAccount: { select: { name: true } }, toAccount: { select: { name: true } } } });
-        s = t && { title: `${t.fromAccount.name} to ${t.toAccount.name}`, amount: money(t.amount), number: t.transfer_number }; break;
-      }
-      case 'period_close': s = await this.prisma.financialPeriod.findUnique({ where: { id }, select: { name: true } }); s = s && { title: s.name }; break;
       case 'asset_transfer_department': case 'asset_transfer_fellowship': {
         const t = await this.prisma.assetTransfer.findUnique({ where: { id } });
         const a = t ? await this.prisma.asset.findUnique({ where: { id: t.asset_id }, select: { name: true, asset_tag: true } }) : null;
@@ -110,7 +98,6 @@ export class FinanceApprovalsService {
         s = inc && { title: `${a?.name ?? 'Resource'} (${a?.asset_tag ?? ''}): ${inc.proposed_action.replace('_', ' ')}`, number: inc.incident_number, departmentId: inc.department_id, assetId: inc.asset_id, reason: inc.description, amount: a?.estimated_value ?? a?.acquisition_cost ? money(a?.estimated_value ?? a?.acquisition_cost) : undefined }; break;
       }
       case 'contribution_edit': case 'contribution_delete': s = await this.prisma.contribution.findUnique({ where: { id }, select: { receipt_number: true, amount: true } }); s = s && { title: `Contribution ${s.receipt_number ?? ''}`, amount: money(s.amount), number: s.receipt_number }; break;
-      case 'income_edit': case 'income_delete': s = await this.prisma.incomeRecord.findUnique({ where: { id }, select: { title: true, amount: true, receipt_number: true } }); s = s && { title: s.title, amount: money(s.amount), number: s.receipt_number }; break;
     }
     const step = a.steps.find((x: any) => x.stage_order === a.current_stage);
     return {

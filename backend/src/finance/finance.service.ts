@@ -10,12 +10,9 @@ import { FinanceAccessService } from './finance-access.service';
 import { FinanceScopeService } from './accounting/finance-scope.service';
 import { ContributionsCoreService } from './accounting/contributions-core.service';
 import { ExpensesFlowService } from './accounting/expenses-flow.service';
-import { BudgetsService } from './accounting/budgets.service';
-import { nextNumber } from './accounting/ledger';
-import { buildEditChanges, validateFiscalYear, FinanceKind } from './finance-effects';
+import { buildEditChanges, FinanceKind } from './finance-effects';
 import {
   assertPeriodOpen,
-  validateAmount,
   validateDate,
   validateOptionalUuid,
   validateRequiredUuid,
@@ -42,24 +39,6 @@ export interface CreateExpenseDto {
   purpose?: string;
   categoryId?: string;
   receiptDocumentId?: string;
-  fellowshipId?: string;
-}
-
-export interface CreateBudgetDto {
-  title: string;
-  description?: string;
-  amount: number;
-  departmentId?: string;
-  fiscalYear: string;
-  fellowshipId?: string;
-}
-
-export interface CreateMoneyRequestDto {
-  departmentId?: string;
-  title: string;
-  description?: string;
-  amount: number;
-  purpose: string;
   fellowshipId?: string;
 }
 
@@ -96,7 +75,6 @@ export class FinanceService {
     private scope: FinanceScopeService,
     private contributions: ContributionsCoreService,
     private expensesFlow: ExpensesFlowService,
-    private budgets: BudgetsService,
   ) {}
 
   private requireRecorder(user: any, what: string): void {
@@ -238,10 +216,6 @@ export class FinanceService {
   requestContributionDelete(id: string, body: any, user: any) { return this.requestChange('contribution', 'delete', id, body, user); }
   editExpense(id: string, body: any, user: any) { return this.requestChange('expense', 'edit', id, body, user); }
   deleteExpense(id: string, body: any, user: any) { return this.requestChange('expense', 'delete', id, body, user); }
-  editBudget(id: string, body: any, user: any) { return this.requestChange('budget', 'edit', id, body, user); }
-  deleteBudget(id: string, body: any, user: any) { return this.requestChange('budget', 'delete', id, body, user); }
-  editIncome(id: string, body: any, user: any) { return this.requestChange('income', 'edit', id, body, user); }
-  deleteIncome(id: string, body: any, user: any) { return this.requestChange('income', 'delete', id, body, user); }
 
   // ===================== shared: create an entity together with its approval workflow =====================
 
@@ -381,164 +355,5 @@ export class FinanceService {
       throw new ForbiddenException('You do not have permission to perform this action.');
     }
     return this.decidePrimary('expense', id, decision, comment, user);
-  }
-
-  // ===================== BUDGETS =====================
-
-  async findAllBudgets(user: any, q: ListQuery = {}): Promise<{ data: any[]; total: number }> {
-    const visibility = await this.visibilityWhere(user, undefined, q.departmentId);
-    const { take, skip } = this.access.parsePaging(q.limit, q.page);
-    const extra: Record<string, any> = { ...visibility };
-    if (q.fiscalYear) extra.fiscal_year = validateFiscalYear(q.fiscalYear);
-    const where = this.tenantScope.scopeWhere(user, extra, q.fellowshipId) as Prisma.BudgetWhereInput;
-    const [data, total] = await Promise.all([
-      this.prisma.budget.findMany({ where, orderBy: { created_at: 'desc' }, take, skip }),
-      this.prisma.budget.count({ where }),
-    ]);
-    return { data, total };
-  }
-
-  async createBudget(dto: CreateBudgetDto, user: any): Promise<any> {
-    // Line-item budgets (central, or a department's own with departmentId) - see BudgetsService.
-    return this.budgets.create(user, dto);
-  }
-
-  approveBudget(id: string, decision: any, comment: any, user: any) {
-    if (!this.access.hasAnyRole(user, ['treasurer', 'secretary', 'assistant_secretary', 'admin', 'chairperson', 'assistant_chairperson'])) {
-      throw new ForbiddenException('You do not have permission to perform this action.');
-    }
-    return this.decidePrimary('budget', id, decision, comment, user);
-  }
-
-  // ===================== MONEY REQUESTS =====================
-
-  async findAllMoneyRequests(user: any, q: ListQuery = {}): Promise<{ data: any[]; total: number }> {
-    const visibility = await this.visibilityWhere(user, 'requester_id', q.departmentId);
-    const { take, skip } = this.access.parsePaging(q.limit, q.page);
-    const extra: Record<string, any> = { ...visibility };
-    if (q.status) extra.approval_status = validateText('status', q.status, 30);
-    const where = this.tenantScope.scopeWhere(user, extra, q.fellowshipId) as Prisma.MoneyRequestWhereInput;
-    const [data, total] = await Promise.all([
-      this.prisma.moneyRequest.findMany({
-        where, orderBy: { created_at: 'desc' }, take, skip,
-        include: { release: { select: { id: true, amount: true, released_at: true, method: true, reference: true } } },
-      }),
-      this.prisma.moneyRequest.count({ where }),
-    ]);
-    return { data, total };
-  }
-
-  async createMoneyRequest(dto: CreateMoneyRequestDto, user: any): Promise<any> {
-    const isSecretary = this.access.hasAnyRole(user, ['secretary', 'assistant_secretary', 'admin']);
-    const isDeptLeader = this.access.isDepartmentLeader(user);
-    if (!isSecretary && !isDeptLeader) {
-      throw new ForbiddenException('Only the Secretary or Department Leaders can create money requests.');
-    }
-    const fellowshipId = this.access.resolveFellowship(user, dto?.fellowshipId);
-
-    const title = validateText('title', dto?.title, 200, true) as string;
-    const description = validateText('description', dto?.description, 1000);
-    const amount = validateAmount('amount', dto?.amount);
-    const purpose = validateText('purpose', dto?.purpose, 300, true) as string;
-    let departmentId = validateOptionalUuid('departmentId', dto?.departmentId);
-
-    if (isDeptLeader && !isSecretary) {
-      // A department leader can only ever request money for a department they currently lead.
-      const led = Array.from((await this.scope.leaderships(user)).keys());
-      if (user.departmentId && !led.includes(user.departmentId)) led.push(user.departmentId);
-      if (!led.length) throw new ForbiddenException('You are not assigned to a department.');
-      if (departmentId && !led.includes(departmentId)) {
-        throw new ForbiddenException('You can only request money for your own department.');
-      }
-      departmentId = departmentId ?? led[0];
-    }
-    if (departmentId) await this.access.assertDepartment(departmentId, fellowshipId);
-
-    const extra = await this.moneyRequestExtras(dto as any, fellowshipId);
-    const request = await this.createWithWorkflow('money_request', {
-      title, description, amount, purpose, ...extra,
-      department_id: departmentId,
-      requester_id: user.userId,
-      approval_status: 'SUBMITTED',
-      fellowship_id: fellowshipId,
-    }, user, fellowshipId);
-
-    await this.auditService.log({
-      userId: user.userId,
-      action: 'finance.money_request_create',
-      entityType: 'money_request',
-      entityId: request.id,
-      newValue: { amount, title, departmentId },
-      approvalInfo: { workflowId: request.approval_workflow_id },
-    });
-    return request;
-  }
-
-  // Project / budget links, the date needed, the preferred payment method and a reference number.
-  private async moneyRequestExtras(dto: any, fellowshipId: string | null): Promise<Record<string, any>> {
-    const out: Record<string, any> = {};
-    const projectId = validateOptionalUuid('projectId', dto?.projectId);
-    const budgetLineId = validateOptionalUuid('budgetLineId', dto?.budgetLineId);
-    let budgetId = validateOptionalUuid('budgetId', dto?.budgetId);
-    if (projectId) {
-      const p = await this.prisma.project.findFirst({ where: { id: projectId, fellowship_id: fellowshipId ?? undefined, status: { in: ['APPROVED', 'ACTIVE'] } } });
-      if (!p) throw new BadRequestException('The selected project is not open.');
-      out.project_id = projectId;
-    }
-    if (budgetLineId) {
-      const line = await this.prisma.budgetLineItem.findFirst({ where: { id: budgetLineId, is_active: true, budget: { fellowship_id: fellowshipId, approval_status: 'FINAL_APPROVED' } } });
-      if (!line) throw new BadRequestException('The selected budget line is not available.');
-      budgetId = line.budget_id;
-      out.budget_line_id = budgetLineId;
-    }
-    if (budgetId) {
-      const b = await this.prisma.budget.findFirst({ where: { id: budgetId, fellowship_id: fellowshipId } });
-      if (!b) throw new BadRequestException('The selected budget is not available.');
-      out.budget_id = budgetId;
-    }
-    const required = validateDate('requiredDate', dto?.requiredDate, { required: false, maxFutureDays: 3650 });
-    if (required) out.required_date = required;
-    const method = validateText('preferredPaymentMethod', dto?.preferredPaymentMethod, 30);
-    if (method) out.preferred_payment_method = method;
-    if (dto?.breakdown !== undefined) {
-      if (!Array.isArray(dto.breakdown) || dto.breakdown.length > 50) throw new BadRequestException('breakdown must be a list of at most 50 items');
-      out.expense_breakdown = dto.breakdown.map((b: any) => ({ item: validateText('breakdown item', b?.item, 150, true), amount: validateAmount('breakdown amount', b?.amount) }));
-    }
-    if (fellowshipId) {
-      out.request_number = await this.prisma.$transaction((tx) => nextNumber(tx, fellowshipId, 'money_request', 'MR'));
-    }
-    return out;
-  }
-
-  approveMoneyRequest(id: string, decision: any, comment: any, user: any) {
-    if (!this.access.hasAnyRole(user, ['secretary', 'assistant_secretary', 'admin', 'chairperson', 'assistant_chairperson', 'treasurer'])) {
-      throw new ForbiddenException('You do not have permission to perform this action.');
-    }
-    return this.decidePrimary('money_request', id, decision, comment, user);
-  }
-
-  async resubmitMoneyRequest(id: string, user: any): Promise<any> {
-    this.assertUuidParam(id, 'Money request');
-    const request = await this.prisma.moneyRequest.findUnique({ where: { id } });
-    if (!request) throw new NotFoundException('Money request not found');
-    this.tenantScope.assertInScope(user, request);
-    if (request.requester_id !== user.userId) {
-      throw new ForbiddenException('Only the requester can resubmit.');
-    }
-    if (request.approval_status !== 'RETURNED' || !request.approval_workflow_id) {
-      throw new BadRequestException('Only a request returned for revision can be resubmitted.');
-    }
-
-    // The engine reopens the workflow AND moves the request's status to RESUBMITTED atomically.
-    const approval = await this.approvalEngine.resubmit(request.approval_workflow_id, user.userId, this.access.roles(user));
-
-    await this.auditService.log({
-      userId: user.userId,
-      action: 'finance.money_request_resubmit',
-      entityType: 'money_request',
-      entityId: id,
-    });
-    await this.access.notifyCurrentStage(approval, 'money request', 'money_request', id, user.userId);
-    return this.prisma.moneyRequest.findUnique({ where: { id } });
   }
 }
