@@ -335,7 +335,13 @@ export function Modal({
   const panel = useRef<HTMLDivElement>(null);
   const restoreTo = useRef<HTMLElement | null>(null);
   const labelId = useId();
+  // The latest onClose, read when Escape is pressed. Callers usually pass a new arrow function on every render;
+  // depending on it re-ran the effect below on each keystroke in a form, which pulled the cursor out of the field.
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
 
+  // Runs once when the dialog opens (and cleans up when it closes): lock scrolling, listen for Escape, move focus
+  // into the dialog, and give focus back to where it was afterwards.
   useEffect(() => {
     if (!open) return;
     restoreTo.current = document.activeElement as HTMLElement;
@@ -343,7 +349,7 @@ export function Modal({
     document.body.style.overflow = 'hidden';
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') closeRef.current();
     };
     document.addEventListener('keydown', onKey);
     panel.current?.focus();
@@ -353,7 +359,7 @@ export function Modal({
       document.body.style.overflow = previous;
       restoreTo.current?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
