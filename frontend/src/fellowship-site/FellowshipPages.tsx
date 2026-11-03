@@ -218,7 +218,6 @@ interface GalleryImage { id: string; title: string; contentType: string; uploade
 interface PublicPost { id: string; title: string; body: string | null; reference: string | null; attribution: string | null; mediaUrl: string | null; happensAt: string | null }
 interface GalleryPhoto { id: string; title: string; mediaUrl: string; kind: string; happensAt: string | null }
 interface Opportunity { title: string; description: string | null; location: string | null; nextShiftAt: string | null }
-interface Campaign { name: string; description: string | null; target: number | null; raised: number; startsAt: string; endsAt: string | null }
 
 export function LeadershipPage({ page }: { page: PublicPage | undefined }) {
   const { subdomain } = useParams();
@@ -568,52 +567,18 @@ export function GetInvolvedPage({ page }: { page: PublicPage | undefined }) {
 }
 
 /**
- * The giving page: the campaigns with real recorded progress, then the form.
+ * The giving page: how to give, then the form.
  *
  * `extra` is where the donation form is mounted. It lives here rather than in the route so the "there is no online
  * payment" note sits directly above the button that claims otherwise — separating them is how a page ends up
  * implying a checkout that does not exist.
  */
 export function GivingPage({ page, extra }: { page: PublicPage | undefined; extra?: React.ReactNode }) {
-  const { subdomain } = useParams();
-  const { data, loading } = useFellowshipList<Campaign[]>(subdomain, 'giving');
   return (
     <>
       <PageHeader page={page} />
       <PageBody>
-        {loading && <PageLoader rows={2} />}
-        {data && data.length === 0 && (
-          <EmptyState title="No open campaigns" description="Active giving campaigns appear here with the progress recorded against them." />
-        )}
-        <div className="grid gap-5 sm:grid-cols-2">
-          {(data ?? []).map((c) => {
-            // Progress is only a bar when there is a target. A campaign with no target still reports its total.
-            // `target` is narrowed to a number here so the bar and the label cannot disagree about it.
-            const target = c.target !== null && c.target > 0 ? c.target : null;
-            const pct = target === null ? null : Math.min(100, Math.round((c.raised / target) * 100));
-            return (
-              <div key={c.name} className="card p-6">
-                <h2 className="text-base font-semibold text-ink">{c.name}</h2>
-                {c.description && <p className="mt-2 text-sm text-ink-muted">{c.description}</p>}
-                {pct !== null && target !== null && (
-                  <div className="mt-4">
-                    <div className="h-2 overflow-hidden rounded-full bg-surface-sunken">
-                      <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
-                    </div>
-                    <p className="mt-2 text-xs text-ink-muted">
-                      {c.raised.toLocaleString()} raised of {target.toLocaleString()} ({pct}%)
-                    </p>
-                  </div>
-                )}
-                {pct === null && (
-                  <p className="mt-4 text-xs text-ink-muted">{c.raised.toLocaleString()} recorded so far</p>
-                )}
-                {c.endsAt && <p className="mt-1 text-xs text-ink-subtle">Closes {longDate(c.endsAt)}</p>}
-              </div>
-            );
-          })}
-        </div>
-        <div className="mt-8 flex items-start gap-3 rounded-xl bg-canvas p-5 text-sm text-ink-muted">
+        <div className="flex items-start gap-3 rounded-xl bg-canvas p-5 text-sm text-ink-muted">
           <BanknotesIcon className="mt-0.5 h-5 w-5 shrink-0 text-ink-subtle" />
           <p>
             There is no online payment on this site. To give, use the form below and the fellowship will contact

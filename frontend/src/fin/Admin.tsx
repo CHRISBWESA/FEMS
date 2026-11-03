@@ -113,7 +113,7 @@ export function Reports() {
   const available = (list.data ?? []).filter((r) => !s.departmentId || r.key !== 'departments');
   return (
     <div className="space-y-4">
-      <PageHeader title={t('fin.nav.reports')} description="Money received and paid is shown separately from pledges (promises) and approved spending not yet paid."
+      <PageHeader title={t('fin.nav.reports')} description="Money received and paid is shown separately from approved spending not yet paid."
         actions={report.data ? <ExportButtons url={`/finance/statements/${key}?${q}`} name={key} /> : undefined} />
       <Card className="card-pad">
         <div className="grid gap-4 sm:grid-cols-4">

@@ -1,6 +1,6 @@
 // Optional modules a platform administrator can switch on or off per fellowship. Core features (members,
 // departments, activities, approvals, users, notifications) are always available and are not listed.
-export const MODULE_KEYS = ['finance', 'youth', 'resources', 'volunteers', 'analytics', 'member_engagement'] as const;
+export const MODULE_KEYS = ['finance', 'youth', 'resources', 'volunteers', 'member_engagement'] as const;
 export type ModuleKey = (typeof MODULE_KEYS)[number];
 
 export const MODULE_LABELS: Record<ModuleKey, string> = {
@@ -8,7 +8,6 @@ export const MODULE_LABELS: Record<ModuleKey, string> = {
   youth: 'Youth & children',
   resources: 'Resources & assets',
   volunteers: 'Volunteers & service',
-  analytics: 'Analytics',
   member_engagement: 'Member engagement (profiles, groups, insights)',
 };
 

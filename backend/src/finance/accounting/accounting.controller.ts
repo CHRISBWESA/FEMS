@@ -5,21 +5,17 @@ import { FinanceScopeService } from './finance-scope.service';
 import type { Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { Roles } from '../../shared/decorators/role.decorators';
-import { Public } from '../../shared/decorators/public.decorator';
 import { RequiresModule } from '../../shared/decorators/platform.decorators';
 import { ROLES } from '../../shared/authorization/roles';
-import { PUBLIC_THROTTLE } from '../../shared/throttle';
 import { AccountsService } from './accounts.service';
 import { ContributionsCoreService } from './contributions-core.service';
 import { ExpensesFlowService } from './expenses-flow.service';
 import { BudgetsService } from './budgets.service';
 import { FeesService } from './fees.service';
 import { ProjectsService } from './projects.service';
-import { FundraisingService } from './fundraising.service';
 import { StatementsService } from './statements.service';
 import { FinanceApprovalsService } from './finance-approvals.service';
 import { FinanceRemindersService } from './finance-reminders.service';
-import { FinancePledgesService } from '../finance-pledges.service';
 import { receiptToPdf, Report, reportToPdf, reportToXlsx } from './exporters';
 
 const CENTRAL = [ROLES.TREASURER, ROLES.SECRETARY, ROLES.ASSISTANT_SECRETARY, ROLES.CHAIRPERSON, ROLES.ASSISTANT_CHAIRPERSON];
@@ -55,11 +51,9 @@ export class AccountingController {
     private budgets: BudgetsService,
     private fees: FeesService,
     private projects: ProjectsService,
-    private fundraising: FundraisingService,
     private statements: StatementsService,
     private approvals: FinanceApprovalsService,
     private reminders: FinanceRemindersService,
-    private pledges: FinancePledgesService,
     private uploads: DepartmentUploadsService,
     private scope: FinanceScopeService,
   ) {}
@@ -123,11 +117,6 @@ export class AccountingController {
   @Get('budget-calls/:id/status') @Roles(...CENTRAL) callStatus(@Req() req, @Param('id') id: string) { return this.budgets.callStatus(req.user, id); }
   @Post('budget-calls/:id/close') @Roles(ROLES.SECRETARY, ROLES.ASSISTANT_SECRETARY) closeCall(@Req() req, @Param('id') id: string) { return this.budgets.closeCall(req.user, id); }
 
-  // ---- pledges (beyond the original list/create) ----
-  @Get('pledges/:id') @Roles(...ALL) pledge(@Req() req, @Param('id') id: string) { return this.pledges.getPledge(id, req.user); }
-  @Post('pledges/:id/payments') @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.DEPARTMENT_CHAIRPERSON, ROLES.DEPARTMENT_SECRETARY) payPledge(@Req() req, @Param('id') id: string, @Body() b) { return this.pledges.payPledge(id, b, req.user); }
-  @Post('pledges/:id/cancel') @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.DEPARTMENT_CHAIRPERSON) cancelPledge(@Req() req, @Param('id') id: string, @Body() b) { return this.pledges.cancelPledge(id, b, req.user); }
-
   // ---- department membership fees and transparency summary ----
   @Get('departments/:deptId/fees') @Roles(...ALL) listFees(@Req() req, @Param('deptId') d: string) { return this.fees.list(req.user, d); }
   @Post('departments/:deptId/fees') @Roles(ROLES.DEPARTMENT_CHAIRPERSON, ROLES.DEPARTMENT_SECRETARY) createFee(@Req() req, @Param('deptId') d: string, @Body() b) { return this.fees.create(req.user, d, b); }
@@ -136,15 +125,6 @@ export class AccountingController {
   @Post('departments/:deptId/fees/:id/payments') @Roles(ROLES.DEPARTMENT_CHAIRPERSON, ROLES.DEPARTMENT_SECRETARY) feePayment(@Req() req, @Param('deptId') d: string, @Param('id') id: string, @Body() b) { return this.fees.recordPayment(req.user, d, id, b); }
   @Get('departments/:deptId/summary') @Roles(...ALL)
   async deptSummary(@Req() req, @Param('deptId') d: string, @Query() q, @Res() res: Response) { return sendReport(res, await this.statements.departmentSummary(req.user, d, q), q?.format); }
-
-  // ---- campaigns: public pages and updates ----
-  @Post('campaigns/:id/publish') @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.DEPARTMENT_CHAIRPERSON) publish(@Req() req, @Param('id') id: string) { return this.fundraising.publish(req.user, id); }
-  @Post('campaigns/:id/unpublish') @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.DEPARTMENT_CHAIRPERSON) unpublish(@Req() req, @Param('id') id: string) { return this.fundraising.unpublish(req.user, id); }
-  @Get('campaigns/:id/qr') @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.DEPARTMENT_CHAIRPERSON)
-  async qr(@Req() req, @Param('id') id: string, @Res() res: Response) { res.setHeader('Content-Type', 'image/svg+xml'); return res.send(await this.fundraising.qr(req.user, id)); }
-  @Get('campaigns/:id/updates') @Roles(...ALL) updates(@Req() req, @Param('id') id: string) { return this.fundraising.updates(req.user, id); }
-  @Post('campaigns/:id/updates') @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.DEPARTMENT_CHAIRPERSON) addUpdate(@Req() req, @Param('id') id: string, @Body() b) { return this.fundraising.addUpdate(req.user, id, b); }
-  @Put('campaigns/:id/updates/:updateId') @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.DEPARTMENT_CHAIRPERSON) updateVisibility(@Req() req, @Param('id') id: string, @Param('updateId') u: string, @Body() b) { return this.fundraising.setUpdateVisibility(req.user, id, u, b); }
 
   // ---- approvals inbox ----
   @Get('approvals') @Roles(...ALL) inbox(@Req() req) { return this.approvals.inbox(req.user); }
@@ -174,15 +154,4 @@ export class ProjectsController {
   @Post(':id/status') @Roles(...CENTRAL, ROLES.DEPARTMENT_CHAIRPERSON) status(@Req() req, @Param('id') id: string, @Body() b) { return this.projects.setStatus(req.user, id, b); }
   @Post(':id/allocations') @Roles(ROLES.TREASURER) allocate(@Req() req, @Param('id') id: string, @Body() b) { return this.projects.requestAllocation(req.user, id, b); }
   @Post(':id/closure') @Roles(...CENTRAL, ROLES.DEPARTMENT_CHAIRPERSON) closure(@Req() req, @Param('id') id: string, @Body() b) { return this.projects.requestClosure(req.user, id, b); }
-}
-
-/** The public fundraising page: no sign-in, aggregates only, rate limited. */
-@Controller('public/fundraising')
-export class PublicFundraisingController {
-  constructor(private fundraising: FundraisingService) {}
-
-  @Public()
-  @Throttle(PUBLIC_THROTTLE)
-  @Get(':slug')
-  page(@Param('slug') slug: string) { return this.fundraising.publicPage(slug); }
 }

@@ -6,8 +6,8 @@ import { FinanceNotifyService } from './finance-notify.service';
 const DAY = 24 * 60 * 60 * 1000;
 
 /**
- * Reminders: pledges coming due or overdue, budget submissions near their deadline, and accounts not reconciled for
- * 30 days. Each pledge is reminded at most once a day; reminders go only to the people responsible.
+ * Reminders: budget submissions near their deadline, and accounts not reconciled for 30 days. Reminders go only to
+ * the people responsible.
  */
 @Injectable()
 export class FinanceRemindersService {
@@ -17,29 +17,7 @@ export class FinanceRemindersService {
     if (!this.scope.has(user, 'treasurer', 'secretary', 'assistant_secretary')) throw new ForbiddenException('Only the Treasurer or Secretary sends finance reminders.');
     const fellowshipId = this.scope.fellowship(user);
     const now = new Date();
-    const result = { pledgesDueSoon: 0, pledgesOverdue: 0, budgetDeadlines: 0, reconciliations: 0 };
-
-    const pledges = await this.prisma.contributionPledge.findMany({
-      where: {
-        fellowship_id: fellowshipId, status: { in: ['pending', 'partially_fulfilled'] }, due_date: { not: null, lte: new Date(now.getTime() + 7 * DAY) },
-        OR: [{ last_reminded_at: null }, { last_reminded_at: { lt: new Date(now.getTime() - DAY) } }],
-      },
-      take: 500,
-    });
-    for (const p of pledges) {
-      // Claim the reminder first, so two runs at once never send it twice.
-      const claim = await this.prisma.contributionPledge.updateMany({ where: { id: p.id, OR: [{ last_reminded_at: null }, { last_reminded_at: { lt: new Date(now.getTime() - DAY) } }] }, data: { last_reminded_at: now } });
-      if (claim.count !== 1) continue;
-      const overdue = p.due_date! < now;
-      const to = p.department_id ? await this.scope.departmentLeaderIds(p.department_id) : await this.scope.usersWithRoles(fellowshipId, ['treasurer']);
-      await this.notify.send([...to, p.created_by], {
-        eventType: overdue ? 'pledge_overdue' : 'pledge_due_soon',
-        title: overdue ? 'Pledge overdue' : 'Pledge due soon',
-        message: `Pledge ${p.pledge_number ?? ''} ${overdue ? 'is past its due date' : 'falls due within a week'} and is not yet fully paid.`,
-        entityType: 'pledge', entityId: p.id, fellowshipId,
-      });
-      if (overdue) result.pledgesOverdue++; else result.pledgesDueSoon++;
-    }
+    const result = { budgetDeadlines: 0, reconciliations: 0 };
 
     const calls = await this.prisma.budgetCall.findMany({ where: { fellowship_id: fellowshipId, status: 'open', deadline: { gte: now, lte: new Date(now.getTime() + 7 * DAY) } } });
     for (const c of calls) {

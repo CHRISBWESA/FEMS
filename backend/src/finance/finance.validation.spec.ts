@@ -1,7 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import {
   assertPeriodOpen,
-  expectedInstallments,
   validateAmount,
   validateDate,
   validateOptionalUuid,
@@ -74,22 +73,6 @@ describe('buildEditChanges (edit requests can only touch whitelisted fields)', (
     expect(validateFiscalYear('2026')).toBe('2026');
     expect(validateFiscalYear('2026-27')).toBe('2026-27');
     expect(() => validateFiscalYear('26')).toThrow(BadRequestException);
-  });
-});
-
-describe('expectedInstallments', () => {
-  const d = (s: string) => new Date(`${s}T00:00:00Z`);
-  it('counts monthly / quarterly / yearly / weekly / one-time correctly', () => {
-    expect(expectedInstallments('monthly', d('2026-01-15'), d('2026-04-20'))).toBe(4);
-    expect(expectedInstallments('monthly', d('2026-01-15'), d('2026-04-10'))).toBe(3); // 4th installment not yet due
-    expect(expectedInstallments('quarterly', d('2026-01-01'), d('2026-07-02'))).toBe(3);
-    expect(expectedInstallments('yearly', d('2024-03-01'), d('2026-03-02'))).toBe(3);
-    expect(expectedInstallments('weekly', d('2026-01-01'), d('2026-01-15'))).toBe(3);
-    expect(expectedInstallments('one_time', d('2026-01-01'), d('2026-06-01'))).toBe(1);
-  });
-  it('is zero before the start and stops at the end date', () => {
-    expect(expectedInstallments('monthly', d('2026-05-01'), d('2026-04-01'))).toBe(0);
-    expect(expectedInstallments('monthly', d('2026-01-01'), d('2026-12-01'), d('2026-03-15'))).toBe(3);
   });
 });
 

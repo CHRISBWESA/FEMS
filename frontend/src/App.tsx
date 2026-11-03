@@ -28,7 +28,6 @@ const Reports = lazyPage(() => import('./pages/Reports'));
 const FinanceArea = lazyPage(() => import('./fin/FinanceArea'));
 const ProjectsList = lazyPage(() => import('./fin/Projects').then((m) => ({ default: m.ProjectsList })));
 const ProjectDetail = lazyPage(() => import('./fin/Projects').then((m) => ({ default: m.ProjectDetail })));
-const PublicGive = lazyPage(() => import('./fin/PublicGive'));
 const WsMoney = lazyPage(() => import('./fin/WsMoney'));
 const Notifications = lazyPage(() => import('./pages/Notifications'));
 const Audit = lazyPage(() => import('./pages/Audit'));
@@ -66,7 +65,6 @@ const Leadership = lazyPage(() => import('./pages/Leadership'));
 const MyLoans = lazyPage(() => import('./pages/MyLoans'));
 const Volunteering = lazyPage(() => import('./pages/Volunteering'));
 const VolunteerOpportunity = lazyPage(() => import('./pages/VolunteerOpportunity'));
-const Analytics = lazyPage(() => import('./pages/Analytics'));
 const PlatformSite = lazyPage(() => import('./site/PlatformSite'));
 const FellowshipSite = lazyPage(() => import('./fellowship-site/FellowshipSite'));
 const PublicSiteAdmin = lazyPage(() => import('./pages/PublicSiteAdmin'));
@@ -298,8 +296,6 @@ export default function App() {
               landing page. Both are reachable by path in every environment. On the apex domain in production,
               `/` below sends a visitor to the marketing site instead of the app, so the front door of the platform
               is its own home page. */}
-          {/* Public fundraising page: no sign-in, totals only. */}
-          <Route path="/give/:slug" element={<PublicGive />} />
           <Route path="/site/*" element={<PlatformSite />} />
           <Route path="/f/:subdomain/*" element={<FellowshipSite />} />
           {/* The department leaders' workspace: its own layout, separate from the fellowship administration. */}
@@ -344,7 +340,6 @@ export default function App() {
             <Route path="resources" element={<Navigate to="/inventory" replace />} />
             <Route path="resources/:id" element={<Navigate to="/inventory/inventory" replace />} />
             <Route path="my-loans" element={<ExcludeAdmin><MyLoans /></ExcludeAdmin>} />
-            <Route path="analytics" element={<ExcludeAdmin><RequireRole roles={['secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson', 'treasurer', 'department_secretary', 'department_chairperson']}>{<Analytics />}</RequireRole></ExcludeAdmin>} />
             <Route path="volunteering" element={<HideFor roles={NOT_SECRETARY}><ExcludeAdmin><Volunteering /></ExcludeAdmin></HideFor>} />
             <Route path="volunteering/:id" element={<HideFor roles={NOT_SECRETARY}><ExcludeAdmin><VolunteerOpportunity /></ExcludeAdmin></HideFor>} />
             <Route path="notifications" element={<Notifications />} />

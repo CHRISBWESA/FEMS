@@ -38,14 +38,13 @@ export default function GivingStatement({ url }: { url: string }) {
       {data.contributions.length === 0 ? <Empty text="No contributions recorded" /> : (
         <div className="table-wrap overflow-x-auto">
           <table className="table">
-            <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Campaign</th></tr></thead>
+            <thead><tr><th>Date</th><th>Type</th><th>Amount</th></tr></thead>
             <tbody>
               {data.contributions.map((c: any) => (
                 <tr key={c.id}>
                   <td>{new Date(c.date).toLocaleDateString()}</td>
                   <td className="capitalize">{c.contribution_type}</td>
                   <td className="font-medium text-ink">{money(c.amount)}</td>
-                  <td>{c.campaign?.name || '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -54,21 +53,6 @@ export default function GivingStatement({ url }: { url: string }) {
       )}
       {data.truncated && <p className="text-xs text-ink-subtle">Showing the most recent 1,000 contributions.</p>}
 
-      {data.pledges.length > 0 && (
-        <section>
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Pledges</h3>
-          <ul className="divide-y divide-hairline">
-            {data.pledges.map((p: any) => (
-              <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
-                <span className="text-ink">{money(p.amount)} <span className="text-ink-muted">{p.frequency.replace('_', ' ')}{p.campaign ? ` · ${p.campaign.name}` : ''}</span></span>
-                <span className={Number(p.fulfillment.balance) > 0 ? 'text-amber-700' : 'text-emerald-700'}>
-                  {money(p.fulfillment.receivedAmount)} of {money(p.fulfillment.expectedAmount)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
     </div>
   );
 }

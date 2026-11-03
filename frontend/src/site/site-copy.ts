@@ -107,7 +107,7 @@ export const FEATURES: FeatureItem[] = [
   },
   {
     title: 'Finance',
-    body: 'Contributions, expenses, budgets, pledges and money requests, with approval steps and closed periods.',
+    body: 'Contributions, expenses, budgets and money requests, with approval steps and closed periods.',
     icon: 'banknotes',
   },
   {
@@ -189,7 +189,7 @@ export const SOLUTIONS: SolutionItem[] = [
     points: [
       'Nothing is published until it is explicitly approved and switched on',
       'Prayer requests and contact messages arrive in the fellowship’s own inbox',
-      'A giving page lists real campaigns and real progress — there is no payment gateway claim',
+      'A giving page explains how to give — there is no payment gateway claim',
     ],
   },
 ];
@@ -228,7 +228,7 @@ export const FAQS: FaqItem[] = [
   {
     question: 'Is there a payment gateway?',
     answer:
-      'No. There is no card or mobile-money integration, and the system does not pretend otherwise. The giving page lists campaigns and the progress recorded against them, and a “give” button records an intention to give that a person then acts on. Taking money is not automated.',
+      'No. There is no card or mobile-money integration, and the system does not pretend otherwise. The giving page explains how to give, and a “give” button records an intention to give that a person then acts on. Taking money is not automated.',
   },
   {
     question: 'What happens to my data if I leave?',

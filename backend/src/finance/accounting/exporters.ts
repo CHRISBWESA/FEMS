@@ -150,18 +150,10 @@ export function receiptToPdf(r: any): Promise<Buffer> {
     line('Amount', `${r.currency} ${fmt(r.amount, true)}`);
     line('For', r.purpose);
     line('Category', r.category);
-    line('Campaign', r.campaign);
     line('Membership fee', r.membershipFee);
     line('Payment method', r.paymentMethod ? String(r.paymentMethod).replace(/_/g, ' ') : null);
     line('Payment reference', r.paymentReference);
     line('Received into', r.account);
-    if (r.pledge) {
-      doc.moveDown(0.4).font('Helvetica-Bold').fontSize(11).text('Pledge payment');
-      line('Pledge', r.pledge.number);
-      line('Applied to the pledge', `${r.currency} ${fmt(r.pledge.appliedToPledge, true)}`);
-      if (Number(r.pledge.additionalContribution) > 0) line('Additional contribution', `${r.currency} ${fmt(r.pledge.additionalContribution, true)}`);
-      line('Still outstanding on the pledge', `${r.currency} ${fmt(r.pledge.pledgeOutstanding, true)}`);
-    }
     if (r.allocations?.length) {
       doc.moveDown(0.4).font('Helvetica-Bold').fontSize(11).text('Allocated to');
       for (const a of r.allocations) line(`${a.number}`, `${a.project}: ${r.currency} ${fmt(a.amount, true)}`);

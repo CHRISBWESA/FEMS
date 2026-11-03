@@ -97,14 +97,6 @@ export class FinanceAccessService {
     if (!cat) throw new BadRequestException('The selected category is not available.');
   }
 
-  async assertCampaign(campaignId: string, fellowshipId: string | null, requireActive = true): Promise<void> {
-    const c = await this.prisma.contributionCampaign.findFirst({
-      where: { id: campaignId, fellowship_id: fellowshipId, ...(requireActive ? { status: 'active' as const } : {}) },
-      select: { id: true },
-    });
-    if (!c) throw new BadRequestException('The selected campaign is not available.');
-  }
-
   // Receipts reuse the existing documents table. A receipt must belong to the same fellowship and must
   // never be a document that is published as public website content.
   async assertReceipt(documentId: string, fellowshipId: string | null): Promise<void> {

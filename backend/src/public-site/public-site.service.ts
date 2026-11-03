@@ -431,35 +431,6 @@ export class PublicSiteService {
     });
   }
 
-  /** Active contribution campaigns, for "Give". Progress is real, summed from recorded contributions. */
-  async giving(subdomain: string) {
-    const fellowshipId = await this.fellowshipIdFor(subdomain);
-    const rows = await this.prisma.contributionCampaign.findMany({
-      where: { fellowship_id: fellowshipId, status: 'active' },
-      select: {
-        name: true, description: true, target_amount: true, start_date: true, end_date: true,
-        contributions: { select: { amount: true } },
-      },
-      orderBy: { created_at: 'desc' },
-      take: LIST_LIMIT,
-    });
-    return rows.map((r) => {
-      // Decimal is summed as a string to stay exact; a float sum of currency is not.
-      const raisedCents = r.contributions.reduce(
-        (total, c) => total + Math.round(Number(c.amount) * 100),
-        0,
-      );
-      return {
-        name: r.name,
-        description: r.description ?? null,
-        target: r.target_amount === null ? null : Number(r.target_amount),
-        raised: raisedCents / 100,
-        startsAt: r.start_date,
-        endsAt: r.end_date,
-      };
-    });
-  }
-
   // ---------------------------------------------------------------- machine-readable
 
   /**

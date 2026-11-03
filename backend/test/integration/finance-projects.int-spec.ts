@@ -1,11 +1,10 @@
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
 import { api, createTestApp, describeDb, getPrisma, makeDepartment, makeFellowship, makeMember, makeUser, uniq } from './harness';
 
 /**
  * Finance, projects and department financial management, end to end over HTTP against real Postgres:
- * the ledger, receipts, allocations, pledges, budgets and revisions, money requests and payments, membership
- * fees, transfers, isolation, projects and closure, public fundraising pages, periods, exports and audit.
+ * the ledger, receipts, allocations, budgets and revisions, money requests and payments, membership
+ * fees, transfers, isolation, projects and closure, periods, exports and audit.
  */
 jest.setTimeout(300_000);
 
@@ -118,9 +117,9 @@ describeDb('Finance, projects and department finances (real Postgres, HTTP)', ()
     });
   });
 
-  // ------------------------------------------------------------ projects, allocations, pledges
+  // ------------------------------------------------------------ projects and allocations
 
-  describe('projects, allocations and pledges', () => {
+  describe('projects and allocations', () => {
     it('13. a fellowship project goes Treasurer -> Secretary -> Chairperson before it can be funded', async () => {
       const draft = (await post(sec, '/projects', { name: `Hall roof ${uniq()}`, purpose: 'Repair the roof', budgetAmount: 300000, coordinatingDepartmentId: dept.id, fundingSources: [{ sourceType: 'contributions', name: 'Members', expectedAmount: 200000 }] }).expect(201)).body;
       expect(draft.status).toBe('DRAFT');
@@ -154,23 +153,6 @@ describeDb('Finance, projects and department finances (real Postgres, HTTP)', ()
       expect(rows.filter((r) => !r.is_active)).toHaveLength(2);
       const p = (await get(treas, `/projects/${projA.id}`).expect(200)).body;
       expect(p.financials.contributions).toBe('10000.00');
-    });
-
-    it('4-5. pledges take partial payments; an overpayment is applied, the excess is extra, one receipt', async () => {
-      const pledge = (await post(treas, '/finance/pledges', { memberId: m2.id, amount: 5000, projectId: projA.id, dueDate: new Date(Date.now() + 86400000 * 30).toISOString() }).expect(201)).body;
-      expect(pledge).toMatchObject({ status: 'pending', outstanding: '5000.00' });
-      const before = await balance(central.id);
-      await post(treas, `/finance/pledges/${pledge.id}/payments`, { amount: 2000, date: today(), accountId: central.id }).expect(201);
-      let p = (await get(treas, `/finance/pledges/${pledge.id}`).expect(200)).body;
-      expect(p).toMatchObject({ status: 'partially_fulfilled', amount_fulfilled: '2000.00', outstanding: '3000.00' });
-      const over = (await post(treas, `/finance/pledges/${pledge.id}/payments`, { amount: 4500, date: today(), accountId: central.id }).expect(201)).body;
-      p = (await get(treas, `/finance/pledges/${pledge.id}`).expect(200)).body;
-      expect(p).toMatchObject({ status: 'fulfilled', amount_fulfilled: '5000.00', outstanding: '0.00' });
-      expect(Number(await balance(central.id)) - Number(before)).toBe(6500); // each payment counted once
-      const receipt = (await get(treas, `/finance/contributions/${over.id}/receipt`).expect(200)).body;
-      expect(receipt.pledge).toMatchObject({ appliedToPledge: '3000.00', additionalContribution: '1500.00', pledgeOutstanding: '0.00' });
-      expect(receipt.allocations).toEqual([expect.objectContaining({ amount: '3000.00' })]); // only the pledge part goes to the project
-      await post(treas, `/finance/pledges/${pledge.id}/payments`, { amount: 10, date: today() }).expect(409); // fulfilled
     });
   });
 
@@ -353,29 +335,9 @@ describeDb('Finance, projects and department finances (real Postgres, HTTP)', ()
     });
   });
 
-  // ------------------------------------------------------------ fundraising pages, closure, periods
+  // ------------------------------------------------------------ closure, periods
 
-  describe('fundraising, closure, periods, reports and audit', () => {
-    it('14. only a campaign for an approved project is published; the public page has no names', async () => {
-      const camp = (await post(treas, '/finance/campaigns', { name: `Roof appeal ${uniq()}`, startDate: today(), targetAmount: 300000, projectId: projA.id, budgetBreakdown: [{ item: 'Iron sheets', amount: 200000 }, { item: 'Labour', amount: 100000 }] }).expect(201)).body;
-      const noProject = (await post(treas, '/finance/campaigns', { name: `General ${uniq()}`, startDate: today(), targetAmount: 1000 }).expect(201)).body;
-      await post(treas, `/finance/campaigns/${noProject.id}/publish`).expect(409);
-      const pub = (await post(treas, `/finance/campaigns/${camp.id}/publish`).expect(201)).body;
-      expect(pub.slug.length).toBeGreaterThanOrEqual(20);
-      await post(treas, '/finance/contributions', { memberId: m1.id, amount: 1500, date: today(), campaignId: camp.id, accountId: central.id }).expect(201);
-      await post(treas, `/finance/campaigns/${camp.id}/updates`, { title: 'Sheets bought', body: 'Delivery next week' }).expect(201);
-      const page = (await request(app.getHttpServer()).get(`/api/v1/public/fundraising/${pub.slug}`).expect(200)).body;
-      expect(page).toMatchObject({ target: '300000.00', raised: '1500.00', remaining: '298500.00' });
-      expect(page.budget).toHaveLength(2);
-      expect(page.updates[0].title).toBe('Sheets bought');
-      expect(JSON.stringify(page)).not.toMatch(/Asha|member_id|phone/i);
-      await request(app.getHttpServer()).get('/api/v1/public/fundraising/not-a-real-slug-123456').expect(404);
-      const qr = await get(treas, `/finance/campaigns/${camp.id}/qr`).expect(200);
-      expect(qr.headers['content-type']).toContain('image/svg+xml');
-      await post(treas, `/finance/campaigns/${camp.id}/unpublish`).expect(201);
-      await request(app.getHttpServer()).get(`/api/v1/public/fundraising/${pub.slug}`).expect(404);
-    });
-
+  describe('closure, periods, reports and audit', () => {
     it('16. closing a project returns unspent money to the General Fund after Treasurer, Secretary and Chairperson', async () => {
       await post(treas, '/finance/contributions', { memberId: m3.id, amount: 3000, date: today(), accountId: central.id, allocations: [{ projectId: projB.id, amount: 3000 }] }).expect(201);
       const before = (await get(treas, '/finance/general-fund').expect(200)).body;
@@ -412,7 +374,7 @@ describeDb('Finance, projects and department finances (real Postgres, HTTP)', ()
 
     it('19. reports export as PDF and Excel; departments only export their own', async () => {
       const keys = (await get(treas, '/finance/statements').expect(200)).body.map((r: any) => r.key);
-      expect(keys).toHaveLength(14);
+      expect(keys).toHaveLength(12);
       for (const key of keys.filter((k: string) => k !== 'membership-fees')) {
         await get(treas, `/finance/statements/${key}`).expect(200);
       }

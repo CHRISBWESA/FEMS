@@ -7,7 +7,7 @@ export default function MyGiving() {
       <div className="page-header">
         <div>
           <h1 className="page-title">My Giving</h1>
-          <p className="page-desc">Your own contributions and pledges. Only you and authorised finance officers can see this.</p>
+          <p className="page-desc">Your own contributions. Only you and authorised finance officers can see this.</p>
         </div>
       </div>
       <GivingStatement url="/finance/my-contributions" />

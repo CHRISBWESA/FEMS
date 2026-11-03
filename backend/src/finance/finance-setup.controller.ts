@@ -1,6 +1,5 @@
 import { Controller, Get, Post, Put, Body, Param, Query, Req } from '@nestjs/common';
-import { FinanceCatalogService, CategoryDto, CampaignDto, PeriodDto } from './finance-catalog.service';
-import { FinancePledgesService, PledgeDto } from './finance-pledges.service';
+import { FinanceCatalogService, CategoryDto, PeriodDto } from './finance-catalog.service';
 import { FinanceReportsService } from './finance-reports.service';
 import { Roles } from '../shared/decorators/role.decorators';
 import { ROLES } from '../shared/authorization/roles';
@@ -20,7 +19,6 @@ const EVERY_ROLE = [
 export class FinanceSetupController {
   constructor(
     private readonly catalog: FinanceCatalogService,
-    private readonly pledges: FinancePledgesService,
     private readonly reports: FinanceReportsService,
   ) {}
 
@@ -36,23 +34,6 @@ export class FinanceSetupController {
   @Put('categories/:id')
   @Roles(...MANAGERS)
   updateCategory(@Param('id') id: string, @Body() body: CategoryDto, @Req() req) { return this.catalog.updateCategory(id, body, req.user); }
-
-  // === Campaigns ===
-  @Get('campaigns')
-  @Roles(...VIEWERS)
-  listCampaigns(@Req() req, @Query() q: { status?: string; fellowshipId?: string }) { return this.catalog.listCampaigns(req.user, q); }
-
-  @Get('campaigns/:id')
-  @Roles(...VIEWERS)
-  getCampaign(@Param('id') id: string, @Req() req) { return this.catalog.getCampaign(id, req.user); }
-
-  @Post('campaigns')
-  @Roles(...MANAGERS)
-  createCampaign(@Body() body: CampaignDto, @Req() req) { return this.catalog.createCampaign(body, req.user); }
-
-  @Put('campaigns/:id')
-  @Roles(...MANAGERS)
-  updateCampaign(@Param('id') id: string, @Body() body: CampaignDto, @Req() req) { return this.catalog.updateCampaign(id, body, req.user); }
 
   // === Financial periods ===
   @Get('periods')
@@ -70,23 +51,6 @@ export class FinanceSetupController {
   @Post('periods/:id/reopen')
   @Roles(ROLES.SECRETARY, ROLES.CHAIRPERSON, ROLES.ASSISTANT_CHAIRPERSON)
   reopenPeriod(@Param('id') id: string, @Body() body: { reason?: string }, @Req() req) { return this.catalog.reopenPeriod(id, body, req.user); }
-
-  // === Pledges (recurring commitments; never auto-record money) ===
-  @Get('pledges')
-  @Roles(...VIEWERS)
-  listPledges(@Req() req, @Query() q: Record<string, string>) { return this.pledges.list(req.user, q); }
-
-  @Get('pledges/:id/fulfillment')
-  @Roles(...VIEWERS)
-  pledgeFulfillment(@Param('id') id: string, @Req() req, @Query('asOf') asOf?: string) { return this.pledges.fulfillment(id, req.user, asOf); }
-
-  @Post('pledges')
-  @Roles(...MANAGERS)
-  createPledge(@Body() body: PledgeDto, @Req() req) { return this.pledges.create(body, req.user); }
-
-  @Put('pledges/:id')
-  @Roles(...MANAGERS)
-  updatePledge(@Param('id') id: string, @Body() body: PledgeDto, @Req() req) { return this.pledges.update(id, body, req.user); }
 
   // === Reports / statements ===
   @Get('reports/summary')

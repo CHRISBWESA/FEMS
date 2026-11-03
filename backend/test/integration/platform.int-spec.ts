@@ -448,7 +448,7 @@ describeDb('Phase 19 - platform administration & tenant lifecycle (real Postgres
       expect(Object.keys(list.data[0]).sort()).toEqual(['createdAt', 'id', 'location', 'members', 'modulesDisabled', 'name', 'status', 'suspendedAt', 'users']);
       const detail = (await get(support, `/platform/tenants/${t.fellowship.id}`).expect(200)).body;
       expect(detail.counts).toEqual({ users: 1, members: 1, activeSecretaries: 1 });
-      expect(detail.modules).toHaveLength(6);
+      expect(detail.modules).toHaveLength(5);
       expect(detail.modules.every((m: any) => m.enabled)).toBe(true);
       await get(padmin, '/platform/tenants?status=bogus').expect(400);
       await get(padmin, '/platform/tenants?limit=0').expect(400);
@@ -465,7 +465,7 @@ describeDb('Phase 19 - platform administration & tenant lifecycle (real Postgres
   // ---------------------------------------------------------------------------------------------------------
   describe('module availability', () => {
     it('a switched-off module is closed to that fellowship only, and can be switched back on', async () => {
-      const probes: [string, string][] = [['youth', '/youth'], ['resources', '/resources/assets'], ['volunteers', '/volunteers/opportunities'], ['analytics', '/analytics/overview'], ['finance', '/finance/periods'], ['member_engagement', '/member-groups']];
+      const probes: [string, string][] = [['youth', '/youth'], ['resources', '/resources/assets'], ['volunteers', '/volunteers/opportunities'], ['finance', '/finance/periods'], ['member_engagement', '/member-groups']];
       for (const [key, url] of probes) {
         await get(secA, url).expect(200);
         await put(padmin, `/platform/tenants/${fA.id}/modules`, { modules: { [key]: false } }).expect(200);
@@ -476,18 +476,6 @@ describeDb('Phase 19 - platform administration & tenant lifecycle (real Postgres
         await put(padmin, `/platform/tenants/${fA.id}/modules`, { modules: { [key]: true } }).expect(200);
         await get(secA, url).expect(200);
       }
-    });
-
-    it('analytics sections of a switched-off module disappear too', async () => {
-      await put(padmin, `/platform/tenants/${fA.id}/modules`, { modules: { youth: false, resources: false } }).expect(200);
-      const ov = (await get(secA, '/analytics/overview').expect(200)).body;
-      expect(ov.available).not.toContain('youth');
-      expect(ov.available).not.toContain('resources');
-      expect(ov.available).toContain('membership');
-      await get(secA, '/analytics/youth').expect(403);
-      await get(secA, '/analytics/resources').expect(403);
-      await put(padmin, `/platform/tenants/${fA.id}/modules`, { modules: { youth: true, resources: true } }).expect(200);
-      expect((await get(secA, '/analytics/overview').expect(200)).body.available).toContain('youth');
     });
 
     it('is validated, audited, and reserved for platform administrators', async () => {
@@ -568,7 +556,7 @@ describeDb('Phase 19 - platform administration & tenant lifecycle (real Postgres
       const cfg = (await get(support, `/platform/support/tenants/${fid}/config`).expect(200)).body;
       expect(cfg.fellowship).toMatchObject({ id: fid, status: 'active' });
       expect(cfg.departments.map((d: any) => d.name).length).toBe(1);
-      expect(cfg.modules).toHaveLength(6);
+      expect(cfg.modules).toHaveLength(5);
       expect(cfg.accountsByRole).toEqual([{ role: 'secretary', count: 1 }]);
       const blob = JSON.stringify(cfg);
       expect(blob).not.toContain('Private Person'); // no member data

@@ -33,7 +33,7 @@ describeDb('Public sites - a fellowship can never see another fellowship\'s cont
   const LIST_PATHS = [
     'leadership', 'departments', 'ministries', 'events', 'news',
     'publications', 'gallery', 'gallery/photos', 'sermons', 'testimonies',
-    'projects', 'get-involved', 'giving',
+    'projects', 'get-involved',
   ];
 
   beforeAll(async () => {
@@ -176,18 +176,6 @@ describeDb('Public sites - a fellowship can never see another fellowship\'s cont
 
     await prisma.serviceOpportunity.create({
       data: { title: `${mark}-opportunity`, description: `${mark}-opportunity-desc`, location: `${mark}-place`, fellowship_id: fellowshipId, status: 'open', created_by: userId },
-    });
-
-    await prisma.contributionCampaign.create({
-      data: {
-        name: `${mark}-campaign`,
-        description: `${mark}-campaign-desc`,
-        target_amount: 1000,
-        start_date: new Date(),
-        status: 'active',
-        fellowship_id: fellowshipId,
-        created_by: userId,
-      },
     });
 
     // The site identity itself, since a leaked name or tagline is just as much a leak.

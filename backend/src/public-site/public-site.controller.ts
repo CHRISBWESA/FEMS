@@ -153,13 +153,6 @@ export class PublicSiteController {
     return this.publicSite.getInvolved(subdomain);
   }
 
-  @Public()
-  @Throttle(PUBLIC_THROTTLE)
-  @Get(':subdomain/giving')
-  giving(@Param('subdomain') subdomain: string) {
-    return this.publicSite.giving(subdomain);
-  }
-
   // ---------------------------------------------------------------- machine-readable
 
   /**

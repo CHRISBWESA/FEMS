@@ -134,19 +134,17 @@ export class ProjectsService {
     return { data, total, page, limit };
   }
 
-  /** The project dashboard: budget, funding by source, spending, commitments, pledges and history. */
+  /** The project dashboard: budget, funding by source, spending, commitments and history. */
   async detail(user: any, id: string) {
     const p = await this.load(user, id);
     await this.assertView(user, p);
-    const [financials, sources, allocations, contributions, income, expenses, pledges, campaigns, budgets, department, coordinating, coordinator] = await Promise.all([
+    const [financials, sources, allocations, contributions, income, expenses, budgets, department, coordinating, coordinator] = await Promise.all([
       projectFinancials(this.prisma, p),
       this.prisma.projectFundingSource.findMany({ where: { project_id: id } }),
       this.prisma.projectAllocation.findMany({ where: { project_id: id }, orderBy: { created_at: 'desc' } }),
       this.prisma.contributionAllocation.findMany({ where: { project_id: id, is_active: true, contribution: { status: 'active' } }, orderBy: { created_at: 'desc' }, take: 50, include: { contribution: { select: { receipt_number: true, date: true, contributor_type: true } } } }),
       this.prisma.incomeRecord.findMany({ where: { project_id: id, status: 'active' }, orderBy: { date: 'desc' }, take: 50, select: { id: true, title: true, amount: true, date: true, funding_source: true, source: true } }),
       this.prisma.expense.findMany({ where: { project_id: id }, orderBy: { date: 'desc' }, take: 100, select: { id: true, expense_number: true, title: true, amount: true, amount_paid: true, payment_status: true, approval_status: true, date: true, budget_line_id: true } }),
-      this.prisma.contributionPledge.findMany({ where: { project_id: id }, select: { id: true, pledge_number: true, amount: true, amount_fulfilled: true, status: true, due_date: true } }),
-      this.prisma.contributionCampaign.findMany({ where: { project_id: id }, select: { id: true, name: true, status: true, target_amount: true, is_public: true } }),
       this.prisma.budget.findMany({ where: { project_id: id }, select: { id: true, title: true, budget_number: true, amount: true, approval_status: true } }),
       p.department_id ? this.prisma.department.findUnique({ where: { id: p.department_id }, select: { id: true, name: true } }) : null,
       p.coordinating_department_id ? this.prisma.department.findUnique({ where: { id: p.coordinating_department_id }, select: { id: true, name: true } }) : null,
@@ -172,8 +170,6 @@ export class ProjectsService {
       contributions: contributions.map((c) => ({ id: c.id, amount: money(c.amount), receipt: c.contribution.receipt_number, date: c.contribution.date, contributorType: c.contribution.contributor_type })),
       income: income.map((i) => ({ ...i, amount: money(i.amount) })),
       expenses: expenses.map((e) => ({ ...e, amount: money(e.amount), amount_paid: e.amount_paid ? money(e.amount_paid) : null })),
-      pledges: pledges.map((x) => ({ ...x, amount: money(x.amount), amount_fulfilled: money(x.amount_fulfilled) })),
-      campaigns: campaigns.map((c) => ({ ...c, target_amount: c.target_amount ? money(c.target_amount) : null })),
       budgets: budgets.map((b) => ({ ...b, amount: money(b.amount) })),
       workflow: workflow ? { id: workflow.id, type: workflow.workflow_type, status: workflow.status, currentStage: workflow.current_stage, steps: workflow.steps } : null,
       approvalHistory, closureHistory,

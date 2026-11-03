@@ -33,7 +33,7 @@ export default function WsReports() {
           <p className="page-desc">Reports on your activities, reviewed by the Fellowship Secretary and the Fellowship Chairperson, and the department's figures.</p>
         </div>
       </div>
-      <div className="print:hidden"><Tabs tabs={[{ key: 'reports', label: 'Activity reports' }, { key: 'analytics', label: 'Analytics & exports' }]} active={tab} onChange={setTab} /></div>
+      <div className="print:hidden"><Tabs tabs={[{ key: 'reports', label: 'Activity reports' }, { key: 'analytics', label: 'Summary & downloads' }]} active={tab} onChange={setTab} /></div>
       {tab === 'reports' ? <ReportsList /> : <Analytics />}
     </div>
   );

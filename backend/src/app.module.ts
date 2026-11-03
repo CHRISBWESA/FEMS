@@ -28,7 +28,6 @@ import { FellowshipModule } from './fellowship/fellowship.module';
 import { YouthModule } from './youth/youth.module';
 import { ResourcesModule } from './resources/resources.module';
 import { VolunteersModule } from './volunteers/volunteers.module';
-import { AnalyticsModule } from './analytics/analytics.module';
 import { PlatformModule } from './platform/platform.module';
 import { BillingModule } from './billing/billing.module';
 import { PublicSiteModule } from './public-site/public-site.module';
@@ -89,7 +88,6 @@ import { RequestContextMiddleware } from './shared/middleware/request-context.mi
     YouthModule,
     ResourcesModule,
     VolunteersModule,
-    AnalyticsModule,
     PlatformModule,
     BillingModule,
     PublicSiteModule,

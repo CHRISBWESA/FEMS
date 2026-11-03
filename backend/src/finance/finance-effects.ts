@@ -39,7 +39,6 @@ const EDIT_SPECS: Record<FinanceKind, Record<string, [string, (v: unknown) => an
     contributionType: ['contribution_type', (v) => validateText('contributionType', v, 50, true)],
     date: ['date', (v) => validateDate('date', v)],
     notes: ['notes', (v) => validateText('notes', v, 500)],
-    campaignId: ['campaign_id', (v) => validateOptionalUuid('campaignId', v)],
     categoryId: ['category_id', (v) => validateOptionalUuid('categoryId', v)],
   },
   expense: {
@@ -63,7 +62,6 @@ const EDIT_SPECS: Record<FinanceKind, Record<string, [string, (v: unknown) => an
     date: ['date', (v) => validateDate('date', v)],
     source: ['source', (v) => validateText('source', v, 200)],
     categoryId: ['category_id', (v) => validateOptionalUuid('categoryId', v)],
-    campaignId: ['campaign_id', (v) => validateOptionalUuid('campaignId', v)],
   },
 };
 
@@ -164,10 +162,10 @@ export async function applyFinanceEffect(
     changes.date = new Date(changes.date);
     await assertPeriodOpen(tx as any, record.fellowship_id, changes.date);
   }
-  for (const [column, model] of [['category_id', 'financeCategory'], ['campaign_id', 'contributionCampaign']] as const) {
+  for (const [column, model] of [['category_id', 'financeCategory']] as const) {
     if (changes[column]) {
       const ref = await db[model].findFirst({ where: { id: changes[column], fellowship_id: record.fellowship_id } });
-      if (!ref) throw new BadRequestException(`The selected ${column === 'category_id' ? 'category' : 'campaign'} is not available.`);
+      if (!ref) throw new BadRequestException('The selected category is not available.');
     }
   }
   if (changes.amount !== undefined && !D(changes.amount).equals(record.amount)) {
@@ -196,8 +194,8 @@ async function adjustAmount(tx: Prisma.TransactionClient, kind: FinanceKind, rec
   }
   if (kind === 'budget') return;
   if (kind === 'contribution') {
-    if (record.pledge_id || record.membership_fee_id) {
-      throw new BadRequestException('A pledge or membership-fee payment cannot change its amount; reverse it and record it again.');
+    if (record.membership_fee_id) {
+      throw new BadRequestException('A membership-fee payment cannot change its amount; reverse it and record it again.');
     }
     const allocated = await tx.contributionAllocation.aggregate({ where: { contribution_id: record.id, is_active: true }, _sum: { amount: true } });
     if (D(allocated._sum.amount).greaterThan(next)) throw new BadRequestException('The new amount is less than what is allocated to projects; change the allocations first.');

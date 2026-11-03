@@ -13,7 +13,7 @@ import { DataTable, SearchInput, type Column } from '../components/DataTable';
 
 const MODULES: [string, string][] = [
   ['finance', 'Finance & contributions'], ['youth', 'Youth & children'], ['resources', 'Resources & assets'],
-  ['volunteers', 'Volunteers & service'], ['analytics', 'Analytics'], ['member_engagement', 'Member engagement'],
+  ['volunteers', 'Volunteers & service'], ['member_engagement', 'Member engagement'],
 ];
 type Tab = 'dashboard' | 'registrations' | 'impersonation' | 'tenants' | 'plans' | 'billing' | 'invoices' | 'webhooks' | 'support' | 'audit' | 'health';
 
@@ -597,7 +597,7 @@ function TenantsTab() {
         <FormModal
           title="Onboard a fellowship" submitLabel="Create fellowship"
           description="Creates the fellowship, makes the administrator its Secretary, and provisions an active account for every default role. The temporary passwords are shown once."
-          initial={{ finance: true, youth: true, resources: true, volunteers: true, analytics: true, member_engagement: true }}
+          initial={{ finance: true, youth: true, resources: true, volunteers: true, member_engagement: true }}
           fields={[
             { name: 'name', label: 'Fellowship name', required: true },
             { name: 'location', label: 'Location' },

@@ -142,7 +142,7 @@ export const PUBLIC_PAGES: PublicPageMeta[] = [
     label: 'Give / Donations',
     nav: 'connect',
     title: 'Give / Donations',
-    blurb: 'How to give, and open contribution campaigns.',
+    blurb: 'How to give.',
   },
   {
     key: 'contact',

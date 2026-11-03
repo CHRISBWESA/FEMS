@@ -6,7 +6,6 @@ import { TenantScopeService } from '../shared/tenant/tenant-scope.service';
 import { PERMISSIONS } from '../shared/authorization/permissions';
 import { isUuid } from '../shared/utils/uuid.util';
 import { FinanceAccessService } from './finance-access.service';
-import { FinancePledgesService } from './finance-pledges.service';
 import { validateDate, validateOptionalUuid } from './finance.validation';
 
 const PENDING = ['SUBMITTED', 'UNDER_REVIEW', 'RESUBMITTED'] as const;
@@ -21,7 +20,6 @@ export class FinanceReportsService {
     private tenantScope: TenantScopeService,
     private access: FinanceAccessService,
     private auditService: AuditService,
-    private pledges: FinancePledgesService,
   ) {}
 
   // Fellowship filter for raw SQL. Non-admins are pinned to their own fellowship; the ?fellowshipId
@@ -33,7 +31,7 @@ export class FinanceReportsService {
     return user.fellowshipId ? Prisma.sql`AND fellowship_id = ${user.fellowshipId}::uuid` : Prisma.sql`AND FALSE`;
   }
 
-  private async names(model: 'department' | 'financeCategory' | 'contributionCampaign', ids: (string | null)[]) {
+  private async names(model: 'department' | 'financeCategory', ids: (string | null)[]) {
     const real = Array.from(new Set(ids.filter((i): i is string => !!i)));
     if (real.length === 0) return new Map<string, string>();
     const rows = await (this.prisma as any)[model].findMany({ where: { id: { in: real } }, select: { id: true, name: true } });
@@ -142,10 +140,9 @@ export class FinanceReportsService {
 
     // ---- fellowship-wide only: contributions and other income (never shown to department leaders) ----
     const contribBase = scoped({ date: dateRange });
-    const [cTotal, cByType, cByCampaign, cByCategory, iTotal, iByCategory, monthly] = await Promise.all([
+    const [cTotal, cByType, cByCategory, iTotal, iByCategory, monthly] = await Promise.all([
       this.prisma.contribution.aggregate({ where: contribBase, _sum: { amount: true }, _count: { _all: true } }),
       this.prisma.contribution.groupBy({ by: ['contribution_type'], where: contribBase, _sum: { amount: true }, _count: { _all: true } }),
-      this.prisma.contribution.groupBy({ by: ['campaign_id'], where: contribBase, _sum: { amount: true } }),
       this.prisma.contribution.groupBy({ by: ['category_id'], where: contribBase, _sum: { amount: true } }),
       this.prisma.incomeRecord.aggregate({ where: scoped({ ...deptWhere, date: dateRange }), _sum: { amount: true }, _count: { _all: true } }),
       this.prisma.incomeRecord.groupBy({ by: ['category_id'], where: scoped({ ...deptWhere, date: dateRange }), _sum: { amount: true } }),
@@ -155,14 +152,12 @@ export class FinanceReportsService {
         WHERE "date" >= ${from} AND "date" <= ${to} ${this.fellowshipSql(user, q.fellowshipId)}
         GROUP BY 1 ORDER BY 1`),
     ]);
-    const campNames = await this.names('contributionCampaign', cByCampaign.map((r) => r.campaign_id));
     const cCatNames = await this.names('financeCategory', [...cByCategory.map((r) => r.category_id), ...iByCategory.map((r) => r.category_id)]);
 
     result.contributions = {
       total: str(cTotal._sum.amount),
       count: cTotal._count._all,
       byType: cByType.map((r) => ({ type: r.contribution_type, total: str(r._sum.amount), count: r._count._all })),
-      byCampaign: cByCampaign.map((r) => ({ campaignId: r.campaign_id, name: r.campaign_id ? campNames.get(r.campaign_id) ?? null : 'No campaign', total: str(r._sum.amount) })),
       byCategory: cByCategory.map((r) => ({ categoryId: r.category_id, name: r.category_id ? cCatNames.get(r.category_id) ?? null : 'Uncategorised', total: str(r._sum.amount) })),
       monthly: monthly.map((m) => ({ month: m.month.toISOString().slice(0, 7), total: str(m.total), count: Number(m.count) })),
     };
@@ -192,7 +187,7 @@ export class FinanceReportsService {
     const [rows, byType, total] = await Promise.all([
       this.prisma.contribution.findMany({
         where, orderBy: { date: 'desc' }, take: 1000,
-        select: { id: true, amount: true, contribution_type: true, date: true, notes: true, campaign: { select: { id: true, name: true } }, category: { select: { id: true, name: true } } },
+        select: { id: true, amount: true, contribution_type: true, date: true, notes: true, category: { select: { id: true, name: true } } },
       }),
       this.prisma.contribution.groupBy({ by: ['contribution_type'], where, _sum: { amount: true }, _count: { _all: true } }),
       this.prisma.contribution.aggregate({ where, _sum: { amount: true }, _count: { _all: true } }),
@@ -204,19 +199,6 @@ export class FinanceReportsService {
       contributions: rows.map((r) => ({ ...r, amount: str(r.amount) })),
       truncated: total._count._all > rows.length,
     };
-  }
-
-  private async pledgesWithFulfillment(memberId: string, fellowshipId: string | null) {
-    const pledges = await this.prisma.contributionPledge.findMany({
-      where: { member_id: memberId, fellowship_id: fellowshipId },
-      include: { campaign: { select: { id: true, name: true } } },
-      orderBy: { created_at: 'desc' },
-      take: 50,
-    });
-    return Promise.all(pledges.map(async (p) => ({
-      id: p.id, amount: str(p.amount), frequency: p.frequency, startDate: p.start_date, endDate: p.end_date,
-      isActive: p.is_active, campaign: p.campaign, fulfillment: await this.pledges.fulfillmentFor(p),
-    })));
   }
 
   // An individual's giving is sensitive: only finance viewers holding the statement permission may read
@@ -231,12 +213,9 @@ export class FinanceReportsService {
 
     const from = validateDate('from', q.from, { required: false, maxFutureDays: 3650 });
     const to = validateDate('to', q.to, { required: false, maxFutureDays: 3650 });
-    const [giving, pledges] = await Promise.all([
-      this.contributionsFor(memberId, member.fellowship_id, from, to),
-      this.pledgesWithFulfillment(memberId, member.fellowship_id),
-    ]);
+    const giving = await this.contributionsFor(memberId, member.fellowship_id, from, to);
     await this.auditService.log({ userId: user.userId, action: 'finance.member_statement_view', entityType: 'member', entityId: memberId });
-    return { member: { id: member.id, fullName: member.full_name, memberCode: member.member_code }, ...giving, pledges };
+    return { member: { id: member.id, fullName: member.full_name, memberCode: member.member_code }, ...giving };
   }
 
   // Self-service: a signed-in user sees ONLY the member record linked to their own account.
@@ -248,10 +227,7 @@ export class FinanceReportsService {
     if (!member) throw new NotFoundException('No member profile is linked to your account.');
     const from = validateDate('from', q.from, { required: false, maxFutureDays: 3650 });
     const to = validateDate('to', q.to, { required: false, maxFutureDays: 3650 });
-    const [giving, pledges] = await Promise.all([
-      this.contributionsFor(member.id, member.fellowship_id, from, to),
-      this.pledgesWithFulfillment(member.id, member.fellowship_id),
-    ]);
-    return { member: { id: member.id, fullName: member.full_name, memberCode: member.member_code }, ...giving, pledges };
+    const giving = await this.contributionsFor(member.id, member.fellowship_id, from, to);
+    return { member: { id: member.id, fullName: member.full_name, memberCode: member.member_code }, ...giving };
   }
 }

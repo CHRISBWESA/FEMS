@@ -4,11 +4,10 @@ import { useI18n } from '../context/I18nContext';
 import { PageLoader } from '../components/ui';
 import { FinContext, FinScope, useLoad } from './common';
 import FinDashboard from './Dashboard';
-import { Contributions, Income, Pledges } from './Money';
+import { Contributions, Income } from './Money';
 import { Expenses, MoneyRequests } from './Spending';
 import { Budgets } from './Budgets';
 import { Accounts } from './Accounts';
-import { Campaigns } from './Campaigns';
 import { Approvals, Periods, Reports, Settings } from './Admin';
 
 import { CENTRAL_FINANCE_ROLES } from '../lib/area-roles';
@@ -27,8 +26,6 @@ export function sections(scope: FinScope): Section[] {
     { path: 'budgets', key: 'fin.nav.budgets', element: <Budgets /> },
     { path: 'money-requests', key: 'fin.nav.moneyRequests', element: <MoneyRequests />, show: central },
     { path: 'income', key: 'fin.nav.income', element: <Income /> },
-    { path: 'campaigns', key: 'fin.nav.campaigns', element: <Campaigns /> },
-    { path: 'pledges', key: 'fin.nav.pledges', element: <Pledges /> },
     { path: 'accounts', key: 'fin.nav.accounts', element: <Accounts /> },
     { path: 'periods', key: 'fin.nav.periods', element: <Periods />, show: central },
     { path: 'reports', key: 'fin.nav.reports', element: <Reports /> },

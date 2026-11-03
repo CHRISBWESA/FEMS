@@ -96,24 +96,3 @@ export async function assertPeriodOpen(
     throw new BadRequestException(`The financial period "${closed.name}" is closed; records dated in it can no longer be changed.`);
   }
 }
-
-// Expected number of payments a pledge would have produced from `start` up to `asOf`.
-export function expectedInstallments(
-  frequency: 'one_time' | 'weekly' | 'monthly' | 'quarterly' | 'yearly',
-  start: Date,
-  asOf: Date,
-  end?: Date | null,
-): number {
-  const stop = end && end < asOf ? end : asOf;
-  if (stop < start) return 0;
-  if (frequency === 'one_time') return 1;
-  if (frequency === 'weekly') {
-    return Math.floor((stop.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
-  }
-  const months =
-    (stop.getUTCFullYear() - start.getUTCFullYear()) * 12 +
-    (stop.getUTCMonth() - start.getUTCMonth()) -
-    (stop.getUTCDate() < start.getUTCDate() ? 1 : 0);
-  const step = frequency === 'monthly' ? 1 : frequency === 'quarterly' ? 3 : 12;
-  return Math.floor(months / step) + 1;
-}

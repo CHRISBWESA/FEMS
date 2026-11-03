@@ -134,7 +134,6 @@ export function ProjectDetail() {
           <StatCard label="Funds received" value={fmtMoney(f.fundingReceived, currency)} hint={`${f.fundingProgressPercent}% of budget`} tone="success" />
           <StatCard label="Paid" value={fmtMoney(f.expensesPaid, currency)} />
           <StatCard label="Approved, not yet paid" value={fmtMoney(f.commitments, currency)} tone={Number(f.commitments) ? 'warning' : 'neutral'} />
-          <StatCard label="Pledged, not yet received" value={fmtMoney(f.pledgesOutstanding, currency)} hint="Promises are not money" />
           <StatCard label="Budget left" value={fmtMoney(f.remainingBudget, currency)} tone={Number(f.remainingBudget) < 0 ? 'danger' : 'neutral'} />
         </StatGrid>
         <div className="h-3 overflow-hidden rounded bg-surface-sunken" aria-label={`Funding progress ${f.fundingProgressPercent}%`}><div className="h-full bg-success" style={{ width: `${Math.min(100, f.fundingProgressPercent)}%` }} /></div>
@@ -170,11 +169,9 @@ export function ProjectDetail() {
           )}
         </Card>
 
-        {(p.fundAllocations.length > 0 || p.pledges.length > 0 || p.campaigns.length > 0) && (
+        {p.fundAllocations.length > 0 && (
           <div className="grid gap-4 lg:grid-cols-3">
             <Card className="card-pad"><h2 className="mb-2 text-sm font-semibold">Allocations</h2>{p.fundAllocations.map((a: any) => <Row key={a.id} k={`${a.allocation_number} · ${label(a.kind)}`} v={<>{fmtMoney(a.amount)} <Status value={a.status} /></>} />)}</Card>
-            <Card className="card-pad"><h2 className="mb-2 text-sm font-semibold">Pledges</h2>{p.pledges.map((x: any) => <Row key={x.id} k={x.pledge_number} v={<>{fmtMoney(x.amount_fulfilled)} / {fmtMoney(x.amount)} <Status value={x.status} /></>} />)}</Card>
-            <Card className="card-pad"><h2 className="mb-2 text-sm font-semibold">Campaigns</h2>{p.campaigns.map((c: any) => <Row key={c.id} k={c.name} v={<Status value={c.status} />} />)}</Card>
           </div>
         )}
 

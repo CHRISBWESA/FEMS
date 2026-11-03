@@ -4,7 +4,7 @@ import { api, createTestApp, describeDb, getPrisma, makeDepartment, makeFellowsh
 
 jest.setTimeout(300_000);
 
-describeDb('Phase 15 - advanced finance: validation, scope, campaigns, periods, pledges, income, reports (real Postgres)', () => {
+describeDb('Phase 15 - advanced finance: validation, scope, periods, income, reports (real Postgres)', () => {
   let app: INestApplication;
   let prisma: ReturnType<typeof getPrisma>;
   let fA: any, fB: any, D1: any, D2: any;
@@ -67,15 +67,13 @@ describeDb('Phase 15 - advanced finance: validation, scope, campaigns, periods, 
       await post(treas, '/finance/money-requests', { title: 'x', amount: 1, purpose: 'y' }).expect(403); // the Treasurer cannot raise requests
     });
 
-    it('a member/department/campaign/category/receipt from ANOTHER fellowship is refused (indistinguishable from missing)', async () => {
+    it('a member/department/category/receipt from ANOTHER fellowship is refused (indistinguishable from missing)', async () => {
       await contribution({ memberId: mB.id }).expect(404);
       await contribution({ memberId: randomUUID() }).expect(404);
       const deptB = await makeDepartment(prisma, fB.id, 'ADB');
       await post(treas, '/finance/expenses', { title: 'x', amount: 1, date: '2026-09-01', departmentId: deptB.id }).expect(404);
       const catB = (await post(treasB, '/finance/categories', { kind: 'contribution', name: `catB-${uniq()}` }).expect(201)).body;
       await contribution({ categoryId: catB.id }).expect(400);
-      const campB = (await post(treasB, '/finance/campaigns', { name: `campB-${uniq()}`, startDate: '2026-01-01' }).expect(201)).body;
-      await contribution({ campaignId: campB.id }).expect(400);
       const docB = await prisma.documentEntity.create({ data: { title: 'r', filename: 'r.pdf', stored_filename: 'x', file_size: 1, mime_type: 'application/pdf', uploaded_by: randomUUID(), fellowship_id: fB.id } });
       await contribution({ receiptDocumentId: docB.id }).expect(400);
     });
@@ -121,8 +119,6 @@ describeDb('Phase 15 - advanced finance: validation, scope, campaigns, periods, 
       expect(exp.body.every((e: any) => e.department_id === D1.id)).toBe(true);
       await get(ds1, '/finance/contributions').expect(403);
       await get(ds1, '/finance/income').expect(403);
-      await get(ds1, '/finance/campaigns').expect(403);
-      await get(ds1, '/finance/pledges').expect(403);
       await get(ds1, `/finance/members/${m1.id}/statement`).expect(403);
     });
 
@@ -133,7 +129,7 @@ describeDb('Phase 15 - advanced finance: validation, scope, campaigns, periods, 
 
     it('ordinary members and gender leaders see no finance lists', async () => {
       for (const u of [ord, gl]) {
-        for (const path of ['contributions', 'expenses', 'budgets', 'money-requests', 'income', 'campaigns', 'periods', 'categories', 'pledges']) {
+        for (const path of ['contributions', 'expenses', 'budgets', 'money-requests', 'income', 'periods', 'categories']) {
           await get(u, `/finance/${path}`).expect(403);
         }
         await get(u, '/finance/reports/summary').expect(403);
@@ -162,8 +158,8 @@ describeDb('Phase 15 - advanced finance: validation, scope, campaigns, periods, 
     });
   });
 
-  describe('categories, campaigns, income', () => {
-    let cat: any, incomeCat: any, campaign: any;
+  describe('categories and income', () => {
+    let cat: any, incomeCat: any;
 
     it('categories are per fellowship and per kind; only Treasurer/Secretary manage them', async () => {
       cat = (await post(treas, '/finance/categories', { kind: 'contribution', name: `Tithes ${uniq()}` }).expect(201)).body;
@@ -187,23 +183,6 @@ describeDb('Phase 15 - advanced finance: validation, scope, campaigns, periods, 
       await put(treas, `/finance/categories/${cat.id}`, { isActive: false }).expect(200);
       await contribution({ categoryId: cat.id }).expect(400); // inactive
       await put(treas, `/finance/categories/${cat.id}`, { isActive: true }).expect(200);
-    });
-
-    it('campaigns track raised amounts; closed campaigns accept no new contributions', async () => {
-      campaign = (await post(treas, '/finance/campaigns', { name: `Building ${uniq()}`, targetAmount: 1000, startDate: '2026-01-01' }).expect(201)).body;
-      await post(treas, '/finance/campaigns', { name: campaign.name, startDate: '2026-01-01' }).expect(400);
-      await post(treas, '/finance/campaigns', { name: 'x', startDate: '2026-05-01', endDate: '2026-01-01' }).expect(400);
-      await post(chair, '/finance/campaigns', { name: 'nope', startDate: '2026-01-01' }).expect(403);
-      await post(ds1, '/finance/campaigns', { name: 'nope', startDate: '2026-01-01' }).expect(403);
-      await contribution({ campaignId: campaign.id, amount: 250 }).expect(201);
-      await contribution({ campaignId: campaign.id, memberId: m2.id, amount: 250 }).expect(201);
-      await post(treas, '/finance/income', { title: 'Gala', amount: 100, date: '2026-09-02', campaignId: campaign.id }).expect(201);
-      const got = (await get(chair, `/finance/campaigns/${campaign.id}`).expect(200)).body;
-      expect(got.progress).toMatchObject({ raised: '600', contributions: '500', otherIncome: '100', contributionCount: 2, contributorCount: 2, percentOfTarget: 60 });
-      await put(treas, `/finance/campaigns/${campaign.id}`, { status: 'closed' }).expect(200);
-      await contribution({ campaignId: campaign.id }).expect(400);
-      await get(secB, `/finance/campaigns/${campaign.id}`).expect(403);
-      await get(treas, '/finance/campaigns/not-a-uuid').expect(404);
     });
 
     it('income records validate, need permission, and appear in listings', async () => {
@@ -242,36 +221,14 @@ describeDb('Phase 15 - advanced finance: validation, scope, campaigns, periods, 
     });
   });
 
-  describe('pledges (commitments, never auto-recorded money)', () => {
-    it('tracks expected vs received without creating contributions', async () => {
-      const start = new Date();
-      start.setUTCMonth(start.getUTCMonth() - 3);
-      const startStr = start.toISOString().slice(0, 10);
-      const pledgeMember = await makeMember(prisma, { fellowshipId: fA.id, name: 'Pledger' });
-      const pledge = (await post(treas, '/finance/pledges', { memberId: pledgeMember.id, amount: 100, frequency: 'monthly', startDate: startStr }).expect(201)).body;
-      const before = await prisma.contribution.count({ where: { member_id: pledgeMember.id } });
-      await post(treas, '/finance/contributions', { memberId: pledgeMember.id, amount: 100, contributionType: 'pledge', date: new Date().toISOString().slice(0, 10) }).expect(201);
-      const f = (await get(chair, `/finance/pledges/${pledge.id}/fulfillment`).expect(200)).body;
-      expect(f.expectedInstallments).toBe(4);
-      expect(f.expectedAmount).toBe('400');
-      expect(f.receivedAmount).toBe('100');
-      expect(f.balance).toBe('300');
-      expect(await prisma.contribution.count({ where: { member_id: pledgeMember.id } })).toBe(before + 1); // only the one we recorded
-    });
-
-    it('validation, permissions and tenant isolation', async () => {
-      const ok = { memberId: m1.id, amount: 10, frequency: 'weekly', startDate: '2026-01-01' };
-      await post(treas, '/finance/pledges', { ...ok, frequency: 'daily' }).expect(400);
-      await post(treas, '/finance/pledges', { ...ok, amount: 0 }).expect(400);
-      await post(treas, '/finance/pledges', { ...ok, memberId: mB.id }).expect(404);
-      await post(treas, '/finance/pledges', { ...ok, endDate: '2025-01-01' }).expect(400);
-      await post(asst, '/finance/pledges', ok).expect(403);
-      await post(ord, '/finance/pledges', ok).expect(403);
-      const p = (await post(sec, '/finance/pledges', ok).expect(201)).body;
-      await get(treasB, `/finance/pledges/${p.id}/fulfillment`).expect(403);
-      await get(treas, '/finance/pledges/not-a-uuid/fulfillment').expect(404);
-      await put(treas, `/finance/pledges/${p.id}`, { isActive: false }).expect(200);
-      await put(treasB, `/finance/pledges/${p.id}`, { isActive: false }).expect(403);
+  describe('removed features', () => {
+    it('campaigns, pledges and the analytics pages no longer exist, and their ids are ignored on new records', async () => {
+      for (const url of ['/finance/campaigns', '/finance/pledges', '/analytics/overview']) await get(treas, url).expect(404);
+      await post(treas, '/finance/campaigns', { name: 'x', startDate: '2026-01-01' }).expect(404);
+      await post(treas, '/finance/pledges', { memberId: m1.id, amount: 10, frequency: 'weekly', startDate: '2026-01-01' }).expect(404);
+      const c = (await contribution({ campaignId: randomUUID(), pledgeId: randomUUID() }).expect(201)).body;
+      expect(c.campaign_id ?? null).toBeNull();
+      expect(c.pledge_id ?? null).toBeNull();
     });
   });
 

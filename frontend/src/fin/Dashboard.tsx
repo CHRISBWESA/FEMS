@@ -1,4 +1,4 @@
-import { BanknotesIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon, ClockIcon, HandRaisedIcon, ChartPieIcon } from '@heroicons/react/24/outline';
+import { BanknotesIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon, ClockIcon, ChartPieIcon } from '@heroicons/react/24/outline';
 import { Card, ErrorState, PageHeader, PageLoader, StatCard, StatGrid, Button, useToast } from '../components/ui';
 import { useI18n } from '../context/I18nContext';
 import axios from 'axios';
@@ -15,7 +15,7 @@ export default function FinDashboard() {
   const runReminders = async () => {
     try {
       const r = (await axios.post('/finance/reminders/run', {}, { withCredentials: true })).data;
-      toast.push('success', `Reminders sent: ${r.pledgesDueSoon + r.pledgesOverdue} pledges, ${r.budgetDeadlines} budget deadlines, ${r.reconciliations} reconciliations.`);
+      toast.push('success', `Reminders sent: ${r.budgetDeadlines} budget deadlines, ${r.reconciliations} reconciliations.`);
     } catch (e) { toast.push('error', errMsg(e, 'Could not send reminders.')); }
   };
   const canRemind = !s.departmentId && s.roles.some((r) => ['treasurer', 'secretary', 'assistant_secretary'].includes(r));
@@ -28,7 +28,6 @@ export default function FinDashboard() {
         <StatCard label={t('fin.card.expenses')} value={fmtMoney(c.totalExpenses, s.currency)} hint={t('fin.card.paidThisYear')} icon={<ArrowTrendingDownIcon className="h-5 w-5" />} tone="danger" />
         <StatCard label={t('fin.card.balance')} value={fmtMoney(c.availableBalance, s.currency)} hint={t('fin.card.allAccounts')} icon={<BanknotesIcon className="h-5 w-5" />} tone="primary" />
         <StatCard label={t('fin.card.pending')} value={c.pendingApprovals} hint={t('fin.card.waitingForYou')} icon={<ClockIcon className="h-5 w-5" />} tone={c.pendingApprovals ? 'warning' : 'neutral'} to={s.departmentId ? 'approvals' : '/finance/approvals'} />
-        <StatCard label={t('fin.card.pledges')} value={fmtMoney(c.outstandingPledges, s.currency)} hint={c.overduePledges ? `${c.overduePledges} overdue · not yet received` : 'Promised, not yet received'} icon={<HandRaisedIcon className="h-5 w-5" />} tone={c.overduePledges ? 'danger' : 'neutral'} />
         <StatCard label={t('fin.card.budget')} value={c.budgetUtilisationPercent === null ? '—' : `${c.budgetUtilisationPercent}%`} hint={`${fmtMoney(c.budgetSpent, s.currency)} of ${fmtMoney(c.budgetApproved, s.currency)}`} icon={<ChartPieIcon className="h-5 w-5" />} tone={c.budgetUtilisationPercent > 90 ? 'danger' : 'neutral'} />
       </StatGrid>
 

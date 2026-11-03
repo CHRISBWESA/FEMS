@@ -61,8 +61,8 @@ describeDb('Phase 20 - SaaS billing, plans & subscriptions (real Postgres, full 
     secA = await mk(['secretary']); asstA = await mk(['assistant_secretary']); chairA = await mk(['chairperson']); treasA = await mk(['treasurer']); ordA = await mk(['ordinary_member']);
     secB = await mk(['secretary'], fB);
     const mkPlan = async (body: object) => (await post(padmin, `${B}/plans`, body).expect(201)).body;
-    starter = await mkPlan({ code: `starter-${uniq()}`, name: 'Starter', price: 10, currency: 'USD', billingInterval: 'month', trialDays: 14, modules: ['finance', 'analytics'], limits: { max_users: 3, max_members: 5 } });
-    pro = await mkPlan({ code: `pro-${uniq()}`, name: 'Pro', price: '500.00', billingInterval: 'year', trialDays: 30, modules: ['finance', 'youth', 'resources', 'volunteers', 'analytics', 'member_engagement'], limits: { max_users: 50 } });
+    starter = await mkPlan({ code: `starter-${uniq()}`, name: 'Starter', price: 10, currency: 'USD', billingInterval: 'month', trialDays: 14, modules: ['finance'], limits: { max_users: 3, max_members: 5 } });
+    pro = await mkPlan({ code: `pro-${uniq()}`, name: 'Pro', price: '500.00', billingInterval: 'year', trialDays: 30, modules: ['finance', 'youth', 'resources', 'volunteers', 'member_engagement'], limits: { max_users: 50 } });
     free = await mkPlan({ code: `free-${uniq()}`, name: 'Free', price: 0, modules: [], limits: {} });
     tiny = await mkPlan({ code: `tiny-${uniq()}`, name: 'Tiny', price: 5, modules: ['finance'], limits: { max_users: 1, max_storage_mb: 1 } });
   });
@@ -260,16 +260,15 @@ describeDb('Phase 20 - SaaS billing, plans & subscriptions (real Postgres, full 
   // ---------------------------------------------------------------------------------------------------------
   describe('what a subscription entitles a fellowship to (authentication and RBAC are untouched)', () => {
     it('a fellowship without a subscription is unmanaged and unaffected', async () => {
-      for (const url of ['/youth', '/resources/assets', '/volunteers/opportunities', '/finance/periods', '/analytics/overview']) await get(secA, url).expect(200);
+      for (const url of ['/youth', '/resources/assets', '/volunteers/opportunities', '/finance/periods']) await get(secA, url).expect(200);
       expect((await get(secA, '/profile').expect(200)).body.disabledModules).toEqual([]);
     });
 
     it('the plan decides which optional modules exist; core features and RBAC carry on', async () => {
       const t = await tenant();
-      await assign(t.id, starter).expect(201); // finance + analytics only
+      await assign(t.id, starter).expect(201); // finance only
       const s = t.sec;
       await get(s, '/finance/periods').expect(200);
-      await get(s, '/analytics/overview').expect(200);
       for (const url of ['/youth', '/resources/assets', '/volunteers/opportunities', '/member-groups']) {
         const r = await get(s, url).expect(403);
         expect(r.body.message).toMatch(/not enabled/i);
@@ -286,8 +285,6 @@ describeDb('Phase 20 - SaaS billing, plans & subscriptions (real Postgres, full 
       // the platform's own module switch still wins over a plan that includes the module
       await put(padmin, `/platform/tenants/${t.id}/modules`, { modules: { youth: false } }).expect(200);
       await get(s, '/youth').expect(403);
-      // ...and the plan's analytics section list follows
-      expect((await get(s, '/analytics/overview').expect(200)).body.available).not.toContain('youth');
     });
 
     it('a lapsed subscription switches optional modules off and blocks additions, but never blocks sign-in or core access', async () => {
@@ -298,7 +295,7 @@ describeDb('Phase 20 - SaaS billing, plans & subscriptions (real Postgres, full 
       await login(t.email, t.password).expect(201); // authentication is unaffected
       await get(t.sec, '/members').expect(200);
       await get(t.sec, '/profile').expect(200);
-      for (const url of ['/youth', '/finance/periods', '/analytics/overview']) await get(t.sec, url).expect(403);
+      for (const url of ['/youth', '/finance/periods']) await get(t.sec, url).expect(403);
       const m = await makeMember(prisma, { fellowshipId: t.id });
       const blocked = await post(t.sec, '/users', { email: `x${uniq()}@test.local`, password: 'Passw0rd!x', firstName: 'A', lastName: 'B', memberId: m.id }).expect(403);
       expect(blocked.body.message).toMatch(/subscription is not active/);

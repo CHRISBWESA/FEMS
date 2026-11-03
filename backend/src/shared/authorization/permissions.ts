@@ -70,10 +70,8 @@ export const PERMISSIONS = {
 
   // Advanced finance (Phase 15)
   FINANCE_CATEGORY_MANAGE: 'finance.category_manage',
-  FINANCE_CAMPAIGN_MANAGE: 'finance.campaign_manage',
   FINANCE_INCOME_RECORD: 'finance.income_record',
   FINANCE_PERIOD_MANAGE: 'finance.period_manage',
-  FINANCE_PLEDGE_MANAGE: 'finance.pledge_manage',
   FINANCE_RELEASE_RECORD: 'finance.release_record',
   FINANCE_REPORTS_VIEW: 'finance.reports_view',
   FINANCE_DEPARTMENT_VIEW: 'finance.department_view',

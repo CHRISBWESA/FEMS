@@ -24,7 +24,6 @@ export interface CreateIncomeDto {
   date: string;
   source?: string;
   categoryId?: string;
-  campaignId?: string;
   departmentId?: string;
   receiptDocumentId?: string;
   fellowshipId?: string;
@@ -51,7 +50,6 @@ export class FinanceIncomeService {
     if (q.projectId) extra.project_id = validateRequiredUuid('projectId', q.projectId);
     if (q.status === 'reversed' || q.status === 'active') extra.status = q.status;
     if (q.categoryId) extra.category_id = validateRequiredUuid('categoryId', q.categoryId);
-    if (q.campaignId) extra.campaign_id = validateRequiredUuid('campaignId', q.campaignId);
     const from = validateDate('from', q.from, { required: false, maxFutureDays: 3650 });
     const to = validateDate('to', q.to, { required: false, maxFutureDays: 3650 });
     if (from || to) extra.date = { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) };
@@ -60,7 +58,7 @@ export class FinanceIncomeService {
     const [data, total] = await Promise.all([
       this.prisma.incomeRecord.findMany({
         where, orderBy: [{ date: 'desc' }, { created_at: 'desc' }], take, skip,
-        include: { category: { select: { id: true, name: true } }, campaign: { select: { id: true, name: true } }, account: { select: { id: true, name: true } } },
+        include: { category: { select: { id: true, name: true } }, account: { select: { id: true, name: true } } },
       }),
       this.prisma.incomeRecord.count({ where }),
     ]);
@@ -92,7 +90,6 @@ export class FinanceIncomeService {
     const source = validateText('source', dto?.source, 200);
     const fundingSource = validateText('fundingSource', dto?.fundingSource, 100);
     const categoryId = validateOptionalUuid('categoryId', dto?.categoryId);
-    const campaignId = validateOptionalUuid('campaignId', dto?.campaignId);
     const projectId = validateOptionalUuid('projectId', dto?.projectId);
     const accountId = validateOptionalUuid('accountId', dto?.accountId);
     const receiptId = validateOptionalUuid('receiptDocumentId', dto?.receiptDocumentId);
@@ -102,7 +99,6 @@ export class FinanceIncomeService {
     if (!settings.payment_methods.includes(method)) throw new BadRequestException(`paymentMethod must be one of: ${settings.payment_methods.join(', ')}`);
 
     if (categoryId) await this.access.assertCategory(categoryId, 'income', fellowshipId);
-    if (campaignId) await this.access.assertCampaign(campaignId, fellowshipId);
     if (departmentId) await this.access.assertDepartment(departmentId, fellowshipId);
     if (projectId) await assertProjectForScope(this.prisma, projectId, fellowshipId, fund);
     if (receiptId) await this.access.assertReceipt(receiptId, fellowshipId);
@@ -118,7 +114,7 @@ export class FinanceIncomeService {
       const r = await tx.incomeRecord.create({
         data: {
           title, description, amount, date, source, funding_source: fundingSource,
-          category_id: categoryId, campaign_id: campaignId, department_id: departmentId, project_id: projectId,
+          category_id: categoryId, department_id: departmentId, project_id: projectId,
           account_id: account.id, payment_method: method, payment_reference: reference, receipt_number: receipt,
           receipt_document_id: receiptId, recorded_by: user.userId, fellowship_id: fellowshipId,
         },

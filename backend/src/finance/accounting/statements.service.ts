@@ -18,12 +18,10 @@ export const REPORTS: { key: string; title: string; centralOnly?: boolean }[] = 
   { key: 'account-balances', title: 'Account balances' },
   { key: 'contributions', title: 'Contributions report' },
   { key: 'membership-fees', title: 'Membership fee collection' },
-  { key: 'pledges', title: 'Pledge report' },
   { key: 'expenses', title: 'Expense report' },
   { key: 'budget-performance', title: 'Budget performance' },
   { key: 'projects', title: 'Project financial report' },
   { key: 'departments', title: 'Department financial report', centralOnly: true },
-  { key: 'campaigns', title: 'Fundraising campaign report' },
   { key: 'funding-sources', title: 'Funding source report' },
   { key: 'transfers', title: 'Transfer report' },
   { key: 'audit', title: 'Financial audit report', centralOnly: true },
@@ -36,8 +34,7 @@ const SOURCE_EXPENSE = ['expense', 'money_request_release'];
 
 /**
  * Reports, the finance dashboard and the department transparency summary. Everything is computed from the records
- * and the ledger. Reports separate money actually received and paid from promises (pledges) and approvals not yet
- * paid (commitments). Department leaders only ever get their own department's figures.
+ * and the ledger. Reports separate money actually received and paid from approvals not yet paid (commitments). Department leaders only ever get their own department's figures.
  */
 @Injectable()
 export class StatementsService {
@@ -102,7 +99,7 @@ export class StatementsService {
     for (const [k, v] of expBy) { rows.push({ section: 'Expenditure', item: k, amount: v.toFixed(2) }); outT = outT.plus(v); }
     return { ...rep, columns: [col('section', 'Section'), col('item', 'Item'), col('amount', 'Amount', true)], rows,
       summary: [{ label: 'Total income received', value: inT.toFixed(2) }, { label: 'Total expenditure paid', value: outT.toFixed(2) }, { label: 'Surplus / (deficit)', value: inT.minus(outT).toFixed(2) }],
-      notes: ['Transfers between accounts and General Fund allocations are internal movements and are not income or expenditure. Pledges and approved-but-unpaid spending are excluded.'] };
+      notes: ['Transfers between accounts and General Fund allocations are internal movements and are not income or expenditure. Approved-but-unpaid spending is excluded.'] };
   }
 
   // ---------- 2. cash position per account for the period ----------
@@ -139,7 +136,6 @@ export class StatementsService {
     const where: Prisma.ContributionWhereInput = { fellowship_id: sc.fellowshipId, department_id: sc.departmentId, ...(r ? { date: r } : {}) };
     if (q?.status === 'reversed') where.status = 'reversed'; else if (q?.status !== 'all') where.status = 'active';
     if (q?.categoryId && isUuid(q.categoryId)) where.category_id = q.categoryId;
-    if (q?.campaignId && isUuid(q.campaignId)) where.campaign_id = q.campaignId;
     if (q?.accountId && isUuid(q.accountId)) where.account_id = q.accountId;
     if (q?.paymentMethod) where.payment_method = validateText('paymentMethod', q.paymentMethod, 30);
     if (q?.projectId && isUuid(q.projectId)) where.allocations = { some: { project_id: q.projectId, is_active: true } };
@@ -170,24 +166,6 @@ export class StatementsService {
     }
     return { ...rep, columns: [col('fee', 'Fee'), col('frequency', 'Frequency'), col('amount', 'Per period', true), col('members', 'Members'), col('periods', 'Periods due'), col('expected', 'Expected', true), col('collected', 'Collected', true), col('outstanding', 'Outstanding', true)], rows,
       summary: [{ label: 'Expected to date', value: exp.toFixed(2) }, { label: 'Collected', value: paid.toFixed(2) }, { label: 'Outstanding', value: Prisma.Decimal.max(exp.minus(paid), ZERO).toFixed(2) }] };
-  }
-
-  private async r_pledges(sc: any, r: any, q: any, rep: Report) {
-    const where: any = { fellowship_id: sc.fellowshipId, department_id: sc.departmentId, ...(r ? { created_at: r } : {}) };
-    if (q?.projectId && isUuid(q.projectId)) where.project_id = q.projectId;
-    if (q?.campaignId && isUuid(q.campaignId)) where.campaign_id = q.campaignId;
-    const rows = await this.prisma.contributionPledge.findMany({ where, orderBy: { created_at: 'asc' }, take: MAX_ROWS + 1, include: { member: { select: { full_name: true } }, campaign: { select: { name: true } } } });
-    let pledged = ZERO, fulfilled = ZERO, outstanding = ZERO;
-    const now = new Date();
-    const out = rows.map((p) => {
-      const o = p.status === 'cancelled' ? ZERO : Prisma.Decimal.max(D(p.amount).minus(p.amount_fulfilled), ZERO);
-      if (p.status !== 'cancelled') { pledged = pledged.plus(p.amount); fulfilled = fulfilled.plus(p.amount_fulfilled); outstanding = outstanding.plus(o); }
-      const overdue = o.greaterThan(0) && p.due_date && p.due_date < now && p.status !== 'cancelled';
-      return { number: p.pledge_number, pledger: p.contributor_type === 'anonymous' ? 'Anonymous' : p.member?.full_name ?? p.contributor_name, campaign: p.campaign?.name, due: p.due_date, status: overdue ? 'overdue' : p.status, pledged: money(p.amount), fulfilled: money(p.amount_fulfilled), outstanding: o.toFixed(2) };
-    });
-    return { ...rep, columns: [col('number', 'Pledge'), col('pledger', 'Pledged by'), col('campaign', 'Campaign'), col('due', 'Due'), col('status', 'Status'), col('pledged', 'Pledged', true), col('fulfilled', 'Paid', true), col('outstanding', 'Outstanding', true)], rows: out,
-      totals: { pledged: pledged.toFixed(2), fulfilled: fulfilled.toFixed(2), outstanding: outstanding.toFixed(2) },
-      summary: [{ label: 'Total pledged', value: pledged.toFixed(2) }, { label: 'Paid towards pledges', value: fulfilled.toFixed(2) }, { label: 'Outstanding (not money received)', value: outstanding.toFixed(2) }] };
   }
 
   private async r_expenses(sc: any, r: any, q: any, rep: Report) {
@@ -245,10 +223,10 @@ export class StatementsService {
     const rows: any[] = [];
     for (const p of projects) {
       const f = await projectFinancials(this.prisma, p);
-      rows.push({ number: p.project_number, name: p.name, status: p.status, budget: f.budget, received: f.fundingReceived, paid: f.expensesPaid, committed: f.commitments, pledged: f.pledgesOutstanding, remaining: f.remainingBudget, progress: `${f.fundingProgressPercent}%` });
+      rows.push({ number: p.project_number, name: p.name, status: p.status, budget: f.budget, received: f.fundingReceived, paid: f.expensesPaid, committed: f.commitments, remaining: f.remainingBudget, progress: `${f.fundingProgressPercent}%` });
     }
-    return { ...rep, columns: [col('number', 'Project'), col('name', 'Name'), col('status', 'Status'), col('budget', 'Budget', true), col('received', 'Funds received', true), col('paid', 'Paid', true), col('committed', 'Committed', true), col('pledged', 'Pledges outstanding', true), col('remaining', 'Budget left', true), col('progress', 'Funded')], rows,
-      notes: ['Funds received = contributions allocated + project income + General Fund allocations. Outstanding pledges are promises and are not counted as received.'] };
+    return { ...rep, columns: [col('number', 'Project'), col('name', 'Name'), col('status', 'Status'), col('budget', 'Budget', true), col('received', 'Funds received', true), col('paid', 'Paid', true), col('committed', 'Committed', true), col('remaining', 'Budget left', true), col('progress', 'Funded')], rows,
+      notes: ['Funds received = contributions allocated + project income + General Fund allocations.'] };
   }
 
   private async r_departments(sc: any, r: any, _q: any, rep: Report) {
@@ -259,25 +237,6 @@ export class StatementsService {
       rows.push({ department: d.name, contributions: s.contributionsCollected, fees: s.membershipFeesCollected, outstandingFees: s.outstandingMembershipFees, expenses: s.totalExpenditure, balance: s.availableBalance, budget: s.approvedBudget });
     }
     return { ...rep, columns: [col('department', 'Department'), col('contributions', 'Contributions', true), col('fees', 'Fees collected', true), col('outstandingFees', 'Fees outstanding', true), col('expenses', 'Spent', true), col('balance', 'Balance', true), col('budget', 'Approved budget', true)], rows };
-  }
-
-  private async r_campaigns(sc: any, _r: any, _q: any, rep: Report) {
-    const camps = await this.prisma.contributionCampaign.findMany({ where: { fellowship_id: sc.fellowshipId, department_id: sc.departmentId }, orderBy: { start_date: 'desc' } });
-    const rows: any[] = [];
-    for (const c of camps) {
-      const raised = await this.raised(c.id);
-      const target = c.target_amount ? D(c.target_amount) : null;
-      rows.push({ name: c.name, status: c.status, public: c.is_public ? 'yes' : 'no', start: c.start_date, end: c.end_date, target: target ? target.toFixed(2) : '', raised: raised.toFixed(2), remaining: target ? Prisma.Decimal.max(target.minus(raised), ZERO).toFixed(2) : '', progress: target && !target.isZero() ? `${Math.round(raised.div(target).times(100).toNumber())}%` : '' });
-    }
-    return { ...rep, columns: [col('name', 'Campaign'), col('status', 'Status'), col('public', 'Public'), col('start', 'Start'), col('end', 'End'), col('target', 'Target', true), col('raised', 'Raised', true), col('remaining', 'Remaining', true), col('progress', 'Progress')], rows };
-  }
-
-  async raised(campaignId: string) {
-    const [c, i] = await Promise.all([
-      this.prisma.contribution.aggregate({ where: { campaign_id: campaignId, status: 'active' }, _sum: { amount: true } }),
-      this.prisma.incomeRecord.aggregate({ where: { campaign_id: campaignId, status: 'active' }, _sum: { amount: true } }),
-    ]);
-    return D(c._sum.amount).plus(i._sum.amount ?? 0);
   }
 
   private async r_funding_sources(sc: any, r: any, _q: any, rep: Report) {
@@ -340,15 +299,12 @@ export class StatementsService {
         if (SOURCE_EXPENSE.includes(m.source_type)) expensesYear = expensesYear.plus(D(m.total).negated());
       }
     }
-    const [balance, pledges, budgets, recent, inbox] = await Promise.all([
+    const [balance, budgets, recent, inbox] = await Promise.all([
       this.prisma.financialAccount.aggregate({ where: { fellowship_id: sc.fellowshipId, department_id: sc.departmentId, is_active: true }, _sum: { balance: true } }),
-      this.prisma.contributionPledge.findMany({ where: { fellowship_id: sc.fellowshipId, department_id: sc.departmentId, status: { in: ['pending', 'partially_fulfilled'] } }, select: { amount: true, amount_fulfilled: true, due_date: true } }),
       this.prisma.budget.findMany({ where: { fellowship_id: sc.fellowshipId, department_id: sc.departmentId, approval_status: 'FINAL_APPROVED', fiscal_year: { startsWith: String(year) } }, select: { id: true, amount: true } }),
       this.prisma.ledgerEntry.findMany({ where: { fellowship_id: sc.fellowshipId, department_id: sc.departmentId }, orderBy: [{ entry_date: 'desc' }, { created_at: 'desc' }], take: 10, include: { account: { select: { name: true } } } }),
       this.approvals.inbox(user),
     ]);
-    const outstanding = pledges.reduce((s, p) => s.plus(Prisma.Decimal.max(D(p.amount).minus(p.amount_fulfilled), ZERO)), ZERO);
-    const overdue = pledges.filter((p) => p.due_date && p.due_date < new Date()).length;
     let budgetTotal = ZERO, budgetUsed = ZERO;
     for (const b of budgets) {
       const perf = await budgetPerformance(this.prisma, b.id);
@@ -359,7 +315,7 @@ export class StatementsService {
       scope: sc.departmentId ? 'department' : 'central', departmentId: sc.departmentId, label: sc.label,
       cards: {
         totalIncome: incomeYear.toFixed(2), totalExpenses: expensesYear.toFixed(2), availableBalance: money(balance._sum.balance),
-        pendingApprovals: inbox.length, outstandingPledges: outstanding.toFixed(2), overduePledges: overdue,
+        pendingApprovals: inbox.length,
         budgetApproved: budgetTotal.toFixed(2), budgetSpent: budgetUsed.toFixed(2),
         budgetUtilisationPercent: budgetTotal.isZero() ? null : Math.round(budgetUsed.div(budgetTotal).times(100).toNumber()),
       },

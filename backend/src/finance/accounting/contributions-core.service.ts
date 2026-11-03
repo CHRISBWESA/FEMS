@@ -20,27 +20,17 @@ export interface ContributionInput {
   date: string | Date;
   contributionType?: string;
   categoryId?: string;
-  campaignId?: string;
   accountId?: string;
   paymentMethod?: string;
   paymentReference?: string;
   notes?: string;
   attachments?: unknown;
   allocations?: AllocationInput[];
-  pledgeId?: string;
   membershipFeeId?: string;
   receiptDocumentId?: string;
 }
 
 const OPEN_PROJECT = ['APPROVED', 'ACTIVE'] as const;
-
-export function pledgeStatusFor(total: Prisma.Decimal.Value, fulfilled: Prisma.Decimal.Value): 'pending' | 'partially_fulfilled' | 'fulfilled' {
-  const t = D(total);
-  const f = D(fulfilled);
-  if (f.greaterThanOrEqualTo(t)) return 'fulfilled';
-  if (f.greaterThan(0)) return 'partially_fulfilled';
-  return 'pending';
-}
 
 /** A project that can receive money from this scope: same fellowship, approved or active, and of the same scope. */
 export async function assertProjectForScope(tx: Tx | any, projectId: string, fellowshipId: string, departmentId: string | null) {
@@ -100,8 +90,7 @@ export function feeDueDates(fee: { frequency: string; start_date: Date; end_date
 
 /**
  * Recording money received. One payment is one contribution row and one ledger entry - so a payment is counted
- * once, whether it is general, split across projects, a pledge payment (with any excess shown on the same receipt)
- * or a membership fee.
+ * once, whether it is general, split across projects or a membership fee.
  */
 @Injectable()
 export class ContributionsCoreService {
@@ -111,16 +100,14 @@ export class ContributionsCoreService {
     const { fellowshipId, departmentId } = ctx;
     const amount = D(validateAmount('amount', dto?.amount));
     const date = validateDate('date', dto?.date) as Date;
-    let contributorType = (dto?.contributorType ?? 'member') as string;
+    const contributorType = (dto?.contributorType ?? 'member') as string;
     if (!['member', 'external', 'anonymous'].includes(contributorType)) throw new BadRequestException('contributorType must be member, external or anonymous');
     let memberId = validateOptionalUuid('memberId', dto?.memberId);
     let contributorName = validateText('contributorName', dto?.contributorName, 150);
     let contributorPhone = validateText('contributorPhone', dto?.contributorPhone, 30);
     const contributorEmail = validateText('contributorEmail', dto?.contributorEmail, 150);
     const categoryId = validateOptionalUuid('categoryId', dto?.categoryId);
-    const campaignId = validateOptionalUuid('campaignId', dto?.campaignId);
     const accountId = validateOptionalUuid('accountId', dto?.accountId);
-    const pledgeId = validateOptionalUuid('pledgeId', dto?.pledgeId);
     const feeId = validateOptionalUuid('membershipFeeId', dto?.membershipFeeId);
     const receiptDocumentId = validateOptionalUuid('receiptDocumentId', dto?.receiptDocumentId);
     const notes = validateText('notes', dto?.notes, 500);
@@ -132,8 +119,8 @@ export class ContributionsCoreService {
       throw new BadRequestException(`paymentMethod must be one of: ${settings.payment_methods.join(', ')}`);
     }
 
-    if (contributorType === 'member' && !memberId && !pledgeId) throw new BadRequestException('Choose the member who contributed.');
-    if (contributorType === 'external' && !contributorName && !pledgeId) throw new BadRequestException('Enter the contributor\'s name.');
+    if (contributorType === 'member' && !memberId) throw new BadRequestException('Choose the member who contributed.');
+    if (contributorType === 'external' && !contributorName) throw new BadRequestException('Enter the contributor\'s name.');
     if (contributorType !== 'member') memberId = null;
     if (contributorType === 'anonymous') { contributorName = null; contributorPhone = null; }
     if (memberId) {
@@ -147,12 +134,6 @@ export class ContributionsCoreService {
       if (!cat) throw new BadRequestException('The selected category is not available.');
       contributionType = contributionType ?? cat.name;
     }
-    let campaign: any = null;
-    if (campaignId) {
-      campaign = await this.prisma.contributionCampaign.findFirst({ where: { id: campaignId, fellowship_id: fellowshipId, status: 'active' } });
-      if (!campaign) throw new BadRequestException('The selected campaign is not available.');
-      if ((campaign.department_id ?? null) !== (departmentId ?? null)) throw new BadRequestException('That campaign belongs to a different fund.');
-    }
     if (receiptDocumentId) {
       const doc = await this.prisma.documentEntity.findFirst({ where: { id: receiptDocumentId, fellowship_id: fellowshipId, is_website_content: false }, select: { id: true } });
       if (!doc) throw new BadRequestException('The selected receipt document is not available.');
@@ -163,26 +144,6 @@ export class ContributionsCoreService {
       const account = accountId
         ? await assertAccountScope(tx, accountId, fellowshipId, departmentId)
         : await defaultAccount(tx, fellowshipId, departmentId, user.userId);
-
-      // ---- pledge payment: lock the pledge, apply up to what is still owed; the rest is an extra contribution ----
-      let pledge: any = null;
-      let applied: Prisma.Decimal | null = null;
-      if (pledgeId) {
-        const locked = await tx.$queryRaw<{ id: string }[]>`
-          SELECT "id" FROM "contribution_pledges" WHERE "id" = ${pledgeId}::uuid AND "fellowship_id" = ${fellowshipId}::uuid FOR UPDATE`;
-        if (!locked.length) throw new NotFoundException('Pledge not found');
-        pledge = await tx.contributionPledge.findUnique({ where: { id: pledgeId } });
-        if ((pledge.department_id ?? null) !== (departmentId ?? null)) throw new BadRequestException('That pledge belongs to a different fund.');
-        if (!['pending', 'partially_fulfilled'].includes(pledge.status)) throw new ConflictException(`This pledge is ${pledge.status.replace('_', ' ')}; record the payment as an ordinary contribution.`);
-        const outstanding = Prisma.Decimal.max(D(pledge.amount).minus(pledge.amount_fulfilled), ZERO);
-        applied = Prisma.Decimal.min(outstanding, amount);
-        const fulfilled = D(pledge.amount_fulfilled).plus(applied);
-        await tx.contributionPledge.update({ where: { id: pledgeId }, data: { amount_fulfilled: fulfilled.toFixed(2), status: pledgeStatusFor(pledge.amount, fulfilled) } });
-        contributorType = pledge.contributor_type;
-        memberId = pledge.member_id;
-        contributorName = pledge.contributor_name;
-        contributorPhone = pledge.contributor_phone;
-      }
 
       // ---- membership fee payment: a department's own fee, paid by an eligible member ----
       let fee: any = null;
@@ -216,13 +177,10 @@ export class ContributionsCoreService {
             contribution_type: contributionType ?? 'general',
             date,
             category_id: categoryId,
-            campaign_id: campaignId ?? pledge?.campaign_id ?? null,
             account_id: account.id,
             payment_method: method,
             payment_reference: reference,
             payment_dedupe_key: reference ? `${method}:${reference.toLowerCase()}` : null,
-            pledge_id: pledge?.id ?? null,
-            pledge_applied: applied ? applied.toFixed(2) : null,
             membership_fee_id: fee?.id ?? null,
             receipt_document_id: receiptDocumentId,
             notes,
@@ -237,15 +195,8 @@ export class ContributionsCoreService {
         throw err;
       }
 
-      // ---- project allocations: explicit, or implied by the pledge / campaign's project ----
-      let allocations = await validateAllocations(tx, dto?.allocations, amount, fellowshipId, departmentId);
-      if (!allocations.length && pledge?.project_id && applied && applied.greaterThan(0)) {
-        await assertProjectForScope(tx, pledge.project_id, fellowshipId, departmentId);
-        allocations = [{ projectId: pledge.project_id, amount: applied }];
-      } else if (!allocations.length && campaign?.project_id) {
-        await assertProjectForScope(tx, campaign.project_id, fellowshipId, departmentId);
-        allocations = [{ projectId: campaign.project_id, amount }];
-      }
+      // ---- project allocations ----
+      const allocations = await validateAllocations(tx, dto?.allocations, amount, fellowshipId, departmentId);
       for (const a of allocations) {
         await tx.contributionAllocation.create({ data: { fellowship_id: fellowshipId, contribution_id: contribution.id, project_id: a.projectId, amount: a.amount.toFixed(2), created_by: user.userId } });
       }
@@ -258,45 +209,16 @@ export class ContributionsCoreService {
       await tx.auditLog.create({
         data: {
           user_id: user.userId, action: 'finance.contribution_create', entity_type: 'contribution', entity_id: contribution.id, fellowship_id: fellowshipId,
-          new_value: { amount: amount.toFixed(2), receipt, departmentId, accountId: account.id, allocations: allocations.map((a) => ({ projectId: a.projectId, amount: a.amount.toFixed(2) })), pledgeId, feeId } as any,
+          new_value: { amount: amount.toFixed(2), receipt, departmentId, accountId: account.id, allocations: allocations.map((a) => ({ projectId: a.projectId, amount: a.amount.toFixed(2) })), feeId } as any,
         },
       });
-      return { contribution, pledge, applied };
+      return { contribution };
     });
 
-    if (result.pledge) {
-      const p = await this.prisma.contributionPledge.findUnique({ where: { id: result.pledge.id } });
-      if (p?.status === 'fulfilled') {
-        await this.notify.send([p.created_by], { eventType: 'pledge_fulfilled', title: 'Pledge fulfilled', message: `Pledge ${p.pledge_number ?? ''} has been fully paid.`, entityType: 'pledge', entityId: p.id, fellowshipId }, user.userId);
-      } else if (p) {
-        await this.notify.send([p.created_by], { eventType: 'pledge_partial', title: 'Pledge payment received', message: `A payment was received towards pledge ${p.pledge_number ?? ''}.`, entityType: 'pledge', entityId: p.id, fellowshipId }, user.userId);
-      }
-    }
-    if (result.contribution.campaign_id) await this.campaignMilestone(result.contribution.campaign_id, amount, user.userId);
     return this.prisma.contribution.findUnique({
       where: { id: result.contribution.id },
       include: { allocations: { where: { is_active: true }, include: { project: { select: { id: true, name: true, project_number: true } } } }, account: { select: { id: true, name: true } } },
     });
-  }
-
-  /** Tells the campaign's creator when this payment carried it past 50%, 75% or 100% of its target. */
-  private async campaignMilestone(campaignId: string, amount: Prisma.Decimal, actor: string) {
-    const c = await this.prisma.contributionCampaign.findUnique({ where: { id: campaignId } });
-    if (!c?.target_amount || !c.fellowship_id) return;
-    const [contrib, income] = await Promise.all([
-      this.prisma.contribution.aggregate({ where: { campaign_id: campaignId, status: 'active' }, _sum: { amount: true } }),
-      this.prisma.incomeRecord.aggregate({ where: { campaign_id: campaignId, status: 'active' }, _sum: { amount: true } }),
-    ]);
-    const raised = D(contrib._sum.amount).plus(income._sum.amount ?? 0);
-    const before = raised.minus(amount);
-    const target = D(c.target_amount);
-    for (const pct of [100, 75, 50]) {
-      const mark = target.times(pct).div(100);
-      if (before.lessThan(mark) && raised.greaterThanOrEqualTo(mark)) {
-        await this.notify.send([c.created_by], { eventType: 'campaign_progress', title: 'Campaign milestone', message: `"${c.name}" has reached ${pct}% of its target.`, entityType: 'campaign', entityId: c.id, fellowshipId: c.fellowship_id }, actor);
-        break;
-      }
-    }
   }
 
   /** Replaces a contribution's project allocations. The old rows are ended, not deleted, so history is kept. */
@@ -304,7 +226,6 @@ export class ContributionsCoreService {
     const c = await this.load(user, id);
     await this.scope.requireManage(user, c.department_id, { central: ['treasurer'] });
     if (c.status !== 'active') throw new ConflictException('A reversed contribution cannot be allocated.');
-    if (c.pledge_id) throw new ConflictException('A pledge payment is allocated by its pledge.');
     const reason = validateText('reason', body?.reason, 300) ?? 'Allocation changed';
     await this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT "id" FROM "contributions" WHERE "id" = ${id}::uuid FOR UPDATE`;
@@ -334,7 +255,6 @@ export class ContributionsCoreService {
       include: {
         member: { select: { id: true, full_name: true, member_code: true } },
         category: { select: { id: true, name: true } },
-        campaign: { select: { id: true, name: true } },
         account: { select: { id: true, name: true, account_type: true } },
         allocations: { orderBy: { created_at: 'asc' }, include: { project: { select: { id: true, name: true, project_number: true } } } },
       },
@@ -346,16 +266,14 @@ export class ContributionsCoreService {
   /** Data for a printable receipt. Department leaders get receipts for their own department only. */
   async receipt(user: any, id: string) {
     const c = await this.detail(user, id);
-    const [fellowship, recorder, pledge, fee, settings] = await Promise.all([
+    const [fellowship, recorder, fee, settings] = await Promise.all([
       this.prisma.fellowship.findUnique({ where: { id: c.fellowship_id! }, select: { name: true, location: true } }),
       this.prisma.user.findUnique({ where: { id: c.recorded_by }, select: { first_name: true, last_name: true } }),
-      c.pledge_id ? this.prisma.contributionPledge.findUnique({ where: { id: c.pledge_id } }) : null,
       c.membership_fee_id ? this.prisma.membershipFee.findUnique({ where: { id: c.membership_fee_id }, select: { name: true } }) : null,
       getSettings(this.prisma as any, c.fellowship_id!),
     ]);
     const department = c.department_id ? await this.prisma.department.findUnique({ where: { id: c.department_id }, select: { name: true } }) : null;
     const contributor = c.contributor_type === 'anonymous' ? 'Anonymous' : c.member?.full_name ?? c.contributor_name ?? '—';
-    const applied = c.pledge_applied ? D(c.pledge_applied) : null;
     return {
       fellowship: fellowship?.name ?? '',
       fellowshipLocation: fellowship?.location ?? null,
@@ -368,17 +286,10 @@ export class ContributionsCoreService {
       amount: money(c.amount),
       purpose: c.contribution_type,
       category: c.category?.name ?? null,
-      campaign: c.campaign?.name ?? null,
       paymentMethod: c.payment_method,
       paymentReference: c.payment_reference,
       account: c.account?.name ?? null,
       allocations: c.allocations.filter((a) => a.is_active).map((a) => ({ project: a.project.name, number: a.project.project_number, amount: money(a.amount) })),
-      pledge: pledge && applied ? {
-        number: pledge.pledge_number,
-        appliedToPledge: money(applied),
-        additionalContribution: money(D(c.amount).minus(applied)),
-        pledgeOutstanding: money(Prisma.Decimal.max(D(pledge.amount).minus(pledge.amount_fulfilled), ZERO)),
-      } : null,
       membershipFee: fee?.name ?? null,
       recordedBy: recorder ? `${recorder.first_name} ${recorder.last_name}` : null,
       status: c.status,
@@ -399,7 +310,7 @@ export class ContributionsCoreService {
   }
 }
 
-/** Reverses a contribution: ledger reversal, allocations ended, pledge credit removed. The row is kept. */
+/** Reverses a contribution: ledger reversal and allocations ended. The row is kept. */
 export async function reverseContributionTx(tx: Tx, id: string, actor: string, reason: string) {
   const done = await tx.contribution.updateMany({
     where: { id, status: 'active' },
@@ -409,13 +320,5 @@ export async function reverseContributionTx(tx: Tx, id: string, actor: string, r
   const c = await tx.contribution.findUniqueOrThrow({ where: { id } });
   if (c.fellowship_id) await reverseSource(tx, c.fellowship_id, 'contribution', id, actor, reason);
   await tx.contributionAllocation.updateMany({ where: { contribution_id: id, is_active: true }, data: { is_active: false, ended_at: new Date(), ended_by: actor, end_reason: 'Contribution reversed' } });
-  if (c.pledge_id && c.pledge_applied) {
-    await tx.$queryRaw`SELECT "id" FROM "contribution_pledges" WHERE "id" = ${c.pledge_id}::uuid FOR UPDATE`;
-    const p = await tx.contributionPledge.findUnique({ where: { id: c.pledge_id } });
-    if (p) {
-      const fulfilled = Prisma.Decimal.max(D(p.amount_fulfilled).minus(c.pledge_applied), ZERO);
-      await tx.contributionPledge.update({ where: { id: p.id }, data: { amount_fulfilled: fulfilled.toFixed(2), status: p.status === 'cancelled' ? 'cancelled' : pledgeStatusFor(p.amount, fulfilled) } });
-    }
-  }
   await tx.auditLog.create({ data: { user_id: actor, action: 'finance.contribution_reversed', entity_type: 'contribution', entity_id: id, fellowship_id: c.fellowship_id, comment: reason, old_value: { amount: D(c.amount).toFixed(2) } as any } });
 }

@@ -27,7 +27,6 @@ export interface CreateContributionDto {
   amount: number;
   contributionType: string;
   date: string | Date;
-  campaignId?: string;
   categoryId?: string;
   receiptDocumentId?: string;
   notes?: string;
@@ -147,7 +146,6 @@ export class FinanceService {
       extra.OR = [{ receipt_number: { contains: term, mode: 'insensitive' } }, { contributor_name: { contains: term, mode: 'insensitive' } }, { member: { full_name: { contains: term, mode: 'insensitive' } } }];
     }
     if (q.memberId) extra.member_id = validateRequiredUuid('memberId', q.memberId);
-    if (q.campaignId) extra.campaign_id = validateRequiredUuid('campaignId', q.campaignId);
     if (q.categoryId) extra.category_id = validateRequiredUuid('categoryId', q.categoryId);
     if (q.type) extra.contribution_type = validateText('type', q.type, 50) ?? undefined;
     const from = validateDate('from', q.from, { required: false, maxFutureDays: 3650 });
@@ -163,7 +161,6 @@ export class FinanceService {
         skip,
         include: {
           member: { select: { id: true, full_name: true, member_code: true } },
-          campaign: { select: { id: true, name: true } },
           category: { select: { id: true, name: true } },
           account: { select: { id: true, name: true } },
           allocations: { where: { is_active: true }, select: { amount: true, project: { select: { id: true, name: true } } } },
@@ -211,7 +208,6 @@ export class FinanceService {
     if (action === 'edit') {
       changes = buildEditChanges(kind, body || {});
       if (changes.category_id) await this.access.assertCategory(changes.category_id, kind === 'income' ? 'income' : kind === 'expense' ? 'expense' : 'contribution', record.fellowship_id);
-      if (changes.campaign_id) await this.access.assertCampaign(changes.campaign_id, record.fellowship_id);
       if (changes.date) await assertPeriodOpen(this.prisma, record.fellowship_id, new Date(changes.date));
     }
     if (kind !== 'budget') {
