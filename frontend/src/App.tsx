@@ -60,7 +60,6 @@ const MyGiving = lazyPage(() => import('./pages/MyGiving'));
 const InventoryArea = lazyPage(() => import('./inv/InventoryArea'));
 const WsResources = lazyPage(() => import('./inv/WsResources'));
 const Leadership = lazyPage(() => import('./pages/Leadership'));
-const MyLoans = lazyPage(() => import('./pages/MyLoans'));
 const Volunteering = lazyPage(() => import('./pages/Volunteering'));
 const VolunteerOpportunity = lazyPage(() => import('./pages/VolunteerOpportunity'));
 const PlatformSite = lazyPage(() => import('./site/PlatformSite'));
@@ -335,7 +334,6 @@ export default function App() {
             {/* Old links keep working. */}
             <Route path="resources" element={<Navigate to="/inventory" replace />} />
             <Route path="resources/:id" element={<Navigate to="/inventory/inventory" replace />} />
-            <Route path="my-loans" element={<ExcludeAdmin><MyLoans /></ExcludeAdmin>} />
             <Route path="volunteering" element={<HideFor roles={NOT_SECRETARY}><ExcludeAdmin><Volunteering /></ExcludeAdmin></HideFor>} />
             <Route path="volunteering/:id" element={<HideFor roles={NOT_SECRETARY}><ExcludeAdmin><VolunteerOpportunity /></ExcludeAdmin></HideFor>} />
             <Route path="notifications" element={<Notifications />} />

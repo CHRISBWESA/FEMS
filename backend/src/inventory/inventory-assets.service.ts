@@ -144,11 +144,11 @@ export class InventoryAssetsService {
     return this.detail(user, asset.id);
   }
 
-  /** Descriptive fields only. Ownership, status and quantity change only through their own workflows. */
+  /** Details of a resource, including its quantity, condition and location. Ownership and status are not edited here. */
   async update(user: any, id: string, b: any) {
     const a = await this.scope.loadManaged(user, id);
-    for (const forbidden of ['ownershipType', 'departmentId', 'owningDepartmentId', 'status', 'quantity', 'assignedDepartmentId']) {
-      if (b?.[forbidden] !== undefined) throw new BadRequestException(`${forbidden} cannot be edited here; use the transfer, assignment or stock workflows.`);
+    for (const forbidden of ['ownershipType', 'departmentId', 'owningDepartmentId', 'status', 'assignedDepartmentId']) {
+      if (b?.[forbidden] !== undefined) throw new BadRequestException(`${forbidden} cannot be edited here.`);
     }
     if (['disposed', 'lost'].includes(a.status)) throw new ConflictException('A disposed or written-off resource is kept as history and cannot be edited.');
     const data: any = {};
@@ -157,6 +157,12 @@ export class InventoryAssetsService {
     if (b?.categoryId !== undefined) {
       data.category_id = validateOptionalUuid('categoryId', b.categoryId);
       if (data.category_id && !(await this.prisma.assetCategory.findFirst({ where: { id: data.category_id, fellowship_id: a.fellowship_id, is_active: true } }))) throw new BadRequestException('The selected category is not available.');
+    }
+    if (b?.quantity !== undefined) data.quantity = int('quantity', b.quantity, a.is_consumable ? 0 : 1);
+    if (b?.condition !== undefined) data.condition = condition('condition', b.condition, true);
+    if (b?.locationId !== undefined) {
+      data.location_id = validateOptionalUuid('locationId', b.locationId);
+      if (data.location_id && !(await this.prisma.assetLocation.findFirst({ where: { id: data.location_id, fellowship_id: a.fellowship_id, is_active: true } }))) throw new BadRequestException('The selected location is not available.');
     }
     if (b?.custodianMemberId !== undefined) {
       data.custodian_member_id = validateOptionalUuid('custodianMemberId', b.custodianMemberId);

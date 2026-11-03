@@ -1,128 +1,116 @@
-import { createContext, useContext } from 'react';
-import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
+import { useState } from 'react';
 import axios from 'axios';
-import { ArchiveBoxIcon, BuildingOffice2Icon, CheckCircleIcon, ClockIcon, ExclamationTriangleIcon, HandRaisedIcon, WrenchScrewdriverIcon, CubeIcon } from '@heroicons/react/24/outline';
+import { PlusIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../App';
-import { useI18n } from '../context/I18nContext';
-import { Button, Card, ErrorState, PageHeader, PageLoader, StatCard, StatGrid, useToast } from '../components/ui';
-import { errMsg, FinContext, fmtDate, label, Status, useLoad } from '../fin/common';
-import { AssetList } from './Register';
-import { Borrowing, Requests, Transfers } from './Flows';
-import { Consumables, Maintenance } from './Care';
-import { InvReports, InvSettings } from './Admin';
-import { AssetPage } from './AssetPage';
+import { Button, Field, Input, PageHeader, Select, Textarea, useToast } from '../components/ui';
+import { DataTable } from '../components/DataTable';
+import { errMsg, FormModal, label, useLoad } from '../fin/common';
 
 import { RESOURCE_CENTRAL_ROLES as CENTRAL_ROLES } from '../lib/area-roles';
 export { CENTRAL_ROLES };
+
+export const CONDITIONS = ['new', 'excellent', 'good', 'fair', 'poor', 'damaged', 'under_repair'];
+const conditionOptions = CONDITIONS.map((c) => ({ value: c, label: label(c) }));
 
 export interface InvScope {
   departmentId: string | null;
   departmentName?: string;
   roles: string[];
   leaderRole?: 'department_chairperson' | 'department_secretary' | null;
-  base: string;
-}
-export const InvContext = createContext<InvScope>({ departmentId: null, roles: [], base: '/inventory' });
-export const useInv = () => useContext(InvContext);
-export const invQuery = (s: InvScope) => (s.departmentId ? `departmentId=${s.departmentId}` : '');
-export const isTreasurer = (s: InvScope) => s.roles.includes('treasurer');
-/** Can this person manage resources of this scope: the Treasurer centrally, a department's leaders in its workspace. */
-export const canManageScope = (s: InvScope) => (s.departmentId ? !!s.leaderRole : isTreasurer(s));
-
-export function sections(s: InvScope) {
-  const central = !s.departmentId;
-  return [
-    { path: '', key: 'inv.nav.dashboard', element: <InvDashboard /> },
-    { path: 'inventory', key: 'inv.nav.inventory', element: <AssetList /> },
-    { path: 'department-assets', key: 'inv.nav.departmentAssets', element: <AssetList ownership="department" />, show: central },
-    { path: 'requests', key: 'inv.nav.requests', element: <Requests /> },
-    { path: 'borrowing', key: 'inv.nav.borrowing', element: <Borrowing /> },
-    { path: 'transfers', key: 'inv.nav.transfers', element: <Transfers /> },
-    { path: 'maintenance', key: 'inv.nav.maintenance', element: <Maintenance /> },
-    { path: 'consumables', key: 'inv.nav.consumables', element: <Consumables /> },
-    { path: 'reports', key: 'inv.nav.reports', element: <InvReports /> },
-    { path: 'settings', key: 'inv.nav.settings', element: <InvSettings />, show: central },
-  ].filter((x) => x.show !== false);
 }
 
-export function InventoryShell({ scope }: { scope: InvScope }) {
-  const { t } = useI18n();
-  return (
-    <InvContext.Provider value={scope}>
-      {/* The finance helpers (uploads, member search) read this scope too. */}
-      <FinContext.Provider value={{ departmentId: scope.departmentId, roles: scope.roles, leaderRole: scope.leaderRole, currency: 'TZS', paymentMethods: ['cash'] }}>
-        <div className="mx-auto max-w-7xl">
-          <nav aria-label="Resource sections" className="-mx-1 mb-6 flex gap-1 overflow-x-auto border-b border-hairline pb-px">
-            {sections(scope).map((x) => (
-              <NavLink key={x.path} to={x.path ? `${scope.base}/${x.path}` : scope.base} end={!x.path}
-                className={({ isActive }) => `whitespace-nowrap rounded-t-control px-3 py-2 text-sm font-medium ${isActive ? 'border-b-2 border-primary text-primary' : 'text-ink-muted hover:text-ink'}`}>
-                {t(x.key)}
-              </NavLink>
-            ))}
-          </nav>
-          <Routes>
-            {sections(scope).map((x) => (x.path ? <Route key={x.path} path={x.path} element={x.element} /> : <Route key="index" index element={x.element} />))}
-            <Route path="assets/:id" element={<AssetPage />} />
-            <Route path="*" element={<Navigate to={scope.base} replace />} />
-          </Routes>
-        </div>
-      </FinContext.Provider>
-    </InvContext.Provider>
-  );
-}
-
-/** /inventory: the Treasurer's resource register and oversight for central officers. */
-export default function InventoryArea() {
-  const { user } = useAuth();
-  return <InventoryShell scope={{ departmentId: null, roles: user?.roles ?? [], base: '/inventory' }} />;
-}
-
-function InvDashboard() {
-  const s = useInv();
-  const { t } = useI18n();
+/**
+ * Resources: one page listing the fellowship's (or one department's) resources, with Add and Edit. The Treasurer
+ * manages the fellowship's resources; a department's leaders manage their department's own.
+ */
+export function ResourcesPage({ scope }: { scope: InvScope }) {
   const toast = useToast();
-  const { data: d, error, reload } = useLoad<any>(`/inventory/dashboard?${invQuery(s)}`, [s.departmentId]);
-  if (error) return <ErrorState message={error} onRetry={reload} />;
-  if (!d) return <PageLoader rows={3} />;
-  const c = d.cards;
+  const [search, setSearch] = useState('');
+  const qs = new URLSearchParams({ limit: '200', ...(search ? { search } : {}), ...(scope.departmentId ? { departmentId: scope.departmentId } : {}) }).toString();
+  const list = useLoad<any>(`/inventory/assets?${qs}`, [qs]);
+  const cats = useLoad<any[]>('/inventory/categories', []);
+  const locs = useLoad<any[]>('/inventory/locations', []);
+  const [form, setForm] = useState<any>(null);
+  const canManage = scope.departmentId ? !!scope.leaderRole : scope.roles.includes('treasurer');
+  const rows = (list.data?.data ?? []).filter((r: any) => !['disposed', 'lost'].includes(r.status));
+
+  const addOption = async (kind: 'categories' | 'locations', field: 'categoryId' | 'locationId') => {
+    const name = window.prompt(kind === 'categories' ? 'Name of the new category' : 'Name of the new location');
+    if (!name?.trim()) return;
+    try {
+      const r = (await axios.post(`/inventory/${kind}`, { name: name.trim() }, { withCredentials: true })).data;
+      (kind === 'categories' ? cats : locs).reload();
+      setForm((f: any) => ({ ...f, [field]: r.id }));
+    } catch (e) { toast.push('error', errMsg(e, 'Could not add it.')); }
+  };
+
+  const open = (r?: any) => setForm(r
+    ? { id: r.id, name: r.name, categoryId: r.category_id ?? r.category?.id ?? '', locationId: r.location_id ?? r.location?.id ?? '', quantity: String(r.quantity ?? 1), condition: r.condition ?? 'good', description: r.description ?? '' }
+    : { name: '', categoryId: '', locationId: '', quantity: '1', condition: 'good', description: '' });
+
+  const save = async () => {
+    const body: any = { name: form.name, categoryId: form.categoryId || null, locationId: form.locationId || null, quantity: Number(form.quantity || 1), condition: form.condition, description: form.description || undefined };
+    if (form.id) {
+      await axios.put(`/inventory/assets/${form.id}`, body, { withCredentials: true });
+      toast.push('success', 'Resource saved');
+    } else {
+      await axios.post('/inventory/assets', { ...body, ownershipType: scope.departmentId ? 'department' : 'fellowship', departmentId: scope.departmentId ?? undefined }, { withCredentials: true });
+      toast.push('success', 'Resource added');
+    }
+    list.reload();
+  };
+
+  const options = (data?: any[]) => (data ?? []).filter((c) => c.is_active !== false).map((c) => ({ value: c.id, label: c.name }));
+
   return (
-    <div className="space-y-6">
-      <PageHeader eyebrow={s.departmentName ?? 'Fellowship'} title={t('inv.nav.dashboard')} description="Who owns what, who holds it, and what needs attention. Borrowed resources belong to others and are not counted as owned."
-        actions={!s.departmentId && CENTRAL_ROLES.some((r) => s.roles.includes(r)) ? <Button size="sm" onClick={async () => { try { const r = (await axios.post('/inventory/reminders/run', {}, { withCredentials: true })).data; toast.push('success', `Reminders: ${r.overdue} overdue, ${r.upcoming} due soon, ${r.lowStock} low stock.`); } catch (e) { toast.push('error', errMsg(e, 'Could not send reminders.')); } }}>Send reminders</Button> : undefined} />
-      <StatGrid>
-        {!s.departmentId && <StatCard label="Fellowship-owned" value={c.fellowshipOwned} icon={<BuildingOffice2Icon className="h-5 w-5" />} tone="primary" />}
-        <StatCard label="Department-owned" value={c.departmentOwned} icon={<ArchiveBoxIcon className="h-5 w-5" />} />
-        <StatCard label="Donated" value={c.donated} icon={<HandRaisedIcon className="h-5 w-5" />} />
-        <StatCard label="Borrowed from others" value={c.borrowedExternal} hint="Not owned" />
-        <StatCard label="Available" value={c.available} icon={<CheckCircleIcon className="h-5 w-5" />} tone="success" />
-        <StatCard label="Assigned" value={c.assigned} />
-        <StatCard label="Out on loan" value={c.onLoan} />
-        <StatCard label="Damaged" value={c.damaged} icon={<ExclamationTriangleIcon className="h-5 w-5" />} tone={c.damaged ? 'danger' : 'neutral'} />
-        <StatCard label="Lost" value={c.lost} tone={c.lost ? 'danger' : 'neutral'} />
-        <StatCard label="In maintenance" value={c.inMaintenance} icon={<WrenchScrewdriverIcon className="h-5 w-5" />} />
-        <StatCard label="Pending requests" value={c.pendingRequests} icon={<ClockIcon className="h-5 w-5" />} tone={c.pendingRequests ? 'warning' : 'neutral'} to={`${s.base}/requests`} />
-        <StatCard label="Due back this week" value={c.upcomingReturns} to={`${s.base}/borrowing`} />
-        <StatCard label="Overdue returns" value={c.overdueReturns} tone={c.overdueReturns ? 'danger' : 'neutral'} to={`${s.base}/borrowing`} />
-        <StatCard label="Low stock items" value={c.lowStock} icon={<CubeIcon className="h-5 w-5" />} tone={c.lowStock ? 'warning' : 'neutral'} to={`${s.base}/consumables`} />
-      </StatGrid>
-      {d.departments.length > 0 && (
-        <Card className="card-pad">
-          <h2 className="mb-2 text-sm font-semibold">Departments</h2>
-          <table className="table w-full text-sm"><thead><tr><th>Department</th><th className="text-right">Owns</th><th className="text-right">Holds (assigned)</th></tr></thead>
-            <tbody>{d.departments.map((x: any) => <tr key={x.id}><td>{x.name}</td><td className="text-right">{x.owned}</td><td className="text-right">{x.assigned}</td></tr>)}</tbody></table>
-        </Card>
-      )}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="card-pad"><h2 className="mb-2 text-sm font-semibold">Recent acquisitions</h2>
-          {d.recentAcquisitions.length ? <ul className="space-y-1 text-sm">{d.recentAcquisitions.map((a: any) => <li key={a.id} className="flex justify-between"><span>{a.asset_tag} · {a.name}</span><span className="text-ink-subtle">{label(a.ownership_type)}</span></li>)}</ul> : <p className="text-sm text-ink-muted">None yet.</p>}
-        </Card>
-        <Card className="card-pad"><h2 className="mb-2 text-sm font-semibold">Recent transfers</h2>
-          {d.recentTransfers.length ? <ul className="space-y-1 text-sm">{d.recentTransfers.map((x: any) => <li key={x.id} className="flex justify-between"><span>{x.transfer_number} · {label(x.kind)}</span><Status value={x.status} /></li>)}</ul> : <p className="text-sm text-ink-muted">None yet.</p>}
-        </Card>
-        <Card className="card-pad"><h2 className="mb-2 text-sm font-semibold">Recent disposals</h2>
-          {d.recentDisposals.length ? <ul className="space-y-1 text-sm">{d.recentDisposals.map((a: any) => <li key={a.id} className="flex justify-between"><span>{a.asset_tag} · {a.name}</span><span className="text-ink-subtle">{label(a.status)} {fmtDate(a.disposed_at)}</span></li>)}</ul> : <p className="text-sm text-ink-muted">None.</p>}
-        </Card>
-      </div>
+    <div className="mx-auto max-w-7xl space-y-4">
+      <PageHeader eyebrow={scope.departmentName} title="Resources"
+        actions={canManage ? <Button variant="primary" onClick={() => open()}><PlusIcon className="h-4 w-4" /> Add resource</Button> : undefined} />
+      <DataTable rows={rows} loading={list.loading && !list.data} error={list.error || null} onRetry={list.reload} rowKey={(r: any) => r.id}
+        clientPaging pageSize={50}
+        search={{ value: search, onChange: setSearch, placeholder: 'Search by name' }}
+        onRowClick={canManage ? (r: any) => open(r) : undefined} rowClickLabel={(r: any) => `Edit ${r.name}`}
+        empty={{ title: 'No resources yet', description: canManage ? 'Use "Add resource" to list the first one.' : undefined }}
+        columns={[
+          { key: 'n', header: 'Resource', render: (r: any) => <span className="font-medium text-ink">{r.name}</span>, priority: 'primary' },
+          { key: 'c', header: 'Category', render: (r: any) => r.category?.name ?? '—' },
+          { key: 'q', header: 'Quantity', align: 'right', tabular: true, render: (r: any) => r.quantity },
+          { key: 'k', header: 'Condition', render: (r: any) => label(r.condition) },
+          { key: 'l', header: 'Location', render: (r: any) => r.location?.name ?? '—', priority: 'meta' },
+          ...(scope.departmentId ? [] : [{ key: 'o', header: 'Owner', render: (r: any) => r.ownerLabel ?? '—', priority: 'meta' as const }]),
+        ]}
+        rowActions={canManage ? (r: any) => <Button size="sm" variant="ghost" onClick={() => open(r)}>Edit</Button> : undefined} />
+
+      <FormModal open={!!form} onClose={() => setForm(null)} title={form?.id ? 'Edit resource' : 'Add resource'} width="lg" onSubmit={save}>
+        {form && (
+          <>
+            <Field label="Name" required><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Plastic chairs, Projector, Keyboard" /></Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Category">
+                <div className="flex gap-2">
+                  <Select className="flex-1" value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })} placeholder="None" options={options(cats.data ?? undefined)} />
+                  {canManage && !scope.departmentId && <Button type="button" size="sm" onClick={() => addOption('categories', 'categoryId')}>New</Button>}
+                </div>
+              </Field>
+              <Field label="Location">
+                <div className="flex gap-2">
+                  <Select className="flex-1" value={form.locationId} onChange={(e) => setForm({ ...form, locationId: e.target.value })} placeholder="None" options={options(locs.data ?? undefined)} />
+                  {canManage && !scope.departmentId && <Button type="button" size="sm" onClick={() => addOption('locations', 'locationId')}>New</Button>}
+                </div>
+              </Field>
+              <Field label="Quantity" required><Input type="number" min="1" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} /></Field>
+              <Field label="Condition"><Select value={form.condition} onChange={(e) => setForm({ ...form, condition: e.target.value })} options={conditionOptions} /></Field>
+            </div>
+            <Field label="Notes"><Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></Field>
+          </>
+        )}
+      </FormModal>
     </div>
   );
+}
+
+/** /inventory: the fellowship's resources. */
+export default function InventoryArea() {
+  const { user } = useAuth();
+  return <ResourcesPage scope={{ departmentId: null, roles: user?.roles ?? [] }} />;
 }

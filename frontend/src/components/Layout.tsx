@@ -33,7 +33,6 @@ import {
   RectangleGroupIcon,
   HeartIcon,
   CubeIcon,
-  ArchiveBoxIcon,
   HandRaisedIcon,
   GlobeAltIcon,
   SunIcon,
@@ -134,7 +133,6 @@ const NAV_SECTIONS: NavSection[] = [
     title: 'Account',
     items: [
       { name: 'My Giving', icon: HeartIcon, path: '/my-giving', roles: ALL_NON_ADMIN_ROLES, module: 'finance' },
-      { name: 'Borrowed Items', icon: ArchiveBoxIcon, path: '/my-loans', roles: ALL_NON_ADMIN_ROLES, module: 'resources' },
       { name: 'Notifications', icon: BellIcon, path: '/notifications', roles: [] },
       { name: 'Profile', icon: UserIcon, path: '/profile', roles: [] },
     ],

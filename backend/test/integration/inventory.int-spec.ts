@@ -295,4 +295,19 @@ describeDb('Resource management (real Postgres, HTTP)', () => {
       expect(ddash.departments).toHaveLength(0);
     });
   });
+
+  describe('the single Resources page', () => {
+    it('adds a resource and edits its name, quantity, condition and location; ownership is not edited there', async () => {
+      const loc = (await post(treas, '/inventory/locations', { name: `Store ${uniq()}` }).expect(201)).body;
+      const chairs = (await post(treas, '/inventory/assets', { name: 'Plastic chairs', quantity: 40, condition: 'good', ownershipType: 'fellowship' }).expect(201)).body;
+      const saved = (await put(treas, `/inventory/assets/${chairs.id}`, { name: 'Plastic chairs (white)', quantity: 38, condition: 'fair', locationId: loc.id }).expect(200)).body;
+      expect(saved).toMatchObject({ name: 'Plastic chairs (white)', quantity: 38, condition: 'fair', location_id: loc.id });
+      await put(treas, `/inventory/assets/${chairs.id}`, { quantity: 0 }).expect(400);
+      await put(treas, `/inventory/assets/${chairs.id}`, { condition: 'broken-ish' }).expect(400);
+      await put(treas, `/inventory/assets/${chairs.id}`, { ownershipType: 'department' }).expect(400);
+      expect([403, 404]).toContain((await put(dSec, `/inventory/assets/${chairs.id}`, { quantity: 1 })).status); // a department leader cannot edit fellowship resources
+      const listed = (await get(treas, '/inventory/assets?limit=200&search=Plastic').expect(200)).body.data;
+      expect(listed.map((a: any) => a.id)).toContain(chairs.id);
+    });
+  });
 });
