@@ -371,14 +371,14 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={labelId}
         tabIndex={-1}
-        className={`modal ${width === 'sm' ? 'max-w-sm' : width === 'lg' ? 'max-w-3xl' : ''}`}
+        className={`modal flex flex-col !overflow-hidden ${width === 'sm' ? 'max-w-sm' : width === 'lg' ? 'max-w-3xl' : ''}`}
       >
-        <h2 id={labelId} className="modal-title">
+        <h2 id={labelId} className="modal-title shrink-0">
           {title}
         </h2>
-        {description ? <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">{description}</p> : null}
-        {children ? <div className="mt-5">{children}</div> : null}
-        {footer ? <div className="mt-6 flex flex-wrap justify-end gap-2">{footer}</div> : null}
+        {description ? <p className="mt-1.5 shrink-0 text-sm leading-relaxed text-ink-muted">{description}</p> : null}
+        {children ? <div className="modal-body">{children}</div> : null}
+        {footer ? <div className="mt-4 flex shrink-0 flex-wrap justify-end gap-2 border-t border-hairline pt-4">{footer}</div> : null}
       </div>
     </div>,
     document.body,

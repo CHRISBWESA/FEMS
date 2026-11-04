@@ -274,8 +274,13 @@
     @apply fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/50 p-4 backdrop-blur-[2px]
            sm:items-center;
   }
+  /* Never taller than the screen: the title and the buttons stay in view, the fields scroll between them. */
   .modal {
-    @apply w-full max-w-lg animate-fade-rise rounded-card border border-hairline bg-surface p-6 shadow-overlay;
+    @apply max-h-[calc(100dvh-2rem)] w-full max-w-lg animate-fade-rise overflow-y-auto overscroll-contain rounded-card
+           border border-hairline bg-surface p-5 shadow-overlay sm:p-6;
+  }
+  .modal-body {
+    @apply -mx-1 mt-4 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-1;
   }
   .modal-title {
     @apply text-lg font-semibold tracking-tight text-ink;
