@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { PageLoader, ConfirmDialog } from '../components/ui';
+import { PageLoader, ConfirmDialog, DialogBackdrop } from '../components/ui';
 import {
   PlusIcon, XMarkIcon, BookOpenIcon, PencilSquareIcon, TrashIcon,
   CloudArrowUpIcon, DocumentArrowDownIcon,
@@ -191,7 +191,7 @@ export default function Programmes() {
       )}
 
       {showModal && (
-        <div className="modal-backdrop" onClick={() => setShowModal(false)}>
+        <DialogBackdrop onClose={() => setShowModal(false)}>
           <form onSubmit={save} onClick={(e) => e.stopPropagation()} className="modal max-w-md">
             <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -205,8 +205,8 @@ export default function Programmes() {
                   <p className="text-xs text-ink-muted">Course offered by the university.</p>
                 </div>
               </div>
-              <button type="button" onClick={() => setShowModal(false)} className="btn btn-icon">
-                <XMarkIcon className="h-5 w-5" />
+              <button aria-label="Close" type="button" onClick={() => setShowModal(false)} className="btn btn-icon">
+                <XMarkIcon className="h-5 w-5" aria-hidden />
               </button>
             </div>
 
@@ -216,8 +216,8 @@ export default function Programmes() {
               </div>
             )}
 
-            <label className="label">Programme name *</label>
-            <input
+            <label className="label" htmlFor="programmes-programme-name">Programme name *</label>
+            <input id="programmes-programme-name"
               className="input"
               required
               value={form.name}
@@ -242,10 +242,10 @@ export default function Programmes() {
               </button>
             </div>
           </form>
-        </div>
+        </DialogBackdrop>
       )}
       {showUpload && (
-        <div className="modal-backdrop" onClick={() => setShowUpload(false)}>
+        <DialogBackdrop onClose={() => setShowUpload(false)}>
           <form
             onSubmit={submitUpload}
             onClick={(e) => e.stopPropagation()}
@@ -261,8 +261,8 @@ export default function Programmes() {
                   <p className="text-xs text-ink-muted">Import courses from a CSV file.</p>
                 </div>
               </div>
-              <button type="button" onClick={() => setShowUpload(false)} className="btn btn-icon">
-                <XMarkIcon className="h-5 w-5" />
+              <button aria-label="Close" type="button" onClick={() => setShowUpload(false)} className="btn btn-icon">
+                <XMarkIcon className="h-5 w-5" aria-hidden />
               </button>
             </div>
 
@@ -283,8 +283,8 @@ export default function Programmes() {
               </div>
             )}
 
-            <label className="label">CSV file</label>
-            <input
+            <label className="label" htmlFor="programmes-csv-file">CSV file</label>
+            <input id="programmes-csv-file"
               type="file"
               accept=".csv,text/csv"
               required
@@ -316,7 +316,7 @@ export default function Programmes() {
               </button>
             </div>
           </form>
-</div>
+</DialogBackdrop>
        )}
        {confirmRemove && (
          <ConfirmDialog

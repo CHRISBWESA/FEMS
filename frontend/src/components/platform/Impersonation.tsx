@@ -112,7 +112,7 @@ export default function Impersonation() {
         <h2 className="mb-1 text-sm font-semibold uppercase tracking-wider text-ink-subtle">Choose an account</h2>
         <p className="mb-4 text-sm text-ink-muted">Only active fellowship accounts appear. Platform accounts cannot be impersonated.</p>
         <div className="mb-4 flex flex-wrap items-center gap-3">
-          <input className="input max-w-xs" placeholder="Search name or e-mail…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input aria-label="Search name or e-mail" className="input max-w-xs" placeholder="Search name or e-mail…" value={q} onChange={(e) => setQ(e.target.value)} />
           <select className="select w-56" value={fellowshipId} onChange={(e) => setFellowshipId(e.target.value)}>
             <option value="">All fellowships</option>
             {fellowships.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
@@ -193,13 +193,13 @@ export default function Impersonation() {
               their data exactly as they can.
             </p>
             <div>
-              <label className="label">Reason * — the account holder sees this</label>
-              <textarea name="reason" required minLength={10} maxLength={500} rows={3} className="input w-full"
+              <label className="label" htmlFor="impersonation-reason-the-account-holder-sees">Reason * — the account holder sees this</label>
+              <textarea id="impersonation-reason-the-account-holder-sees" name="reason" required minLength={10} maxLength={500} rows={3} className="input w-full"
                 placeholder="e.g. Client phoned: their treasurer cannot record contributions since Friday." />
             </div>
             <div>
-              <label className="label">Time limit</label>
-              <select name="durationMinutes" className="select w-full" defaultValue="30">
+              <label className="label" htmlFor="impersonation-time-limit">Time limit</label>
+              <select id="impersonation-time-limit" name="durationMinutes" className="select w-full" defaultValue="30">
                 {DURATIONS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
               </select>
               <p className="mt-1 text-xs text-ink-subtle">The session ends on its own and cannot be extended.</p>
@@ -222,8 +222,8 @@ export default function Impersonation() {
           >
             <p className="text-sm text-ink-muted">Ending takes effect on the impersonated session&rsquo;s very next request.</p>
             <div>
-              <label className="label">Reason (recorded)</label>
-              <input name="reason" className="input w-full" defaultValue="Support issue resolved." />
+              <label className="label" htmlFor="impersonation-reason-recorded">Reason (recorded)</label>
+              <input id="impersonation-reason-recorded" name="reason" className="input w-full" defaultValue="Support issue resolved." />
             </div>
             <div className="flex gap-2">
               <button type="submit" className="btn btn-primary flex-1">End session</button>

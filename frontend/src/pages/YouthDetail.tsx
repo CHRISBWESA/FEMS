@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import { useMembers } from '../context/MembersContext';
-import { PageLoader } from '../components/ui';
+import { PageLoader, DialogBackdrop } from '../components/ui';
 import {
   ArrowLeftIcon, FaceSmileIcon, UserPlusIcon, XMarkIcon, TrashIcon,
   ShieldExclamationIcon, DocumentTextIcon,
@@ -252,7 +252,7 @@ export default function YouthDetail() {
       </div>
 
       {showAddGuardian && (
-        <div className="modal-backdrop" onClick={() => setShowAddGuardian(false)}>
+        <DialogBackdrop onClose={() => setShowAddGuardian(false)}>
           <form onSubmit={submitAddGuardian} onClick={(e) => e.stopPropagation()} className="modal max-w-md">
             <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -262,14 +262,14 @@ export default function YouthDetail() {
                   <p className="text-xs text-ink-muted">Link an existing fellowship member as a guardian.</p>
                 </div>
               </div>
-              <button type="button" onClick={() => setShowAddGuardian(false)} className="btn btn-icon">
-                <XMarkIcon className="h-5 w-5" />
+              <button aria-label="Close" type="button" onClick={() => setShowAddGuardian(false)} className="btn btn-icon">
+                <XMarkIcon className="h-5 w-5" aria-hidden />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="label">Guardian Member *</label>
-                <select
+                <label className="label" htmlFor="youthdetail-guardian-member">Guardian Member *</label>
+                <select id="youthdetail-guardian-member"
                   required
                   className="select"
                   value={guardianForm.guardianMemberId}
@@ -282,8 +282,8 @@ export default function YouthDetail() {
                 </select>
               </div>
               <div>
-                <label className="label">Relationship *</label>
-                <input
+                <label className="label" htmlFor="youthdetail-relationship">Relationship *</label>
+                <input id="youthdetail-relationship"
                   required
                   className="input"
                   placeholder="e.g. parent, grandparent, guardian"
@@ -307,7 +307,7 @@ export default function YouthDetail() {
               <button type="button" onClick={() => setShowAddGuardian(false)} className="btn btn-secondary flex-1">Cancel</button>
             </div>
           </form>
-        </div>
+        </DialogBackdrop>
       )}
     </div>
   );

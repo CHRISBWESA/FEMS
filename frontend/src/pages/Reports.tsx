@@ -4,7 +4,7 @@ import { useAuth } from '../App';
 import {
   DocumentTextIcon, CheckIcon, XMarkIcon, PlusIcon, ArrowPathIcon, ClockIcon, CheckCircleIcon, ArrowUturnLeftIcon,
 } from '@heroicons/react/24/outline';
-import { PageLoader, StatCard, StatGrid } from '../components/ui';
+import { PageLoader, StatCard, StatGrid, DialogBackdrop } from '../components/ui';
 
 const emptyForm = {
   departmentId: '',
@@ -185,7 +185,7 @@ export default function Reports() {
       )}
 
       {showSubmit && (
-        <div className="modal-backdrop" onClick={() => setShowSubmit(false)}>
+        <DialogBackdrop onClose={() => setShowSubmit(false)}>
           <form onSubmit={submitReport} onClick={(e) => e.stopPropagation()} className="modal max-w-lg">
             <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -197,8 +197,8 @@ export default function Reports() {
                   <p className="text-xs text-ink-muted">Goes through secretary then chairperson review.</p>
                 </div>
               </div>
-              <button type="button" onClick={() => setShowSubmit(false)} className="btn btn-icon">
-                <XMarkIcon className="h-5 w-5" />
+              <button aria-label="Close" type="button" onClick={() => setShowSubmit(false)} className="btn btn-icon">
+                <XMarkIcon className="h-5 w-5" aria-hidden />
               </button>
             </div>
 
@@ -210,19 +210,19 @@ export default function Reports() {
 
             <div className="space-y-4">
               <div>
-                <label className="label">Department *</label>
-                <select required className="select" value={form.departmentId} onChange={(e) => setForm({ ...form, departmentId: e.target.value })}>
+                <label className="label" htmlFor="reports-department">Department *</label>
+                <select id="reports-department" required className="select" value={form.departmentId} onChange={(e) => setForm({ ...form, departmentId: e.target.value })}>
                   <option value="">Select department…</option>
                   {departments.filter(d => d.is_active !== false).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="label">Title *</label>
-                <input required className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+                <label className="label" htmlFor="reports-title">Title *</label>
+                <input id="reports-title" required className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
               </div>
               <div>
-                <label className="label">Content *</label>
-                <textarea required rows={8} className="input" placeholder="Write the report…" value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} />
+                <label className="label" htmlFor="reports-content">Content *</label>
+                <textarea id="reports-content" required rows={8} className="input" placeholder="Write the report…" value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} />
               </div>
             </div>
 
@@ -235,7 +235,7 @@ export default function Reports() {
               </button>
             </div>
           </form>
-        </div>
+        </DialogBackdrop>
       )}
     </div>
   );

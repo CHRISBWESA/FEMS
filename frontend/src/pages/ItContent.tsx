@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../App';
-import { PageLoader } from '../components/ui';
+import { PageLoader, DialogBackdrop } from '../components/ui';
 import {
   DocumentTextIcon, MegaphoneIcon, PhotoIcon,
   PlusIcon, XMarkIcon, CloudArrowUpIcon, CheckIcon,
@@ -291,7 +291,7 @@ export default function ItContent() {
       )}
 
       {showUpload && (
-        <div className="modal-backdrop" onClick={() => setShowUpload(false)}>
+        <DialogBackdrop onClose={() => setShowUpload(false)}>
           <form onSubmit={submitUpload} onClick={(e) => e.stopPropagation()} className="modal max-w-md">
             <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -303,19 +303,19 @@ export default function ItContent() {
                   <p className="text-xs text-ink-muted">Saved as draft; submit it for approval after upload.</p>
                 </div>
               </div>
-              <button type="button" onClick={() => setShowUpload(false)} className="btn btn-icon">
-                <XMarkIcon className="h-5 w-5" />
+              <button aria-label="Close" type="button" onClick={() => setShowUpload(false)} className="btn btn-icon">
+                <XMarkIcon className="h-5 w-5" aria-hidden />
               </button>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="label">Title *</label>
-                <input required className="input" value={docForm.title} onChange={(e) => setDocForm({ ...docForm, title: e.target.value })} />
+                <label className="label" htmlFor="itcontent-title">Title *</label>
+                <input id="itcontent-title" required className="input" value={docForm.title} onChange={(e) => setDocForm({ ...docForm, title: e.target.value })} />
               </div>
               <div>
-                <label className="label">Department</label>
-                <select className="select" value={docForm.departmentId} onChange={(e) => setDocForm({ ...docForm, departmentId: e.target.value })}>
+                <label className="label" htmlFor="itcontent-department">Department</label>
+                <select id="itcontent-department" className="select" value={docForm.departmentId} onChange={(e) => setDocForm({ ...docForm, departmentId: e.target.value })}>
                   <option value="">General / none</option>
                   {departments.filter(d => d.is_active !== false).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
@@ -325,8 +325,8 @@ export default function ItContent() {
                 This is website content
               </label>
               <div>
-                <label className="label">File *</label>
-                <input type="file" required className="input" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+                <label className="label" htmlFor="itcontent-file">File *</label>
+                <input id="itcontent-file" type="file" required className="input" onChange={(e) => setFile(e.target.files?.[0] || null)} />
               </div>
             </div>
 
@@ -339,11 +339,11 @@ export default function ItContent() {
               </button>
             </div>
           </form>
-        </div>
+        </DialogBackdrop>
       )}
 
       {showAnnouncement && (
-        <div className="modal-backdrop" onClick={() => setShowAnnouncement(false)}>
+        <DialogBackdrop onClose={() => setShowAnnouncement(false)}>
           <form onSubmit={submitAnnouncement} onClick={(e) => e.stopPropagation()} className="modal max-w-lg">
             <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -355,23 +355,23 @@ export default function ItContent() {
                   <p className="text-xs text-ink-muted">Requires chairperson approval before publishing.</p>
                 </div>
               </div>
-              <button type="button" onClick={() => setShowAnnouncement(false)} className="btn btn-icon">
-                <XMarkIcon className="h-5 w-5" />
+              <button aria-label="Close" type="button" onClick={() => setShowAnnouncement(false)} className="btn btn-icon">
+                <XMarkIcon className="h-5 w-5" aria-hidden />
               </button>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="label">Title *</label>
-                <input required className="input" value={annForm.title} onChange={(e) => setAnnForm({ ...annForm, title: e.target.value })} />
+                <label className="label" htmlFor="itcontent-title-2">Title *</label>
+                <input id="itcontent-title-2" required className="input" value={annForm.title} onChange={(e) => setAnnForm({ ...annForm, title: e.target.value })} />
               </div>
               <div>
-                <label className="label">Content *</label>
-                <textarea required rows={6} className="input" value={annForm.content} onChange={(e) => setAnnForm({ ...annForm, content: e.target.value })} />
+                <label className="label" htmlFor="itcontent-content">Content *</label>
+                <textarea id="itcontent-content" required rows={6} className="input" value={annForm.content} onChange={(e) => setAnnForm({ ...annForm, content: e.target.value })} />
               </div>
               <div>
-                <label className="label">Audience *</label>
-                <select className="select" value={annForm.audienceType} onChange={(e) => setAnnForm({ ...annForm, audienceType: e.target.value })}>
+                <label className="label" htmlFor="itcontent-audience">Audience *</label>
+                <select id="itcontent-audience" className="select" value={annForm.audienceType} onChange={(e) => setAnnForm({ ...annForm, audienceType: e.target.value })}>
                   <option value="all_members">All members</option>
                   <option value="department">Department</option>
                   <option value="leaders">Leaders</option>
@@ -379,8 +379,8 @@ export default function ItContent() {
               </div>
               {annForm.audienceType === 'department' && (
                 <div>
-                  <label className="label">Department</label>
-                  <select required className="select" value={annForm.departmentId} onChange={(e) => setAnnForm({ ...annForm, departmentId: e.target.value })}>
+                  <label className="label" htmlFor="itcontent-department-2">Department</label>
+                  <select id="itcontent-department-2" required className="select" value={annForm.departmentId} onChange={(e) => setAnnForm({ ...annForm, departmentId: e.target.value })}>
                     <option value="">Select department…</option>
                     {departments.filter(d => d.is_active !== false).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
@@ -397,7 +397,7 @@ export default function ItContent() {
               </button>
             </div>
           </form>
-        </div>
+        </DialogBackdrop>
       )}
     </div>
   );

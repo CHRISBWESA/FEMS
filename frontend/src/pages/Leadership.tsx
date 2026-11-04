@@ -34,7 +34,7 @@ function MemberSearch({ value, onChange }: { value: any; onChange: (m: any) => v
   if (value) return <div className="flex items-center justify-between rounded-control bg-surface-sunken px-3 py-2 text-sm"><span className="flex items-center gap-2"><Photo m={value} size="sm" /><span className="font-medium">{value.fullName}</span><span className="text-ink-subtle">{value.registrationNumber}</span></span><button type="button" className="text-primary hover:underline" onClick={() => onChange(null)}>Change</button></div>;
   return (
     <div>
-      <input className="input" placeholder="Search registered members by name or registration number" value={q} onChange={(e) => setQ(e.target.value)} />
+      <input aria-label="Search registered members by name or registration number" className="input" placeholder="Search registered members by name or registration number" value={q} onChange={(e) => setQ(e.target.value)} />
       {list.length > 0 && <ul className="mt-1 max-h-56 overflow-auto rounded-control border border-hairline bg-surface">{list.map((m) => (
         <li key={m.id}><button type="button" className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-surface-sunken" onClick={() => onChange(m)}>
           <Photo m={m} size="sm" /><span className="font-medium">{m.fullName}</span><span className="text-ink-subtle">{m.registrationNumber}</span>

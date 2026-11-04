@@ -3,7 +3,7 @@ import axios from 'axios';
 import { storeSessionTokens } from '../lib/session';
 import { useAuth } from '../App';
 import { KeyIcon, XMarkIcon, IdentificationIcon, PencilIcon } from '@heroicons/react/24/outline';
-import { PageLoader } from '../components/ui';
+import { PageLoader, DialogBackdrop } from '../components/ui';
 import { Field, Input, Alert, Button } from '../components/ui';
 
 export default function Profile() {
@@ -99,11 +99,11 @@ export default function Profile() {
             <p className="text-sm text-ink-muted">{info.email}</p>
           </div>
           {showEditProfile ? (
-            <Button variant="ghost" size="sm" onClick={() => { setShowEditProfile(false); setFirstName(info.first_name || info.firstName || ''); setLastName(info.last_name || info.lastName || ''); setEmail(info.email || ''); }}>
+            <Button variant="ghost" size="sm" aria-label="Cancel editing" onClick={() => { setShowEditProfile(false); setFirstName(info.first_name || info.firstName || ''); setLastName(info.last_name || info.lastName || ''); setEmail(info.email || ''); }}>
               <XMarkIcon className="h-5 w-5" />
             </Button>
           ) : (
-            <Button variant="ghost" size="sm" onClick={() => { setShowEditProfile(true); setFirstName(info.first_name || info.firstName || ''); setLastName(info.last_name || info.lastName || ''); setEmail(info.email || ''); }}>
+            <Button variant="ghost" size="sm" aria-label="Edit profile" onClick={() => { setShowEditProfile(true); setFirstName(info.first_name || info.firstName || ''); setLastName(info.last_name || info.lastName || ''); setEmail(info.email || ''); }}>
               <PencilIcon className="h-5 w-5" />
             </Button>
           )}
@@ -168,7 +168,7 @@ export default function Profile() {
       </div>
 
       {showChangePassword && (
-        <div className="modal-backdrop" onClick={() => setShowChangePassword(false)}>
+        <DialogBackdrop onClose={() => setShowChangePassword(false)}>
           <form
             onSubmit={changePassword}
             onClick={(e) => e.stopPropagation()}
@@ -181,8 +181,8 @@ export default function Profile() {
                 </div>
                 <h3 className="text-base font-semibold text-ink">Change Password</h3>
               </div>
-              <button type="button" onClick={() => setShowChangePassword(false)} className="p-1.5 text-ink-subtle hover:text-ink">
-                <XMarkIcon className="h-5 w-5" />
+              <button aria-label="Close" type="button" onClick={() => setShowChangePassword(false)} className="p-1.5 text-ink-subtle hover:text-ink">
+                <XMarkIcon className="h-5 w-5" aria-hidden />
               </button>
             </div>
 
@@ -208,7 +208,7 @@ export default function Profile() {
               </Button>
             </div>
           </form>
-        </div>
+        </DialogBackdrop>
       )}
     </div>
   );

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import ListLimitNotice from '../components/ListLimitNotice';
 import { totalFromHeaders } from '../lib/list-total';
-import { PageLoader } from '../components/ui';
+import { PageLoader, DialogBackdrop } from '../components/ui';
 import {
   FaceSmileIcon, ArrowRightIcon, PlusIcon, XMarkIcon,
 } from '@heroicons/react/24/outline';
@@ -130,7 +130,7 @@ export default function Youth() {
       )}
 
       {showCreate && (
-        <div className="modal-backdrop" onClick={() => setShowCreate(false)}>
+        <DialogBackdrop onClose={() => setShowCreate(false)}>
           <form onSubmit={submitForm} onClick={(e) => e.stopPropagation()} className="modal max-w-md">
             <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -142,8 +142,8 @@ export default function Youth() {
                   <p className="text-xs text-ink-muted">Register a youth or child participant.</p>
                 </div>
               </div>
-              <button type="button" onClick={() => setShowCreate(false)} className="btn btn-icon">
-                <XMarkIcon className="h-5 w-5" />
+              <button aria-label="Close" type="button" onClick={() => setShowCreate(false)} className="btn btn-icon">
+                <XMarkIcon className="h-5 w-5" aria-hidden />
               </button>
             </div>
 
@@ -155,8 +155,8 @@ export default function Youth() {
 
             <div className="space-y-4">
               <div>
-                <label className="label">Full Name *</label>
-                <input
+                <label className="label" htmlFor="youth-full-name">Full Name *</label>
+                <input id="youth-full-name"
                   className="input"
                   required
                   value={form.fullName}
@@ -164,8 +164,8 @@ export default function Youth() {
                 />
               </div>
               <div>
-                <label className="label">Date of Birth *</label>
-                <input
+                <label className="label" htmlFor="youth-date-of-birth">Date of Birth *</label>
+                <input id="youth-date-of-birth"
                   type="date"
                   className="input"
                   required
@@ -175,16 +175,16 @@ export default function Youth() {
                 />
               </div>
               <div>
-                <label className="label">Gender</label>
-                <input
+                <label className="label" htmlFor="youth-gender">Gender</label>
+                <input id="youth-gender"
                   className="input"
                   value={form.gender}
                   onChange={(e) => setForm({ ...form, gender: e.target.value })}
                 />
               </div>
               <div>
-                <label className="label">Department</label>
-                <select
+                <label className="label" htmlFor="youth-department">Department</label>
+                <select id="youth-department"
                   className="select"
                   value={form.departmentId}
                   onChange={(e) => setForm({ ...form, departmentId: e.target.value })}
@@ -206,7 +206,7 @@ export default function Youth() {
               </button>
             </div>
           </form>
-        </div>
+        </DialogBackdrop>
       )}
     </div>
   );

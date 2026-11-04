@@ -46,8 +46,8 @@ export default function YouthPrograms() {
       </div>
 
       <div className="card mb-6">
-        <label className="label">Filter by department</label>
-        <select className="select" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
+        <label className="label" htmlFor="youthprograms-filter-by-department">Filter by department</label>
+        <select id="youthprograms-filter-by-department" className="select" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
           <option value="">All department-scoped activities</option>
           {departments.map((d: any) => (
             <option key={d.id} value={d.id}>{d.name}</option>

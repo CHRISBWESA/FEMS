@@ -114,28 +114,28 @@ export default function MemberProfileTab({ memberId }: { memberId: string }) {
         <form onSubmit={save} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="label">Occupation</label>
-              <input className="input" value={form.occupation} onChange={(e) => setForm({ ...form, occupation: e.target.value })} />
+              <label className="label" htmlFor="memberprofiletab-occupation">Occupation</label>
+              <input id="memberprofiletab-occupation" className="input" value={form.occupation} onChange={(e) => setForm({ ...form, occupation: e.target.value })} />
             </div>
             <div>
-              <label className="label">Membership date</label>
-              <input type="date" className="input" max={new Date().toISOString().slice(0, 10)} value={form.membershipDate}
+              <label className="label" htmlFor="memberprofiletab-membership-date">Membership date</label>
+              <input id="memberprofiletab-membership-date" type="date" className="input" max={new Date().toISOString().slice(0, 10)} value={form.membershipDate}
                 onChange={(e) => setForm({ ...form, membershipDate: e.target.value })} />
             </div>
             <div className="sm:col-span-2">
-              <label className="label">Skills (comma separated)</label>
-              <input className="input" value={form.skills} onChange={(e) => setForm({ ...form, skills: e.target.value })} />
+              <label className="label" htmlFor="memberprofiletab-skills-comma-separated">Skills (comma separated)</label>
+              <input id="memberprofiletab-skills-comma-separated" className="input" value={form.skills} onChange={(e) => setForm({ ...form, skills: e.target.value })} />
             </div>
             <div className="sm:col-span-2">
-              <label className="label">Interests (comma separated)</label>
-              <input className="input" value={form.interests} onChange={(e) => setForm({ ...form, interests: e.target.value })} />
+              <label className="label" htmlFor="memberprofiletab-interests-comma-separated">Interests (comma separated)</label>
+              <input id="memberprofiletab-interests-comma-separated" className="input" value={form.interests} onChange={(e) => setForm({ ...form, interests: e.target.value })} />
             </div>
             <div className="sm:col-span-2">
-              <label className="label">Service / volunteer interests (comma separated)</label>
-              <input className="input" value={form.serviceInterests} onChange={(e) => setForm({ ...form, serviceInterests: e.target.value })} />
+              <label className="label" htmlFor="memberprofiletab-service-volunteer-interests-co">Service / volunteer interests (comma separated)</label>
+              <input id="memberprofiletab-service-volunteer-interests-co" className="input" value={form.serviceInterests} onChange={(e) => setForm({ ...form, serviceInterests: e.target.value })} />
             </div>
             <div className="sm:col-span-2">
-              <label className="label">Preferred communication channels</label>
+              <label className="label" htmlFor="memberprofiletab-preferred-communication-channe">Preferred communication channels</label>
               <div className="flex flex-wrap gap-4 pt-1">
                 {CHANNELS.map((c) => (
                   <label key={c} className="flex items-center gap-2 text-sm text-ink">
@@ -163,15 +163,15 @@ export default function MemberProfileTab({ memberId }: { memberId: string }) {
               <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div>
                   <label className="label">Name</label>
-                  <input className="input" value={form.emergencyContactName} onChange={(e) => setForm({ ...form, emergencyContactName: e.target.value })} />
+                  <input id="memberprofiletab-preferred-communication-channe" className="input" value={form.emergencyContactName} onChange={(e) => setForm({ ...form, emergencyContactName: e.target.value })} />
                 </div>
                 <div>
-                  <label className="label">Phone</label>
-                  <input className="input" value={form.emergencyContactPhone} onChange={(e) => setForm({ ...form, emergencyContactPhone: e.target.value })} />
+                  <label className="label" htmlFor="memberprofiletab-phone">Phone</label>
+                  <input id="memberprofiletab-phone" className="input" value={form.emergencyContactPhone} onChange={(e) => setForm({ ...form, emergencyContactPhone: e.target.value })} />
                 </div>
                 <div>
-                  <label className="label">Relationship</label>
-                  <input className="input" value={form.emergencyContactRelationship} onChange={(e) => setForm({ ...form, emergencyContactRelationship: e.target.value })} />
+                  <label className="label" htmlFor="memberprofiletab-relationship">Relationship</label>
+                  <input id="memberprofiletab-relationship" className="input" value={form.emergencyContactRelationship} onChange={(e) => setForm({ ...form, emergencyContactRelationship: e.target.value })} />
                 </div>
               </div>
             </div>

@@ -7,7 +7,7 @@
  * These are presentational only. They render what they are given and raise intent back out through callbacks, so
  * none of them fetch, store or decide anything.
  */
-import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { cloneElement, createContext, isValidElement, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { ArrowUpTrayIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
@@ -109,6 +109,11 @@ export function Field({
   const hintId = `${id}-hint`;
   const errorId = `${id}-error`;
   const describedBy = [hint ? hintId : null, error ? errorId : null].filter(Boolean).join(' ');
+  // A plain <input>/<select>/<textarea> placed directly inside gets the same wiring as <Input> and friends.
+  const control = isValidElement<Record<string, unknown>>(children) && typeof children.type === 'string'
+    && ['input', 'select', 'textarea'].includes(children.type) && !children.props.id
+    ? cloneElement(children, { id, 'aria-describedby': (children.props['aria-describedby'] as string | undefined) ?? (describedBy || undefined) })
+    : children;
 
   return (
     <FieldContext.Provider value={{ id, describedBy }}>
@@ -117,7 +122,7 @@ export function Field({
           {label}
           {required ? <span className="ml-0.5 text-danger">*</span> : null}
         </label>
-        {children}
+        {control}
         {hint ? (
           <p id={hintId} className="hint">
             {hint}
@@ -156,8 +161,9 @@ export function Select({
   ...rest
 }: { options: { value: string; label: string }[]; placeholder?: string } & React.SelectHTMLAttributes<HTMLSelectElement>) {
   const field = useContext(FieldContext);
+  const fallbackName = !field && !rest['aria-label'] && !rest['aria-labelledby'] && !rest.id ? (placeholder ?? options[0]?.label) : undefined;
   return (
-    <select className={`select w-full ${className}`} id={field?.id} aria-describedby={field?.describedBy || undefined} {...rest}>
+    <select className={`select w-full ${className}`} id={field?.id} aria-describedby={field?.describedBy || undefined} aria-label={fallbackName} {...rest}>
       {placeholder ? <option value="">{placeholder}</option> : null}
       {options.map((o) => (
         <option key={o.value} value={o.value}>
@@ -382,6 +388,51 @@ export function Modal({
       </div>
     </div>,
     document.body,
+  );
+}
+
+/**
+ * The backdrop for a page's own dialog markup (`<DialogBackdrop onClose={...}><form className="modal">...`). It gives
+ * that markup what <Modal> has: the panel is announced as a dialog named by its heading, Escape and a click outside
+ * close it, focus moves into it and back to where it was afterwards, and the page behind does not scroll.
+ * Mount it only while the dialog is open.
+ */
+export function DialogBackdrop({ onClose, children }: { onClose: () => void; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  const headingId = useId();
+
+  useEffect(() => {
+    const restoreTo = document.activeElement as HTMLElement | null;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeRef.current(); };
+    document.addEventListener('keydown', onKey);
+
+    const panel = ref.current?.firstElementChild as HTMLElement | null;
+    if (panel) {
+      panel.setAttribute('role', 'dialog');
+      panel.setAttribute('aria-modal', 'true');
+      const heading = panel.querySelector('h1, h2, h3');
+      if (heading) {
+        if (!heading.id) heading.id = headingId;
+        panel.setAttribute('aria-labelledby', heading.id);
+      }
+      if (!panel.hasAttribute('tabindex')) panel.tabIndex = -1;
+      panel.focus();
+    }
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = previous;
+      restoreTo?.focus?.();
+    };
+  }, [headingId]);
+
+  return (
+    <div ref={ref} className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) closeRef.current(); }}>
+      {children}
+    </div>
   );
 }
 

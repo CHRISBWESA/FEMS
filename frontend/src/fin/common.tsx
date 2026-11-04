@@ -237,7 +237,7 @@ export function MemberPicker({ value, onChange }: { value: { id: string; name: s
   }
   return (
     <div>
-      <input className="input" placeholder="Search by name or member code" value={q} onChange={(e) => setQ(e.target.value)} />
+      <input aria-label="Search by name or member code" className="input" placeholder="Search by name or member code" value={q} onChange={(e) => setQ(e.target.value)} />
       {list.length > 0 && (
         <ul className="mt-1 max-h-48 overflow-auto rounded-control border border-hairline bg-surface">
           {list.map((m) => (
@@ -353,7 +353,7 @@ export function MonthlyBars({ rows, currency }: { rows: { month: string; income:
           </div>
         ))}
       </div>
-      <div className="mt-1 flex gap-1 text-[10px] text-ink-subtle">{rows.map((r) => <span key={r.month} className="flex-1 text-center">{r.month.slice(5)}</span>)}</div>
+      <div className="mt-1 flex gap-1 text-xxs text-ink-subtle">{rows.map((r) => <span key={r.month} className="flex-1 text-center">{r.month.slice(5)}</span>)}</div>
       <div className="mt-2 flex gap-4 text-xs text-ink-muted"><span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded bg-success" /> Money in</span><span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded bg-danger" /> Money out</span></div>
     </div>
   );

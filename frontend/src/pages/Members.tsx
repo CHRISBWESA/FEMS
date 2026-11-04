@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import { useMembers } from '../context/MembersContext';
 import { DataTable, type Column } from '../components/DataTable';
-import { EmptyState, PageLoader, Alert, StatCard, StatGrid } from '../components/ui';
+import { EmptyState, PageLoader, Alert, StatCard, StatGrid, DialogBackdrop } from '../components/ui';
 import {
   UsersIcon,
   MagnifyingGlassIcon,
@@ -215,8 +215,7 @@ export default function Members() {
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-subtle" />
-          <input
-            type="text"
+          <input aria-label="Search members"             type="text"
             placeholder="Search members..."
             className="input pl-10"
             value={search}
@@ -224,6 +223,7 @@ export default function Members() {
           />
         </div>
         <select
+          aria-label="Filter by status"
           className="select sm:w-48"
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
@@ -247,31 +247,31 @@ export default function Members() {
             {canFilterProfile && (
               <>
                 <div>
-                  <label className="label">Skills (any of, comma separated)</label>
-                  <input className="input" value={draft.skills} onChange={(e) => setDraft({ ...draft, skills: e.target.value })} />
+                  <label className="label" htmlFor="members-skills-any-of-comma-separated">Skills (any of, comma separated)</label>
+                  <input id="members-skills-any-of-comma-separated" className="input" value={draft.skills} onChange={(e) => setDraft({ ...draft, skills: e.target.value })} />
                 </div>
                 <div>
-                  <label className="label">Interests</label>
-                  <input className="input" value={draft.interests} onChange={(e) => setDraft({ ...draft, interests: e.target.value })} />
+                  <label className="label" htmlFor="members-interests">Interests</label>
+                  <input id="members-interests" className="input" value={draft.interests} onChange={(e) => setDraft({ ...draft, interests: e.target.value })} />
                 </div>
                 <div>
-                  <label className="label">Service interests</label>
-                  <input className="input" value={draft.serviceInterests} onChange={(e) => setDraft({ ...draft, serviceInterests: e.target.value })} />
+                  <label className="label" htmlFor="members-service-interests">Service interests</label>
+                  <input id="members-service-interests" className="input" value={draft.serviceInterests} onChange={(e) => setDraft({ ...draft, serviceInterests: e.target.value })} />
                 </div>
                 <div>
-                  <label className="label">Member since (from)</label>
-                  <input type="date" className="input" value={draft.joinedFrom} onChange={(e) => setDraft({ ...draft, joinedFrom: e.target.value })} />
+                  <label className="label" htmlFor="members-member-since-from">Member since (from)</label>
+                  <input id="members-member-since-from" type="date" className="input" value={draft.joinedFrom} onChange={(e) => setDraft({ ...draft, joinedFrom: e.target.value })} />
                 </div>
                 <div>
-                  <label className="label">Member since (to)</label>
-                  <input type="date" className="input" value={draft.joinedTo} onChange={(e) => setDraft({ ...draft, joinedTo: e.target.value })} />
+                  <label className="label" htmlFor="members-member-since-to">Member since (to)</label>
+                  <input id="members-member-since-to" type="date" className="input" value={draft.joinedTo} onChange={(e) => setDraft({ ...draft, joinedTo: e.target.value })} />
                 </div>
               </>
             )}
             {canFilterGroup && (
               <div>
-                <label className="label">Group</label>
-                <select className="select" value={draft.groupId} onChange={(e) => setDraft({ ...draft, groupId: e.target.value })}>
+                <label className="label" htmlFor="members-group">Group</label>
+                <select id="members-group" className="select" value={draft.groupId} onChange={(e) => setDraft({ ...draft, groupId: e.target.value })}>
                   <option value="">Any group</option>
                   {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
                 </select>
@@ -292,7 +292,7 @@ export default function Members() {
       ) : (
         <DataTable
           columns={[
-            { key: 'name', header: 'Name', priority: 'primary', render: (m: any) => <Link to={`/members/${m.id}`} className="font-medium text-primary hover:underline">{m.full_name}</Link> },
+            { key: 'name', header: 'Name', priority: 'primary', render: (m: any) => <Link to={`/members/${m.id}`} className="inline-block py-1 font-medium text-primary hover:underline">{m.full_name}</Link> },
             { key: 'code', header: 'Member Code', priority: 'secondary', render: (m: any) => <span className="font-mono text-xs">{m.member_code}</span> },
             { key: 'status', header: 'Status', render: (m: any) => <span className={`status-badge ${getStatusClass(m.membership_status)}`}>{m.membership_status}</span> },
             { key: 'departments', header: 'Department', render: (m: any) => <span className="text-ink-muted">{m.departments?.filter((d: any) => !d.removed).map((d: any) => d.department?.name ?? '').filter(Boolean).join(', ') || '—'}</span> },
@@ -320,7 +320,7 @@ export default function Members() {
       
 
       {showCreate && (
-        <div className="modal-backdrop" onClick={() => setShowCreate(false)}>
+        <DialogBackdrop onClose={() => setShowCreate(false)}>
           <form
             onSubmit={handleCreateMember}
             onClick={(e) => e.stopPropagation()}
@@ -336,8 +336,8 @@ export default function Members() {
                   <p className="text-xs text-ink-muted">A new member record with a generated code.</p>
                 </div>
               </div>
-              <button type="button" onClick={() => setShowCreate(false)} className="btn btn-icon">
-                <XMarkIcon className="h-5 w-5" />
+              <button aria-label="Close" type="button" onClick={() => setShowCreate(false)} className="btn btn-icon">
+                <XMarkIcon className="h-5 w-5" aria-hidden />
               </button>
             </div>
 
@@ -345,8 +345,8 @@ export default function Members() {
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <label className="label">Full name *</label>
-                <input
+                <label className="label" htmlFor="members-full-name">Full name *</label>
+                <input id="members-full-name"
                   className="input"
                   required
                   value={form.fullName}
@@ -354,8 +354,8 @@ export default function Members() {
                 />
               </div>
               <div>
-                <label className="label">Gender *</label>
-                <select
+                <label className="label" htmlFor="members-gender">Gender *</label>
+                <select id="members-gender"
                   className="select"
                   value={form.gender}
                   onChange={(e) => setForm({ ...form, gender: e.target.value })}
@@ -366,16 +366,16 @@ export default function Members() {
                 </select>
               </div>
               <div>
-                <label className="label">Phone</label>
-                <input
+                <label className="label" htmlFor="members-phone">Phone</label>
+                <input id="members-phone"
                   className="input"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="label">Email</label>
-                <input
+                <label className="label" htmlFor="members-email">Email</label>
+                <input id="members-email"
                   type="email"
                   className="input"
                   value={form.email}
@@ -383,8 +383,8 @@ export default function Members() {
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="label">Programme</label>
-                <select
+                <label className="label" htmlFor="members-programme">Programme</label>
+                <select id="members-programme"
                   className="select"
                   value={selectedProgramme}
                   onChange={(e) => {
@@ -402,8 +402,8 @@ export default function Members() {
               </div>
               {selectedProgramme === '__other__' && (
                 <div className="sm:col-span-2">
-                  <label className="label">Programme (manual)</label>
-                  <input
+                  <label className="label" htmlFor="members-programme-manual">Programme (manual)</label>
+                  <input id="members-programme-manual"
                     className="input"
                     placeholder="e.g. BSc. Statistics"
                     value={form.programme}
@@ -412,16 +412,16 @@ export default function Members() {
                 </div>
               )}
               <div>
-                <label className="label">Year of study</label>
-                <input
+                <label className="label" htmlFor="members-year-of-study">Year of study</label>
+                <input id="members-year-of-study"
                   className="input"
                   value={form.yearOfStudy}
                   onChange={(e) => setForm({ ...form, yearOfStudy: e.target.value })}
                 />
               </div>
               <div>
-                <label className="label">Expected graduation year *</label>
-                <input
+                <label className="label" htmlFor="members-expected-graduation-year">Expected graduation year *</label>
+                <input id="members-expected-graduation-year"
                   type="number"
                   className="input"
                   min={new Date().getFullYear()}
@@ -431,8 +431,8 @@ export default function Members() {
                 />
               </div>
               <div>
-                <label className="label">Expected graduation month *</label>
-                <select
+                <label className="label" htmlFor="members-expected-graduation-month">Expected graduation month *</label>
+                <select id="members-expected-graduation-month"
                   className="select"
                   value={form.expectedGraduationMonth}
                   onChange={(e) => setForm({ ...form, expectedGraduationMonth: Number(e.target.value) })}
@@ -453,11 +453,11 @@ export default function Members() {
               </button>
             </div>
           </form>
-        </div>
+        </DialogBackdrop>
       )}
 
       {showUpload && (
-        <div className="modal-backdrop" onClick={() => setShowUpload(false)}>
+        <DialogBackdrop onClose={() => setShowUpload(false)}>
           <form
             onSubmit={submitUpload}
             onClick={(e) => e.stopPropagation()}
@@ -473,8 +473,8 @@ export default function Members() {
                   <p className="text-xs text-ink-muted">Import members from a CSV file.</p>
                 </div>
               </div>
-              <button type="button" onClick={() => setShowUpload(false)} className="btn btn-icon">
-                <XMarkIcon className="h-5 w-5" />
+              <button aria-label="Close" type="button" onClick={() => setShowUpload(false)} className="btn btn-icon">
+                <XMarkIcon className="h-5 w-5" aria-hidden />
               </button>
             </div>
 
@@ -495,8 +495,8 @@ export default function Members() {
               </div>
             )}
 
-            <label className="label">CSV file</label>
-            <input
+            <label className="label" htmlFor="members-csv-file">CSV file</label>
+            <input id="members-csv-file"
               type="file"
               accept=".csv,text/csv"
               required
@@ -528,7 +528,7 @@ export default function Members() {
               </button>
             </div>
           </form>
-        </div>
+        </DialogBackdrop>
       )}
 </div>
   );

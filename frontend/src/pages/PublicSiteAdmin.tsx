@@ -665,8 +665,8 @@ function PostsTab({ data, onSaved, flash }: { data: Overview; onSaved: () => voi
             <button className="btn btn-secondary btn-sm" onClick={() => startEdit(p)}>
               <PencilSquareIcon className="h-4 w-4" /> Edit
             </button>
-            <button className="btn btn-ghost btn-sm text-rose-600" onClick={() => remove(p)}>
-              <TrashIcon className="h-4 w-4" />
+            <button aria-label="Delete" className="btn btn-ghost btn-sm text-rose-600" onClick={() => remove(p)}>
+              <TrashIcon className="h-4 w-4" aria-hidden />
             </button>
           </div>
         </div>

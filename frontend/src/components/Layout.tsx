@@ -267,7 +267,7 @@ export default function Layout() {
                         className={`group flex w-full items-center gap-3 rounded-control px-3 py-2 text-sm font-medium transition-colors duration-150 ${active ? 'text-primary' : 'text-ink-muted hover:bg-surface-sunken hover:text-ink'}`}
                       >
                         <g.icon className="h-5 w-5 shrink-0" />
-                        <span className="flex-1 truncate text-left">{g.name}</span>
+                        <span className="flex-1 text-left leading-snug">{g.name}</span>
                         <ChevronDownIcon className={`h-4 w-4 shrink-0 transition-transform duration-150 ${open ? 'rotate-180' : ''}`} />
                       </button>
                       {open && (
@@ -441,7 +441,7 @@ export default function Layout() {
         )}
 
         {/* Main content */}
-        <main id="main-content" className="flex-1 overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6 lg:p-8">
+        <main id="main-content" tabIndex={0} className="flex-1 overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6 lg:p-8">
           <Suspense fallback={<PageLoading />}><Outlet /></Suspense>
         </main>
        </div>

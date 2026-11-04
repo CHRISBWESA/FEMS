@@ -71,7 +71,7 @@ function OpportunitiesTab({ canCreate }: { canCreate: boolean }) {
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <form onSubmit={(e) => { e.preventDefault(); load(); }} className="flex flex-1 gap-2">
-          <input className="input max-w-xs" placeholder="Search opportunities…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input aria-label="Search opportunities" className="input max-w-xs" placeholder="Search opportunities…" value={q} onChange={(e) => setQ(e.target.value)} />
           {canCreate && (
             <select className="select w-40" value={status} onChange={(e) => setStatus(e.target.value)}>
               <option value="">All statuses</option>
@@ -221,8 +221,8 @@ function ReportsTab() {
   return (
     <div className="space-y-6">
       <form onSubmit={(e) => { e.preventDefault(); load(); }} className="flex flex-wrap items-end gap-3">
-        <div><label className="label">From</label><input type="date" className="input" value={from} onChange={(e) => setFrom(e.target.value)} /></div>
-        <div><label className="label">To</label><input type="date" className="input" value={to} onChange={(e) => setTo(e.target.value)} /></div>
+        <div><label className="label" htmlFor="volunteering-from">From</label><input id="volunteering-from" type="date" className="input" value={from} onChange={(e) => setFrom(e.target.value)} /></div>
+        <div><label className="label" htmlFor="volunteering-to">To</label><input id="volunteering-to" type="date" className="input" value={to} onChange={(e) => setTo(e.target.value)} /></div>
         <button className="btn btn-secondary" type="submit">Update</button>
       </form>
       {error ? <Alert tone="danger">{error}</Alert> : !data ? <PageLoader /> : (

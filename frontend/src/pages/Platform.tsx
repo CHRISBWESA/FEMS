@@ -193,7 +193,7 @@ function RegistrationsTab() {
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <form onSubmit={(e) => { e.preventDefault(); load(); }} className="flex flex-1 gap-2">
-          <input className="input max-w-xs" placeholder="Search name, e-mail or locationâ€¦" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input aria-label="Search name, e-mail or location" className="input max-w-xs" placeholder="Search name, e-mail or location…" value={q} onChange={(e) => setQ(e.target.value)} />
           <select className="select w-40" value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="">All</option>
             <option value="pending">Pending</option>
@@ -204,7 +204,7 @@ function RegistrationsTab() {
         </form>
         {data && (
           <p className="text-sm text-ink-muted">
-            {data.counts.pending} pending Â· {data.counts.approved} approved Â· {data.counts.rejected} rejected
+            {data.counts.pending} pending · {data.counts.approved} approved · {data.counts.rejected} rejected
           </p>
         )}
       </div>
@@ -238,7 +238,7 @@ function RegistrationsTab() {
             </div>
           ) },
           { key: 'contactName', header: 'Contact', priority: 'meta' },
-          { key: 'requestedPlanCode', header: 'Plan asked for', priority: 'secondary', render: (row: any) => row.requestedPlanCode || '�' },
+          { key: 'requestedPlanCode', header: 'Plan asked for', priority: 'secondary', render: (row: any) => row.requestedPlanCode || '…' },
           { key: 'status', header: 'Status', priority: 'meta', render: (row: any) => (
             <Badge tone={statusTone(row.status)}>{row.status}</Badge>
           ) },
@@ -277,8 +277,8 @@ function RegistrationsTab() {
           description={`Creates the fellowship and its first administrator (${r.contactName}, ${r.email}). A temporary password is shown once.`}
           initial={{ startTrial: true }}
           fields={[
-            { name: 'planCode', label: 'Assign a plan', type: 'select', options: [{ value: '', label: 'No plan for now' }, ...plans.filter((p) => p.isActive).map((p) => ({ value: p.code, label: `${p.name} â€“ ${p.price} ${p.currency}/${p.billingInterval}${p.trialDays > 0 ? ` (${p.trialDays}-day trial)` : ''}` }))] },
-            { name: 'startTrial', label: 'Start the planâ€™s free trial', type: 'checkbox' },
+            { name: 'planCode', label: 'Assign a plan', type: 'select', options: [{ value: '', label: 'No plan for now' }, ...plans.filter((p) => p.isActive).map((p) => ({ value: p.code, label: `${p.name} – ${p.price} ${p.currency}/${p.billingInterval}${p.trialDays > 0 ? ` (${p.trialDays}-day trial)` : ''}` }))] },
+            { name: 'startTrial', label: 'Start the plan’s free trial', type: 'checkbox' },
             { name: 'note', label: 'Decision note (kept on the request)', type: 'textarea' },
           ]}
           onSubmit={(v) => act(r, 'approve', v)}
@@ -649,7 +649,7 @@ function SupportTab() {
   useEffect(() => { load(); axios.get('/platform/tenants?limit=100&status=active', { withCredentials: true }).then((r) => setTenants(r.data.data)).catch(() => {}); }, []);
   const nameOf = (id: string) => tenants.find((t) => t.id === id)?.name || id.slice(0, 8);
   const open = async (g: any, kind: 'config' | 'users') => {
-    try { const r = await axios.get(`/platform/support/tenants/${g.fellowshipId}/${kind}`, { withCredentials: true }); setView({ title: `${nameOf(g.fellowshipId)} â€“ ${kind === 'config' ? 'configuration' : 'account directory'}`, data: r.data }); } catch (e) { alert(errMsg(e, 'Could not open')); }
+    try { const r = await axios.get(`/platform/support/tenants/${g.fellowshipId}/${kind}`, { withCredentials: true }); setView({ title: `${nameOf(g.fellowshipId)} – ${kind === 'config' ? 'configuration' : 'account directory'}`, data: r.data }); } catch (e) { alert(errMsg(e, 'Could not open')); }
   };
   return (
     <div>
@@ -686,10 +686,10 @@ function SupportTab() {
           title="Request support access" submitLabel="Send request"
           initial={{ tenant_config: true, user_directory: false, durationMinutes: 60 }}
           fields={[
-            { name: 'fellowshipId', label: 'Fellowship', type: 'select', required: true, options: [{ value: '', label: 'Selectâ€¦' }, ...tenants.map((t) => ({ value: t.id, label: t.name }))] },
+            { name: 'fellowshipId', label: 'Fellowship', type: 'select', required: true, options: [{ value: '', label: 'Select…' }, ...tenants.map((t) => ({ value: t.id, label: t.name }))] },
             { name: 'tenant_config', label: 'Configuration (settings, modules, department names)', type: 'checkbox' },
             { name: 'user_directory', label: 'Account directory (names, e-mails, roles, status)', type: 'checkbox' },
-            { name: 'durationMinutes', label: 'Duration (minutes, 15â€“240)', type: 'number', min: 15 },
+            { name: 'durationMinutes', label: 'Duration (minutes, 15–240)', type: 'number', min: 15 },
             { name: 'reason', label: 'Reason (shown to the Secretary)', type: 'textarea', required: true },
           ]}
           onSubmit={async (v) => {
@@ -779,11 +779,11 @@ function InvoicesTab() {
                 <td className="font-medium text-ink">{i.fellowship || 'Unknown fellowship'}</td>
                 <td className="text-xs text-ink-muted">{i.planName}</td>
                 <td>{i.amount} {i.currency}</td>
-                <td className="whitespace-nowrap text-xs text-ink-muted">{new Date(i.periodStart).toLocaleDateString()} â€“ {new Date(i.periodEnd).toLocaleDateString()}</td>
+                <td className="whitespace-nowrap text-xs text-ink-muted">{new Date(i.periodStart).toLocaleDateString()} – {new Date(i.periodEnd).toLocaleDateString()}</td>
                 <td className="whitespace-nowrap text-xs">{new Date(i.dueAt).toLocaleDateString()}</td>
                 <td><span className={`status-badge ${i.status === 'paid' ? 'status-active' : i.status === 'open' ? 'status-submitted' : 'status-rejected'} capitalize`}>{i.status}</span></td>
                 <td className="text-xs text-ink-muted">
-                  {i.receipt ? <>{i.receipt.method || 'paid'}{i.receipt.reference ? ` Â· ${i.receipt.reference}` : ''}<br /><span className="text-ink-subtle">{new Date(i.receipt.paidAt).toLocaleDateString()}</span></> : i.voidedAt ? <span className="text-ink-subtle">voided {new Date(i.voidedAt).toLocaleDateString()}</span> : 'â€”'}
+                  {i.receipt ? <>{i.receipt.method || 'paid'}{i.receipt.reference ? ` · ${i.receipt.reference}` : ''}<br /><span className="text-ink-subtle">{new Date(i.receipt.paidAt).toLocaleDateString()}</span></> : i.voidedAt ? <span className="text-ink-subtle">voided {new Date(i.voidedAt).toLocaleDateString()}</span> : '—'}
                 </td>
               </tr>
             ))}</tbody></table></div>
@@ -833,7 +833,7 @@ function HealthTab() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <div className="card"><p className="text-sm text-ink-muted">API</p><p className="text-2xl font-semibold text-ink">{d.application.version}</p><p className="mt-1 text-xs text-ink-subtle">{d.application.environment} Â· node {d.application.node}</p></div>
+        <div className="card"><p className="text-sm text-ink-muted">API</p><p className="text-2xl font-semibold text-ink">{d.application.version}</p><p className="mt-1 text-xs text-ink-subtle">{d.application.environment} · node {d.application.node}</p></div>
         <div className="card"><p className="text-sm text-ink-muted">Database</p><p className={`text-2xl font-semibold ${d.database.reachable ? 'text-emerald-700' : 'text-rose-700'}`}>{d.database.reachable ? 'Reachable' : 'Down'}</p><p className="mt-1 text-xs text-ink-subtle">{d.database.latencyMs} ms</p></div>
         <div className="card"><p className="text-sm text-ink-muted">Uptime</p><p className="text-2xl font-semibold text-ink">{Math.floor(d.application.uptimeSeconds / 60)} min</p><p className="mt-1 text-xs text-ink-subtle">since {new Date(d.application.startedAt).toLocaleTimeString()}</p></div>
         <div className="card"><p className="text-sm text-ink-muted">Migrations applied</p><p className={`text-2xl font-semibold ${d.migrations.failed ? 'text-rose-700' : 'text-ink'}`}>{d.migrations.applied}</p><p className="mt-1 text-xs text-ink-subtle">{d.migrations.failed ? `${d.migrations.failed} failed` : d.migrations.lastApplied ?? 'none'}</p></div>
@@ -860,7 +860,7 @@ function HealthTab() {
               <tr><td className="text-ink-muted">Payment notifications</td><td className="text-right"><span className={`status-badge ${ok(d.integrations.paymentProviderConfigured)}`}>{d.integrations.paymentProviderConfigured ? 'Configured' : 'Not configured'}</span></td></tr>
               <tr><td className="text-ink-muted">Shared rate-limit store</td><td className="text-right"><span className={`status-badge ${d.integrations.redisConfigured ? 'status-submitted' : 'status-inactive'}`}>{d.integrations.redisConfigured ? 'Configured (in-process)' : 'In-process only'}</span></td></tr>
               <tr><td className="text-ink-muted">Failed webhook events</td><td className="text-right font-medium">{d.integrations.failedWebhookEvents}</td></tr>
-              <tr><td className="text-ink-muted">Oldest unprocessed event</td><td className="text-right font-medium">{d.integrations.oldestUnprocessedWebhookAt ? new Date(d.integrations.oldestUnprocessedWebhookAt).toLocaleString() : 'â€”'}</td></tr>
+              <tr><td className="text-ink-muted">Oldest unprocessed event</td><td className="text-right font-medium">{d.integrations.oldestUnprocessedWebhookAt ? new Date(d.integrations.oldestUnprocessedWebhookAt).toLocaleString() : '—'}</td></tr>
               <tr><td className="text-ink-muted">In-app backup execution</td><td className="text-right"><span className="status-badge status-inactive">Not available</span></td></tr>
               <tr><td className="text-ink-muted">Backup metadata rows</td><td className="text-right font-medium">{d.integrations.backupMetadataRows}</td></tr>
             </tbody></table>
@@ -899,7 +899,7 @@ function PlansTab() {
           <tbody>{rows.map((r) => (
             <tr key={r.id} className={r.isActive ? '' : 'opacity-60'}>
               <td className="font-medium text-ink">{r.name}<span className="ml-2 font-mono text-xs text-ink-subtle">{r.code}</span>{!r.isActive && <span className="ml-2 status-badge status-inactive">Retired</span>}</td>
-              <td>{r.price} {r.currency} / {r.billingInterval}</td><td>{r.trialDays ? `${r.trialDays} days` : 'â€”'}</td>
+              <td>{r.price} {r.currency} / {r.billingInterval}</td><td>{r.trialDays ? `${r.trialDays} days` : '—'}</td>
               <td className="text-xs">{r.modules.length ? r.modules.join(', ') : 'core only'}</td>
               <td className="text-xs">{Object.keys(r.limits).length ? Object.entries(r.limits).map(([k, v]) => `${k.replace('max_', '')}: ${v}`).join(', ') : 'none'}</td>
               <td>{r.subscribers}</td>
@@ -951,7 +951,7 @@ function SubscriptionsTab() {
   const load = () => axios.get(`/platform/billing/subscriptions?limit=100${status ? `&status=${status}` : ''}`, { withCredentials: true }).then((r) => setRows(r.data.data)).catch(() => setRows([]));
   useEffect(() => { load(); }, [status]);
   const runMaintenance = async () => {
-    try { const r = await axios.post('/platform/billing/maintenance', {}, { withCredentials: true }); setNote(`Trials ended: ${r.data.trialsExpired} Â· marked overdue: ${r.data.pastDue} Â· expired after grace: ${r.data.expiredAfterGrace} Â· cancelled at period end: ${r.data.cancelledAtPeriodEnd}`); load(); } catch (e) { alert(errMsg(e, 'Failed')); }
+    try { const r = await axios.post('/platform/billing/maintenance', {}, { withCredentials: true }); setNote(`Trials ended: ${r.data.trialsExpired} · marked overdue: ${r.data.pastDue} · expired after grace: ${r.data.expiredAfterGrace} · cancelled at period end: ${r.data.cancelledAtPeriodEnd}`); load(); } catch (e) { alert(errMsg(e, 'Failed')); }
   };
   return (
     <div>
@@ -965,9 +965,9 @@ function SubscriptionsTab() {
         <div className="table-wrap overflow-x-auto"><table className="table"><thead><tr><th>Fellowship</th><th>Plan</th><th>Status</th><th>Trial / paid until</th></tr></thead>
           <tbody>{rows.map((r) => (
             <tr key={r.fellowshipId} className="cursor-pointer hover:bg-canvas" onClick={() => navigate(`/platform/tenants/${r.fellowshipId}`)}>
-              <td className="font-medium text-ink">{r.fellowship}</td><td>{r.plan.name}</td>
+              <td className="font-medium text-ink"><Link to={`/platform/tenants/${r.fellowshipId}`} className="hover:text-primary hover:underline" onClick={(e) => e.stopPropagation()}>{r.fellowship}</Link></td><td>{r.plan.name}</td>
               <td><span className={`status-badge ${r.status === 'active' ? 'status-active' : r.status === 'trialing' ? 'status-submitted' : r.status === 'past_due' ? 'status-draft' : 'status-rejected'} capitalize`}>{r.status.replace('_', ' ')}</span>{r.cancelAtPeriodEnd && <span className="ml-2 text-xs text-amber-700">cancels at period end</span>}</td>
-              <td>{new Date(r.trialEndsAt || r.currentPeriodEnd || 0).getTime() ? new Date(r.trialEndsAt || r.currentPeriodEnd).toLocaleDateString() : 'â€”'}</td>
+              <td>{new Date(r.trialEndsAt || r.currentPeriodEnd || 0).getTime() ? new Date(r.trialEndsAt || r.currentPeriodEnd).toLocaleDateString() : '—'}</td>
             </tr>
           ))}</tbody></table></div>
       )}

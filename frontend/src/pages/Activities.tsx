@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import ListLimitNotice from '../components/ListLimitNotice';
 import { totalFromHeaders } from '../lib/list-total';
-import { PageLoader, StatCard, StatGrid } from '../components/ui';
+import { PageLoader, StatCard, StatGrid, DialogBackdrop } from '../components/ui';
 import {
   CalendarIcon, MapPinIcon, ClockIcon, PlusIcon, XMarkIcon, NoSymbolIcon, PencilSquareIcon, CalendarDaysIcon, CheckCircleIcon,
 } from '@heroicons/react/24/outline';
@@ -213,7 +213,7 @@ export default function Activities() {
       )}
 
       {(showCreate || editing) && (
-        <div className="modal-backdrop" onClick={() => { setShowCreate(false); setEditing(null); }}>
+        <DialogBackdrop onClose={() => { setShowCreate(false); setEditing(null); }}>
           <form onSubmit={submitForm} onClick={(e) => e.stopPropagation()} className="modal max-w-lg">
             <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -227,8 +227,8 @@ export default function Activities() {
                   <p className="text-xs text-ink-muted">Members are notified when an activity is created.</p>
                 </div>
               </div>
-              <button type="button" onClick={() => { setShowCreate(false); setEditing(null); }} className="btn btn-icon">
-                <XMarkIcon className="h-5 w-5" />
+              <button aria-label="Close" type="button" onClick={() => { setShowCreate(false); setEditing(null); }} className="btn btn-icon">
+                <XMarkIcon className="h-5 w-5" aria-hidden />
               </button>
             </div>
 
@@ -240,24 +240,24 @@ export default function Activities() {
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <label className="label">Title *</label>
-                <input required className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+                <label className="label" htmlFor="activities-title">Title *</label>
+                <input id="activities-title" required className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
               </div>
               <div className="sm:col-span-2">
-                <label className="label">Description</label>
-                <textarea rows={3} className="input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                <label className="label" htmlFor="activities-description">Description</label>
+                <textarea id="activities-description" rows={3} className="input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
               </div>
               <div>
-                <label className="label">Start *</label>
-                <input type="datetime-local" required className="input" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+                <label className="label" htmlFor="activities-start">Start *</label>
+                <input id="activities-start" type="datetime-local" required className="input" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
               </div>
               <div>
-                <label className="label">End</label>
-                <input type="datetime-local" className="input" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
+                <label className="label" htmlFor="activities-end">End</label>
+                <input id="activities-end" type="datetime-local" className="input" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
               </div>
               <div>
-                <label className="label">Audience</label>
-                <select className="select" value={form.audienceType} onChange={(e) => setForm({ ...form, audienceType: e.target.value })}>
+                <label className="label" htmlFor="activities-audience">Audience</label>
+                <select id="activities-audience" className="select" value={form.audienceType} onChange={(e) => setForm({ ...form, audienceType: e.target.value })}>
                   <option value="all_members">All members</option>
                   <option value="department">Department</option>
                   <option value="leaders">Leaders</option>
@@ -266,8 +266,8 @@ export default function Activities() {
               </div>
               {form.audienceType === 'department' && (
                 <div>
-                  <label className="label">Department</label>
-                  <select className="select" value={form.departmentId} onChange={(e) => setForm({ ...form, departmentId: e.target.value })}>
+                  <label className="label" htmlFor="activities-department">Department</label>
+                  <select id="activities-department" className="select" value={form.departmentId} onChange={(e) => setForm({ ...form, departmentId: e.target.value })}>
                     <option value="">Select department…</option>
                     {departments.filter((d) => d.is_active !== false).map((d) => (
                       <option key={d.id} value={d.id}>{d.name}</option>
@@ -277,8 +277,8 @@ export default function Activities() {
               )}
               {form.audienceType === 'specific_group' && (
                 <div>
-                  <label className="label">Group name</label>
-                  <input className="input" placeholder="e.g. Final years" value={form.specificGroup} onChange={(e) => setForm({ ...form, specificGroup: e.target.value })} />
+                  <label className="label" htmlFor="activities-group-name">Group name</label>
+                  <input id="activities-group-name" className="input" placeholder="e.g. Final years" value={form.specificGroup} onChange={(e) => setForm({ ...form, specificGroup: e.target.value })} />
                 </div>
               )}
             </div>
@@ -292,7 +292,7 @@ export default function Activities() {
               </button>
             </div>
           </form>
-        </div>
+        </DialogBackdrop>
       )}
     </div>
   );

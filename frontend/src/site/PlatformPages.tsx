@@ -128,7 +128,7 @@ export function PlatformHome() {
           aria-hidden
           className="pointer-events-none absolute -left-40 -top-40 h-[34rem] w-[34rem] rounded-full bg-primary/35 blur-3xl"
         />
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-ink/60 to-transparent" />
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/60 to-transparent" />
         <Section className="relative py-20 lg:py-28">
           <div className="grid items-center gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
             <div className="max-w-xl animate-fade-rise">
@@ -243,7 +243,7 @@ function ProductPreview() {
               { k: 'Pending', v: '7' },
             ].map((s) => (
               <div key={s.k} className="rounded-control border border-hairline bg-surface p-3">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-ink-subtle">{s.k}</p>
+                <p className="text-xxs font-medium uppercase tracking-wider text-ink-subtle">{s.k}</p>
                 <p className="mt-1 text-lg font-semibold tabular-nums text-ink">{s.v}</p>
               </div>
             ))}
@@ -261,12 +261,12 @@ function ProductPreview() {
                 </div>
               ))}
             </div>
-            <p className="mt-3 text-[10px] text-ink-subtle">Example figures, shown to illustrate the dashboard.</p>
+            <p className="mt-3 text-xxs text-ink-subtle">Example figures, shown to illustrate the dashboard.</p>
           </div>
 
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <div className="rounded-control border border-hairline bg-surface p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-subtle">Needs attention</p>
+              <p className="text-xxs font-semibold uppercase tracking-wider text-ink-subtle">Needs attention</p>
               <ul className="mt-2 space-y-1.5">
                 {['3 expense approvals', '2 expiring accounts', '1 unreplied prayer request'].map((t) => (
                   <li key={t} className="flex items-center gap-2 text-[11px] text-ink-muted">
@@ -277,7 +277,7 @@ function ProductPreview() {
               </ul>
             </div>
             <div className="rounded-control border border-hairline bg-surface p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-subtle">Next activity</p>
+              <p className="text-xxs font-semibold uppercase tracking-wider text-ink-subtle">Next activity</p>
               <p className="mt-2 text-xs font-medium text-ink">Midweek prayer meeting</p>
               <p className="mt-1 text-[11px] text-ink-subtle">Wednesday, 18:00 · 42 attending</p>
             </div>

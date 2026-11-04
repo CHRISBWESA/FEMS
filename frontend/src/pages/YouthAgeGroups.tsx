@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../App';
 import { RectangleStackIcon, PlusIcon, XMarkIcon, PencilSquareIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
-import { PageLoader } from '../components/ui';
+import { PageLoader, DialogBackdrop } from '../components/ui';
 
 const emptyForm = { name: '', minAge: '', maxAge: '', description: '' };
 
@@ -147,7 +147,7 @@ export default function YouthAgeGroups() {
       )}
 
       {(showCreate || editing) && (
-        <div className="modal-backdrop" onClick={() => { setShowCreate(false); setEditing(null); }}>
+        <DialogBackdrop onClose={() => { setShowCreate(false); setEditing(null); }}>
           <form onSubmit={submitForm} onClick={(e) => e.stopPropagation()} className="modal max-w-md">
             <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -161,8 +161,8 @@ export default function YouthAgeGroups() {
                   <p className="text-xs text-ink-muted">Ranges must not overlap an existing active age group.</p>
                 </div>
               </div>
-              <button type="button" onClick={() => { setShowCreate(false); setEditing(null); }} className="btn btn-icon">
-                <XMarkIcon className="h-5 w-5" />
+              <button aria-label="Close" type="button" onClick={() => { setShowCreate(false); setEditing(null); }} className="btn btn-icon">
+                <XMarkIcon className="h-5 w-5" aria-hidden />
               </button>
             </div>
 
@@ -174,22 +174,22 @@ export default function YouthAgeGroups() {
 
             <div className="space-y-4">
               <div>
-                <label className="label">Name *</label>
-                <input className="input" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                <label className="label" htmlFor="youthagegroups-name">Name *</label>
+                <input id="youthagegroups-name" className="input" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="label">Min Age *</label>
-                  <input type="number" min={0} className="input" required value={form.minAge} onChange={(e) => setForm({ ...form, minAge: e.target.value })} />
+                  <label className="label" htmlFor="youthagegroups-min-age">Min Age *</label>
+                  <input id="youthagegroups-min-age" type="number" min={0} className="input" required value={form.minAge} onChange={(e) => setForm({ ...form, minAge: e.target.value })} />
                 </div>
                 <div>
-                  <label className="label">Max Age *</label>
-                  <input type="number" min={0} className="input" required value={form.maxAge} onChange={(e) => setForm({ ...form, maxAge: e.target.value })} />
+                  <label className="label" htmlFor="youthagegroups-max-age">Max Age *</label>
+                  <input id="youthagegroups-max-age" type="number" min={0} className="input" required value={form.maxAge} onChange={(e) => setForm({ ...form, maxAge: e.target.value })} />
                 </div>
               </div>
               <div>
-                <label className="label">Description</label>
-                <textarea className="input" rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                <label className="label" htmlFor="youthagegroups-description">Description</label>
+                <textarea id="youthagegroups-description" className="input" rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
               </div>
             </div>
 
@@ -200,7 +200,7 @@ export default function YouthAgeGroups() {
               <button type="button" onClick={() => { setShowCreate(false); setEditing(null); }} className="btn btn-secondary flex-1">Cancel</button>
             </div>
           </form>
-        </div>
+        </DialogBackdrop>
       )}
     </div>
   );

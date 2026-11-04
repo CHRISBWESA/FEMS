@@ -4,6 +4,248 @@
 
 /* Inter is loaded once, from index.html (with preconnect). */
 
+/* ---------- Colour tokens (light and dark) ----------
+   Tailwind reads each token from these variables (see tailwind.config.js), so every existing class follows the theme.
+   All text pairings clear WCAG 2.2 AA (4.5:1; 3:1 for control edges) in both themes. */
+@layer base {
+  :root {
+    color-scheme: light;
+    --c-primary: 22 56 107;
+    --c-primary-dark: 15 40 80;
+    --c-primary-light: 238 243 249;
+    --c-primary-muted: 201 216 234;
+    --c-accent: 150 104 15;
+    --c-accent-bright: 216 164 79;
+    --c-accent-light: 253 246 231;
+    --c-canvas: 246 248 251;
+    --c-surface: 255 255 255;
+    --c-surface-sunken: 241 245 249;
+    --c-ink: 13 23 38;
+    --c-ink-muted: 85 99 122;
+    --c-ink-subtle: 100 112 131;
+    --c-hairline: 227 233 240;
+    --c-hairline-strong: 132 143 160;
+    --c-success: 15 123 82;
+    --c-success-light: 231 246 239;
+    --c-warning: 165 90 6;
+    --c-warning-light: 253 243 228;
+    --c-danger: 180 36 47;
+    --c-danger-light: 253 236 237;
+    --c-info: 21 94 138;
+    --c-info-light: 232 242 249;
+    --c-slate-50: 246 248 251;
+    --c-slate-100: 241 245 249;
+    --c-slate-200: 227 233 240;
+    --c-slate-300: 205 214 225;
+    --c-slate-400: 124 135 152;
+    --c-slate-500: 85 99 122;
+    --c-slate-600: 68 81 102;
+    --c-slate-700: 43 54 70;
+    --c-slate-800: 26 35 49;
+    --c-slate-900: 13 23 38;
+    --c-slate-950: 8 15 26;
+    --c-indigo-50: 238 243 249;
+    --c-indigo-100: 221 231 242;
+    --c-indigo-200: 201 216 234;
+    --c-indigo-300: 168 192 221;
+    --c-indigo-400: 127 158 198;
+    --c-indigo-500: 85 124 171;
+    --c-indigo-600: 58 95 142;
+    --c-indigo-700: 43 76 115;
+    --c-indigo-800: 30 58 92;
+    --c-indigo-900: 22 56 107;
+    --c-indigo-950: 15 40 80;
+    --c-violet-50: 253 246 231;
+    --c-violet-100: 249 236 208;
+    --c-violet-200: 240 217 164;
+    --c-violet-300: 229 192 119;
+    --c-violet-400: 216 164 79;
+    --c-violet-500: 198 138 53;
+    --c-violet-600: 176 125 28;
+    --c-violet-700: 141 99 24;
+    --c-violet-800: 107 75 19;
+    --c-violet-900: 76 54 14;
+    --c-rose-50: 253 236 237;
+    --c-rose-100: 251 218 221;
+    --c-rose-200: 244 182 187;
+    --c-rose-300: 234 139 147;
+    --c-rose-400: 220 90 102;
+    --c-rose-500: 180 36 47;
+    --c-rose-600: 160 29 39;
+    --c-rose-700: 132 24 33;
+    --c-rose-800: 107 21 28;
+    --c-rose-900: 87 19 26;
+    --c-emerald-50: 231 246 239;
+    --c-emerald-100: 205 235 220;
+    --c-emerald-200: 157 216 191;
+    --c-emerald-300: 102 192 156;
+    --c-emerald-400: 42 157 116;
+    --c-emerald-500: 15 123 82;
+    --c-emerald-600: 11 104 69;
+    --c-emerald-700: 9 84 56;
+    --c-emerald-800: 7 66 46;
+    --c-emerald-900: 5 50 35;
+    --c-amber-50: 253 243 228;
+    --c-amber-100: 250 231 200;
+    --c-amber-200: 244 205 147;
+    --c-amber-300: 238 176 92;
+    --c-amber-400: 222 146 36;
+    --c-amber-500: 198 122 18;
+    --c-amber-600: 165 90 6;
+    --c-amber-700: 135 71 10;
+    --c-amber-800: 107 57 12;
+    --c-amber-900: 86 47 14;
+    --c-sky-50: 232 242 249;
+    --c-sky-100: 207 228 242;
+    --c-sky-200: 169 205 231;
+    --c-sky-300: 124 176 216;
+    --c-sky-400: 77 143 194;
+    --c-sky-500: 43 122 169;
+    --c-sky-600: 21 94 138;
+    --c-sky-700: 19 76 110;
+    --c-sky-800: 18 61 89;
+    --c-sky-900: 17 49 74;
+    --c-fill-primary: 22 56 107;
+    --c-fill-primary-dark: 15 40 80;
+    --c-fill-accent: 150 104 15;
+    --c-fill-success: 15 123 82;
+    --c-fill-warning: 165 90 6;
+    --c-fill-danger: 180 36 47;
+    --c-fill-info: 21 94 138;
+    --c-fill-ink: 13 23 38;
+  }
+  .dark {
+    color-scheme: dark;
+    --c-primary: 143 179 230;
+    --c-primary-dark: 179 205 240;
+    --c-primary-light: 23 42 69;
+    --c-primary-muted: 44 72 112;
+    --c-accent: 224 178 94;
+    --c-accent-bright: 232 192 122;
+    --c-accent-light: 46 36 18;
+    --c-canvas: 13 19 28;
+    --c-surface: 20 28 39;
+    --c-surface-sunken: 27 37 51;
+    --c-ink: 230 235 242;
+    --c-ink-muted: 169 180 195;
+    --c-ink-subtle: 141 153 170;
+    --c-hairline: 42 54 70;
+    --c-hairline-strong: 102 116 138;
+    --c-success: 95 211 160;
+    --c-success-light: 15 42 32;
+    --c-warning: 240 179 90;
+    --c-warning-light: 46 34 16;
+    --c-danger: 244 148 155;
+    --c-danger-light: 53 24 27;
+    --c-info: 128 195 236;
+    --c-info-light: 16 38 58;
+    --c-slate-50: 13 23 38;
+    --c-slate-100: 26 35 49;
+    --c-slate-200: 43 54 70;
+    --c-slate-300: 68 81 102;
+    --c-slate-400: 85 99 122;
+    --c-slate-500: 124 135 152;
+    --c-slate-600: 205 214 225;
+    --c-slate-700: 227 233 240;
+    --c-slate-800: 241 245 249;
+    --c-slate-900: 246 248 251;
+    --c-slate-950: 246 248 251;
+    --c-indigo-50: 22 56 107;
+    --c-indigo-100: 30 58 92;
+    --c-indigo-200: 43 76 115;
+    --c-indigo-300: 58 95 142;
+    --c-indigo-400: 85 124 171;
+    --c-indigo-500: 127 158 198;
+    --c-indigo-600: 168 192 221;
+    --c-indigo-700: 201 216 234;
+    --c-indigo-800: 221 231 242;
+    --c-indigo-900: 238 243 249;
+    --c-indigo-950: 238 243 249;
+    --c-violet-50: 76 54 14;
+    --c-violet-100: 107 75 19;
+    --c-violet-200: 141 99 24;
+    --c-violet-300: 176 125 28;
+    --c-violet-400: 198 138 53;
+    --c-violet-500: 216 164 79;
+    --c-violet-600: 229 192 119;
+    --c-violet-700: 240 217 164;
+    --c-violet-800: 249 236 208;
+    --c-violet-900: 253 246 231;
+    --c-rose-50: 87 19 26;
+    --c-rose-100: 107 21 28;
+    --c-rose-200: 132 24 33;
+    --c-rose-300: 160 29 39;
+    --c-rose-400: 180 36 47;
+    --c-rose-500: 220 90 102;
+    --c-rose-600: 234 139 147;
+    --c-rose-700: 244 182 187;
+    --c-rose-800: 251 218 221;
+    --c-rose-900: 253 236 237;
+    --c-emerald-50: 5 50 35;
+    --c-emerald-100: 7 66 46;
+    --c-emerald-200: 9 84 56;
+    --c-emerald-300: 11 104 69;
+    --c-emerald-400: 15 123 82;
+    --c-emerald-500: 42 157 116;
+    --c-emerald-600: 102 192 156;
+    --c-emerald-700: 157 216 191;
+    --c-emerald-800: 205 235 220;
+    --c-emerald-900: 231 246 239;
+    --c-amber-50: 86 47 14;
+    --c-amber-100: 107 57 12;
+    --c-amber-200: 135 71 10;
+    --c-amber-300: 165 90 6;
+    --c-amber-400: 198 122 18;
+    --c-amber-500: 222 146 36;
+    --c-amber-600: 238 176 92;
+    --c-amber-700: 244 205 147;
+    --c-amber-800: 250 231 200;
+    --c-amber-900: 253 243 228;
+    --c-sky-50: 17 49 74;
+    --c-sky-100: 18 61 89;
+    --c-sky-200: 19 76 110;
+    --c-sky-300: 21 94 138;
+    --c-sky-400: 43 122 169;
+    --c-sky-500: 77 143 194;
+    --c-sky-600: 124 176 216;
+    --c-sky-700: 169 205 231;
+    --c-sky-800: 207 228 242;
+    --c-sky-900: 232 242 249;
+    --c-fill-primary: 47 93 156;
+    --c-fill-primary-dark: 38 77 132;
+    --c-fill-accent: 150 104 15;
+    --c-fill-success: 15 123 82;
+    --c-fill-warning: 165 90 6;
+    --c-fill-danger: 180 36 47;
+    --c-fill-info: 21 94 138;
+    --c-fill-ink: 42 52 66;
+  }
+}
+
+/* Dark mode details the variables alone cannot express. */
+@layer utilities {
+  /* A solid fill carrying white text keeps a dark fill in dark mode (the text tokens above turn light there). */
+  .dark .bg-primary, .dark .hover\:bg-primary:hover { background-color: rgb(var(--c-fill-primary)); }
+  .dark .bg-primary-dark, .dark .hover\:bg-primary-dark:hover { background-color: rgb(var(--c-fill-primary-dark)); }
+  .dark .bg-accent, .dark .hover\:bg-accent:hover { background-color: rgb(var(--c-fill-accent)); }
+  .dark .bg-success, .dark .hover\:bg-success:hover { background-color: rgb(var(--c-fill-success)); }
+  .dark .bg-warning, .dark .hover\:bg-warning:hover { background-color: rgb(var(--c-fill-warning)); }
+  .dark .bg-danger, .dark .hover\:bg-danger:hover { background-color: rgb(var(--c-fill-danger)); }
+  .dark .bg-info, .dark .hover\:bg-info:hover { background-color: rgb(var(--c-fill-info)); }
+  .dark .bg-ink, .dark .hover\:bg-ink:hover { background-color: rgb(var(--c-fill-ink)); }
+  .dark .btn-primary, .dark .tab-active { background-color: rgb(var(--c-fill-primary)); }
+  .dark .btn-primary:hover { background-color: rgb(var(--c-fill-primary-dark)); }
+  .dark .btn-danger { background-color: rgb(var(--c-fill-danger)); }
+  .dark .btn-success { background-color: rgb(var(--c-fill-success)); }
+  /* Plain white panels follow the surface colour. */
+  .dark .bg-white { background-color: rgb(var(--c-surface)); }
+  .dark .bg-white\/90 { background-color: rgb(var(--c-surface) / 0.9); }
+  .dark .bg-white\/95 { background-color: rgb(var(--c-surface) / 0.95); }
+  /* Dimmed backdrops stay dark. */
+  .dark .bg-ink\/50, .dark .modal-backdrop { background-color: rgb(0 0 0 / 0.6); }
+}
+
+
 @layer base {
   * {
     @apply border-hairline;
@@ -131,13 +373,13 @@
   /* Hints sit at 12px, so they use a darker step than `ink-subtle` and clear AA rather than the 3.6:1 that
      de-emphasised grey usually settles for. */
   .hint {
-    @apply mt-1.5 text-xs leading-relaxed text-[#5f6b7a];
+    @apply mt-1.5 text-xs leading-relaxed text-ink-muted;
   }
   .field-error {
     @apply mt-1.5 flex items-start gap-1.5 text-xs font-medium text-danger;
   }
   .input {
-    @apply block w-full rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink
+    @apply block w-full rounded-control border border-hairline-strong bg-surface px-3 py-2 text-sm text-ink
            shadow-card transition-colors duration-150 placeholder:text-ink-subtle
            hover:border-ink-subtle focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25;
   }
@@ -145,7 +387,7 @@
     @apply input min-h-24 resize-y leading-relaxed;
   }
   .select {
-    @apply block rounded-control border border-hairline bg-surface px-3 py-2 text-sm text-ink shadow-card
+    @apply block rounded-control border border-hairline-strong bg-surface px-3 py-2 text-sm text-ink shadow-card
            transition-colors duration-150 hover:border-ink-subtle
            focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25;
   }
@@ -153,7 +395,7 @@
     @apply border-danger focus:border-danger focus:ring-danger/25;
   }
   .checkbox {
-    @apply h-4 w-4 shrink-0 cursor-pointer rounded border-hairline text-primary transition-colors
+    @apply h-4 w-4 shrink-0 cursor-pointer rounded border-hairline-strong text-primary transition-colors
            focus:ring-2 focus:ring-primary/30 focus:ring-offset-0;
   }
 
@@ -178,7 +420,7 @@
   /* Scrolls sideways rather than clipping: a wide table used to be silently cut off on a phone, with the
      right-hand columns unreachable and no scrollbar to suggest they existed. */
   .table-wrap {
-    @apply overflow-x-auto rounded-card border border-hairline bg-surface shadow-card;
+    @apply relative overflow-x-auto rounded-card border border-hairline bg-surface shadow-card;
     -webkit-overflow-scrolling: touch;
   }
   .table {

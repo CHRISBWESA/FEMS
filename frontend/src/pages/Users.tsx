@@ -6,7 +6,7 @@ import { useMembers } from '../context/MembersContext';
 import AdminAccounts from '../components/platform/AdminAccounts';
 import SecretModal from '../components/platform/SecretModal';
 import { Modal } from '../components/finance/common';
-import { PageLoader, ConfirmDialog } from '../components/ui';
+import { PageLoader, ConfirmDialog, DialogBackdrop } from '../components/ui';
 import {
   UsersIcon, PlusIcon, XMarkIcon, PauseIcon, PlayIcon, UserPlusIcon,
   KeyIcon, PencilSquareIcon, ArrowPathIcon, TrashIcon,
@@ -169,7 +169,7 @@ export default function Users() {
           roles: [roleName],
           fellowshipId: isAdmin() ? roleFellowshipId : undefined,
         }, { withCredentials: true });
-        window.alert(`Account created for ${m.full_name} with the ${roleLabel(roleName)} role.\n\nTemporary password: ${password}\n\nShare it with them � they must change it on login.`);
+        window.alert(`Account created for ${m.full_name} with the ${roleLabel(roleName)} role.\n\nTemporary password: ${password}\n\nShare it with them — they must change it on login.`);
         setNewAccountEmail('');
         setNewAccountPassword('');
       }
@@ -187,7 +187,7 @@ export default function Users() {
     if (!reason) return;
     try {
       await axios.post(`/users/${u.id}/request-role-removal`, { role, reason }, { withCredentials: true });
-      alert('Unassignment requested � it takes effect once the chairperson approves it.');
+      alert('Unassignment requested — it takes effect once the chairperson approves it.');
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to request unassignment');
     }
@@ -403,9 +403,9 @@ export default function Users() {
           <h1 className="page-title">Users</h1>
           <p className="page-desc">
             {category === 'system'
-              ? 'Accounts that run FEMS itself. They belong to no fellowship and never see a fellowship�s members, finances or other operational data.'
+              ? 'Accounts that run FEMS itself. They belong to no fellowship and never see a fellowship’s members, finances or other operational data.'
               : isAdmin()
-                ? 'Fellowship accounts across the platform. Create one on an owner�s behalf below; a whole new fellowship is created from Platform � Fellowships.'
+                ? 'Fellowship accounts across the platform. Create one on an owner’s behalf below; a whole new fellowship is created from Platform → Fellowships.'
                 : 'Manage account access. Every account belongs to a member.'}
           </p>
         </div>
@@ -480,9 +480,8 @@ export default function Users() {
       <>
       <div className="relative mb-4">
         <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-subtle" />
-        <input
-          type="text"
-          placeholder="Search by name, email or member�"
+        <input aria-label="Search by name, email or member"           type="text"
+          placeholder="Search by name, email or member…"
           className="input pl-10"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -558,7 +557,7 @@ export default function Users() {
                     <td className="text-ink-muted">
                       {u.member
                         ? <span>{u.member.full_name} <span className="font-mono text-xxs text-ink-subtle">({u.member.member_code})</span></span>
-                        : '�'}
+                        : '…'}
                     </td>
                     <td>
                       <span className={`status-badge ${u.is_active === false ? 'status-inactive' : 'status-active'}`}>
@@ -667,13 +666,13 @@ export default function Users() {
                     <div className="mb-5 rounded-lg bg-canvas p-4 ring-1 ring-inset ring-hairline">
                       {!isAdmin() && (
                         <div className="mb-3">
-                          <label className="label">Fellowship</label>
-                          <select
+                          <label className="label" htmlFor="users-fellowship">Fellowship</label>
+                          <select id="users-fellowship"
                             className="select"
                             value={roleFellowshipId}
                             onChange={(e) => { setRoleFellowshipId(e.target.value); setRoleAssignPick(''); }}
                           >
-                            <option value="">Select a fellowship�</option>
+                            <option value="">Select a fellowship…</option>
                             {fellowships.map((f) => (
                               <option key={f.id} value={f.id}>{f.name}</option>
                             ))}
@@ -693,8 +692,8 @@ export default function Users() {
                         </div>
                       ) : (
                       <>
-                      <label className="label">Assign a member this role</label>
-                      <select
+                      <label className="label" htmlFor="users-assign-a-member-this-role">Assign a member this role</label>
+                      <select id="users-assign-a-member-this-role"
                         className="select"
                         value={roleAssignPick}
                         onChange={(e) => {
@@ -709,7 +708,7 @@ export default function Users() {
                           setNewAccountPassword('');
                         }}
                       >
-                        <option value="">Select a person�</option>
+                        <option value="">Select a person…</option>
                         <optgroup label="Existing accounts without this role">
                           {cands.users.map((u) => (
                             <option key={u.id} value={`user:${u.id}`}>{u.first_name} {u.last_name} ({u.email})</option>
@@ -725,8 +724,8 @@ export default function Users() {
                       {isMemberPick && (
                         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                           <div>
-                            <label className="label">Account email *</label>
-                            <input
+                            <label className="label" htmlFor="users-account-email">Account email *</label>
+                            <input id="users-account-email"
                               type="email"
                               required
                               className="input"
@@ -736,8 +735,8 @@ export default function Users() {
                             />
                           </div>
                           <div>
-                            <label className="label">Temporary password</label>
-                            <input
+                            <label className="label" htmlFor="users-temporary-password">Temporary password</label>
+                            <input id="users-temporary-password"
                               type="text"
                               className="input"
                               placeholder="Auto-generated if left blank"
@@ -775,7 +774,7 @@ export default function Users() {
                               <div className="avatar h-8 w-8 text-xs">{initials(u)}</div>
                               <div>
                                 <p className="text-sm font-medium text-ink">{u.first_name} {u.last_name}</p>
-                                <p className="text-xs text-ink-subtle">{u.email}{u.member ? ` � ${u.member.member_code}` : ''}</p>
+                                <p className="text-xs text-ink-subtle">{u.email}{u.member ? ` · ${u.member.member_code}` : ''}</p>
                               </div>
                             </div>
                             {/* Unassigning is a role change too, so it is hidden from a platform administrator
@@ -804,7 +803,7 @@ export default function Users() {
 
       {/* Create user */}
       {showCreate && (
-        <div className="modal-backdrop" onClick={() => setShowCreate(false)}>
+        <DialogBackdrop onClose={() => setShowCreate(false)}>
           <form onSubmit={createUser} onClick={(e) => e.stopPropagation()} className="modal max-w-lg">
             <ModalHeader
               title="Add User"
@@ -822,8 +821,8 @@ export default function Users() {
             <div className="space-y-4">
               {isAdmin() && (
                 <div>
-                  <label className="label">Fellowship *</label>
-                  <select
+                  <label className="label" htmlFor="users-fellowship-2">Fellowship *</label>
+                  <select id="users-fellowship-2"
                     required
                     className="select"
                     value={form.fellowshipId}
@@ -832,7 +831,7 @@ export default function Users() {
                       setNewMemberMode(false);
                     }}
                   >
-                    <option value="">Select a fellowship�</option>
+                    <option value="">Select a fellowship…</option>
                     {fellowships.map((f) => (
                       <option key={f.id} value={f.id}>{f.name}</option>
                     ))}
@@ -841,8 +840,8 @@ export default function Users() {
               )}
 
               <div>
-                <label className="label">Member *</label>
-                <select
+                <label className="label" htmlFor="users-member">Member *</label>
+                <select id="users-member"
                   required={!newMemberMode}
                   disabled={isAdmin() && !form.fellowshipId}
                   className="select"
@@ -857,13 +856,13 @@ export default function Users() {
                     }
                   }}
                 >
-                  <option value="">Select a member�</option>
+                  <option value="">Select a member…</option>
                   {members
                     .filter((m) => !m.user_id && (!isAdmin() || !form.fellowshipId || m.fellowship_id === form.fellowshipId))
                     .map((m) => (
                       <option key={m.id} value={m.id}>{m.full_name} ({m.member_code})</option>
                     ))}
-                  {isAdmin() && form.fellowshipId && <option value="__new__">+ Create new member�</option>}
+                  {isAdmin() && form.fellowshipId && <option value="__new__">+ Create new member…</option>}
                 </select>
                 {form.memberId && !newMemberMode && (
                   <p className="mt-1 text-xs text-ink-subtle">Details prefilled from the member record.</p>
@@ -880,8 +879,8 @@ export default function Users() {
 
               {newMemberMode && (
                 <div className="rounded-lg bg-canvas p-3 ring-1 ring-inset ring-hairline">
-                  <label className="label">New member gender *</label>
-                  <select
+                  <label className="label" htmlFor="users-new-member-gender">New member gender *</label>
+                  <select id="users-new-member-gender"
                     required
                     className="select max-w-xs"
                     value={newMemberGender}
@@ -896,29 +895,29 @@ export default function Users() {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="label">First name *</label>
-                  <input type="text" required className="input" value={form.firstName}
+                  <label className="label" htmlFor="users-first-name">First name *</label>
+                  <input id="users-first-name" type="text" required className="input" value={form.firstName}
                     onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
                 </div>
                 <div>
-                  <label className="label">Last name *</label>
-                  <input type="text" required className="input" value={form.lastName}
+                  <label className="label" htmlFor="users-last-name">Last name *</label>
+                  <input id="users-last-name" type="text" required className="input" value={form.lastName}
                     onChange={(e) => setForm({ ...form, lastName: e.target.value })} />
                 </div>
                 <div>
-                  <label className="label">Email *</label>
-                  <input type="email" required className="input" value={form.email}
+                  <label className="label" htmlFor="users-email">Email *</label>
+                  <input id="users-email" type="email" required className="input" value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value })} />
                 </div>
                 <div>
-                  <label className="label">Temporary password *</label>
-                  <input type="password" required minLength={8} className="input" value={form.password}
+                  <label className="label" htmlFor="users-temporary-password-2">Temporary password *</label>
+                  <input id="users-temporary-password-2" type="password" required minLength={8} className="input" value={form.password}
                     onChange={(e) => setForm({ ...form, password: e.target.value })} />
                 </div>
               </div>
 
               <div>
-                <label className="label">Roles</label>
+                <label className="label" htmlFor="users-roles-type-button-onclick-clas">Roles</label>
                 <div className="flex flex-wrap gap-2">
                   {roleOptions.map((role) => {
                     const checked = form.roles.includes(role.name);
@@ -953,12 +952,12 @@ export default function Users() {
               </button>
             </div>
           </form>
-        </div>
+        </DialogBackdrop>
       )}
 
       {/* Edit email */}
       {editTarget && (
-        <div className="modal-backdrop" onClick={() => setEditTarget(null)}>
+        <DialogBackdrop onClose={() => setEditTarget(null)}>
           <form onSubmit={saveEmail} onClick={(e) => e.stopPropagation()} className="modal max-w-md">
             <ModalHeader
               title="Edit Email"
@@ -967,7 +966,7 @@ export default function Users() {
               icon={<KeyIcon className="h-5 w-5" />}
             />
             <label className="label">Email address</label>
-            <input
+            <input id="users-roles-type-button-onclick-clas"
               type="email"
               required
               className="input"
@@ -984,7 +983,7 @@ export default function Users() {
               </button>
             </div>
           </form>
-        </div>
+        </DialogBackdrop>
       )}
 
       {/* Assign role */}
@@ -1000,47 +999,47 @@ export default function Users() {
           >
             <p className="rounded-lg bg-canvas p-3 text-sm text-ink-muted ring-1 ring-inset ring-hairline">
               For an owner who cannot request access themselves. This creates the account inside an existing
-              fellowship; a <em>new</em> fellowship is created from Platform � Fellowships. A temporary password is
+              fellowship; a <em>new</em> fellowship is created from Platform → Fellowships. A temporary password is
               shown once, and the account must change it at first sign-in.
             </p>
             <div>
-              <label className="label">Fellowship *</label>
-              <select name="fellowshipId" required className="select w-full" defaultValue="">
-                <option value="" disabled>Select a fellowship�</option>
+              <label className="label" htmlFor="users-fellowship-3">Fellowship *</label>
+              <select id="users-fellowship-3" name="fellowshipId" required className="select w-full" defaultValue="">
+                <option value="" disabled>Select a fellowship…</option>
                 {fellowships.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
               </select>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="label">First name *</label>
-                <input name="firstName" required className="input w-full" />
+                <label className="label" htmlFor="users-first-name-2">First name *</label>
+                <input id="users-first-name-2" name="firstName" required className="input w-full" />
               </div>
               <div>
-                <label className="label">Last name *</label>
-                <input name="lastName" required className="input w-full" />
+                <label className="label" htmlFor="users-last-name-2">Last name *</label>
+                <input id="users-last-name-2" name="lastName" required className="input w-full" />
               </div>
             </div>
             <div>
-              <label className="label">E-mail address *</label>
-              <input name="email" type="email" required className="input w-full" placeholder="owner@fellowship.org" />
+              <label className="label" htmlFor="users-e-mail-address">E-mail address *</label>
+              <input id="users-e-mail-address" name="email" type="email" required className="input w-full" placeholder="owner@fellowship.org" />
             </div>
             <div>
-              <label className="label">Phone</label>
-              <input name="phone" className="input w-full" />
+              <label className="label" htmlFor="users-phone">Phone</label>
+              <input id="users-phone" name="phone" className="input w-full" />
             </div>
             <div>
-              <label className="label">Role *</label>
-              <select name="role" required className="select w-full" defaultValue="secretary">
-                <option value="secretary">Secretary � runs the fellowship</option>
+              <label className="label" htmlFor="users-role">Role *</label>
+              <select id="users-role" name="role" required className="select w-full" defaultValue="secretary">
+                <option value="secretary">Secretary — runs the fellowship</option>
                 <option value="assistant_secretary">Assistant Secretary</option>
-                <option value="chairperson">Chairperson � approvals and oversight</option>
+                <option value="chairperson">Chairperson — approvals and oversight</option>
                 <option value="assistant_chairperson">Assistant Chairperson</option>
-                <option value="treasurer">Treasurer � money</option>
-                <option value="it_admin">IT Administrator � runs the instance and dashboard content</option>
+                <option value="treasurer">Treasurer — money</option>
+                <option value="it_admin">IT Administrator — runs the instance and dashboard content</option>
               </select>
               <p className="mt-1 text-xs text-ink-subtle">
                 Platform roles cannot be assigned here. The first account for a new fellowship is created with
-                Platform � Fellowships � Onboard fellowship.
+                Platform → Fellowships → Onboard fellowship.
               </p>
             </div>
             <div className="flex gap-2">
@@ -1074,7 +1073,7 @@ export default function Users() {
       )}
 
       {assignTarget && (
-        <div className="modal-backdrop" onClick={() => setAssignTarget(null)}>
+        <DialogBackdrop onClose={() => setAssignTarget(null)}>
           <form onSubmit={submitAssignRole} onClick={(e) => e.stopPropagation()} className="modal max-w-md">
             <ModalHeader
               title="Assign Role"
@@ -1082,9 +1081,9 @@ export default function Users() {
               onClose={() => setAssignTarget(null)}
               icon={<ShieldCheckIcon className="h-5 w-5" />}
             />
-            <label className="label">Role to add *</label>
-            <select required className="select" value={assignRole} onChange={(e) => setAssignRole(e.target.value)}>
-              <option value="">Select a role�</option>
+            <label className="label" htmlFor="users-role-to-add">Role to add *</label>
+            <select id="users-role-to-add" required className="select" value={assignRole} onChange={(e) => setAssignRole(e.target.value)}>
+              <option value="">Select a role…</option>
               {roleOptions
                 .filter((r) => !(assignTarget.roles || []).includes(r.name))
                 .map((r) => (
@@ -1100,7 +1099,7 @@ export default function Users() {
               </button>
             </div>
           </form>
-        </div>
+        </DialogBackdrop>
       )}
       </>
       )}
@@ -1136,8 +1135,8 @@ function ModalHeader({ title, desc, onClose, icon }: { title: string; desc: stri
           <p className="truncate text-xs text-ink-muted">{desc}</p>
         </div>
       </div>
-      <button type="button" onClick={onClose} className="btn btn-icon">
-        <XMarkIcon className="h-5 w-5" />
+      <button type="button" onClick={onClose} className="btn btn-icon" aria-label="Close">
+        <XMarkIcon className="h-5 w-5" aria-hidden />
       </button>
     </div>
   );

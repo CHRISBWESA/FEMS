@@ -86,7 +86,7 @@ function DrivesList() {
       </StatGrid>
       <DataTable rows={list.data} loading={list.loading && !list.data} error={list.error || null} onRetry={list.reload} rowKey={(r: any) => r.id}
         onRowClick={(r: any) => navigate(r.id)} rowClickLabel={(r: any) => `Open ${r.name}`}
-        toolbar={<Select value={status} onChange={(e) => setStatus(e.target.value)} options={[{ value: 'active', label: 'Open drives' }, { value: 'closed', label: 'Closed drives' }, { value: '', label: 'All drives' }]} />}
+        toolbar={<Select className="sm:w-56" aria-label="Show drives" value={status} onChange={(e) => setStatus(e.target.value)} options={[{ value: 'active', label: 'Open drives' }, { value: 'closed', label: 'Closed drives' }, { value: '', label: 'All drives' }]} />}
         empty={{ title: 'No contribution drives yet', description: canManage ? 'Create the first one with "New drive".' : undefined }}
         columns={[
           { key: 'n', header: 'Drive', render: (r: any) => <span className="font-medium text-ink">{r.name}</span>, priority: 'primary' },

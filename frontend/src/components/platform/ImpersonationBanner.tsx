@@ -59,7 +59,7 @@ export default function ImpersonationBanner() {
   const left = Math.max(0, Math.floor((new Date(session.expiresAt).getTime() - Date.now()) / 60000));
 
   return (
-    <div role="alert" className="flex flex-wrap items-center justify-between gap-3 bg-amber-500 px-4 py-2.5 text-white sm:px-6">
+    <div role="alert" className="flex flex-wrap items-center justify-between gap-3 bg-warning px-4 py-2.5 text-white sm:px-6">
       <div className="flex min-w-0 items-center gap-2.5">
         <EyeIcon className="h-5 w-5 shrink-0" />
         <div className="min-w-0 text-sm">
@@ -130,7 +130,7 @@ export function SupportSessionBanner() {
   };
 
   return (
-    <div role="alert" className="flex flex-wrap items-center justify-between gap-3 bg-rose-600 px-4 py-2.5 text-white sm:px-6">
+    <div role="alert" className="flex flex-wrap items-center justify-between gap-3 bg-danger px-4 py-2.5 text-white sm:px-6">
       <div className="flex min-w-0 items-center gap-2.5">
         <UserIcon className="h-5 w-5 shrink-0" />
         <div className="min-w-0 text-sm">

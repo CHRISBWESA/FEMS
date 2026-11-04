@@ -10,7 +10,7 @@ import MemberHistoryTab from '../components/member/MemberHistoryTab';
 import MemberEngagementTab from '../components/member/MemberEngagementTab';
 
 import GivingStatement from '../components/finance/GivingStatement';
-import { PageLoader } from '../components/ui';
+import { PageLoader, DialogBackdrop } from '../components/ui';
 
 type Tab = 'overview' | 'profile' | 'history' | 'engagement' | 'giving';
 
@@ -250,7 +250,7 @@ export default function MemberDetail() {
       </div>
 
       {showEdit && (
-        <div className="modal-backdrop" onClick={() => setShowEdit(false)}>
+        <DialogBackdrop onClose={() => setShowEdit(false)}>
           <form
             onSubmit={saveMember}
             onClick={(e) => e.stopPropagation()}
@@ -266,8 +266,8 @@ export default function MemberDetail() {
                   <p className="text-xs text-ink-muted">{member.member_code}</p>
                 </div>
               </div>
-              <button type="button" onClick={() => setShowEdit(false)} className="btn btn-icon">
-                <XMarkIcon className="h-5 w-5" />
+              <button aria-label="Close" type="button" onClick={() => setShowEdit(false)} className="btn btn-icon">
+                <XMarkIcon className="h-5 w-5" aria-hidden />
               </button>
             </div>
 
@@ -279,8 +279,8 @@ export default function MemberDetail() {
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <label className="label">Full name *</label>
-                <input
+                <label className="label" htmlFor="memberdetail-full-name">Full name *</label>
+                <input id="memberdetail-full-name"
                   className="input"
                   required
                   value={form.fullName}
@@ -288,8 +288,8 @@ export default function MemberDetail() {
                 />
               </div>
               <div>
-                <label className="label">Gender *</label>
-                <select
+                <label className="label" htmlFor="memberdetail-gender">Gender *</label>
+                <select id="memberdetail-gender"
                   className="select"
                   value={form.gender}
                   onChange={(e) => setForm({ ...form, gender: e.target.value })}
@@ -300,16 +300,16 @@ export default function MemberDetail() {
                 </select>
               </div>
               <div>
-                <label className="label">Phone</label>
-                <input
+                <label className="label" htmlFor="memberdetail-phone">Phone</label>
+                <input id="memberdetail-phone"
                   className="input"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="label">Email</label>
-                <input
+                <label className="label" htmlFor="memberdetail-email">Email</label>
+                <input id="memberdetail-email"
                   type="email"
                   className="input"
                   value={form.email}
@@ -317,8 +317,8 @@ export default function MemberDetail() {
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="label">Programme</label>
-                <select
+                <label className="label" htmlFor="memberdetail-programme">Programme</label>
+                <select id="memberdetail-programme"
                   className="select"
                   value={selectedProgramme}
                   onChange={(e) => {
@@ -336,8 +336,8 @@ export default function MemberDetail() {
               </div>
               {selectedProgramme === '__other__' && (
                 <div className="sm:col-span-2">
-                  <label className="label">Programme (manual)</label>
-                  <input
+                  <label className="label" htmlFor="memberdetail-programme-manual">Programme (manual)</label>
+                  <input id="memberdetail-programme-manual"
                     className="input"
                     placeholder="e.g. BSc. Statistics"
                     value={form.programme}
@@ -346,16 +346,16 @@ export default function MemberDetail() {
                 </div>
               )}
               <div>
-                <label className="label">Year of study</label>
-                <input
+                <label className="label" htmlFor="memberdetail-year-of-study">Year of study</label>
+                <input id="memberdetail-year-of-study"
                   className="input"
                   value={form.yearOfStudy}
                   onChange={(e) => setForm({ ...form, yearOfStudy: e.target.value })}
                 />
               </div>
               <div>
-                <label className="label">Expected graduation year *</label>
-                <input
+                <label className="label" htmlFor="memberdetail-expected-graduation-year">Expected graduation year *</label>
+                <input id="memberdetail-expected-graduation-year"
                   type="number"
                   className="input"
                   min={new Date().getFullYear()}
@@ -365,8 +365,8 @@ export default function MemberDetail() {
                 />
               </div>
               <div>
-                <label className="label">Expected graduation month *</label>
-                <select
+                <label className="label" htmlFor="memberdetail-expected-graduation-month">Expected graduation month *</label>
+                <select id="memberdetail-expected-graduation-month"
                   className="select"
                   value={form.expectedGraduationMonth}
                   onChange={(e) => setForm({ ...form, expectedGraduationMonth: Number(e.target.value) })}
@@ -387,7 +387,7 @@ export default function MemberDetail() {
               </button>
             </div>
           </form>
-        </div>
+        </DialogBackdrop>
       )}
     </div>
   );
