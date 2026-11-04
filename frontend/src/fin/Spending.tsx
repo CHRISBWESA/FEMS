@@ -43,8 +43,8 @@ export function Expenses() {
   return (
     <div className="space-y-4">
       <PageHeader title={t('fin.nav.expenses')} description={s.departmentId
-        ? 'Spending from the department\'s own money. It is approved by the Treasurer, Secretary and Chairperson.'
-        : 'Central spending: the Treasurer records, the Secretary reviews, the Chairperson approves, and the Treasurer pays. Approved is not paid.'}
+        ? 'Spending from the department\'s own money. No approval is needed.'
+        : 'Central spending. Only the Treasurer records it, and no approval is needed.'}
         actions={canRecord ? <Button variant="primary" onClick={() => { setF({ title: '', amount: '', date: today(), purpose: '', payee: '', categoryId: '', paymentMethod: 'cash', alreadyIncurred: false, description: '' }); setFiles([]); setOpen(true); }}><PlusIcon className="h-4 w-4" /> New expense</Button> : undefined} />
       <DataTable rows={list.data} loading={list.loading && !list.data} error={list.error || null} onRetry={list.reload} rowKey={(r: any) => r.id} clientPaging pageSize={25}
         empty={{ title: 'No expenses' }}

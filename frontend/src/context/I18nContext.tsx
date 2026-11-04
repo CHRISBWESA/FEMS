@@ -1,3 +1,4 @@
+import { buildDictionary, setAutoTranslate } from '../i18n/autoTranslate';
 import React, { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 
 type Language = 'en' | 'sw';
@@ -439,6 +440,9 @@ const translations: Record<Language, Record<string, string>> = {
   },
 };
 
+// English → Kiswahili pairs from the keyed list, so screens that write the English directly also switch.
+buildDictionary(Object.fromEntries(Object.keys(translations.en).filter((k) => translations.sw[k]).map((k) => [translations.en[k], translations.sw[k]])));
+
 export function I18nProvider({ children, defaultLanguage = 'en' }: { children: ReactNode; defaultLanguage?: Language }) {
   const [language, setLanguage] = useState<Language>(() => {
     if (typeof window !== 'undefined') {
@@ -448,7 +452,8 @@ export function I18nProvider({ children, defaultLanguage = 'en' }: { children: R
   });
 
   useEffect(() => {
-    localStorage.setItem('language', language);
+    try { localStorage.setItem('language', language); } catch { /* storage blocked */ }
+    setAutoTranslate(language === 'sw');
     document.documentElement.lang = language;
   }, [language]);
 

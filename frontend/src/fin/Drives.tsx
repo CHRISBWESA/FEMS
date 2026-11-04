@@ -188,7 +188,7 @@ function DriveDetail() {
               { key: 'a', header: 'Amount', align: 'right', tabular: true, render: (r: any) => fmtMoney(r.amount, s.currency) },
               { key: 's', header: 'Status', render: (r: any) => <Status value={r.reversed_at ? 'reversed' : r.payment_status === 'paid' ? 'paid' : r.approval_status} /> },
             ]} />
-          <p className="text-xs text-ink-subtle">Expenses go through the Treasurer, Secretary and Chairperson, and are paid from the Expenses page.</p>
+          <p className="text-xs text-ink-subtle">Only the Treasurer records expenses. No approval is needed; pay them from the Expenses page.</p>
         </div>
       )}
 
