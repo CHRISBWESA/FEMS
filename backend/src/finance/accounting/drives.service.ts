@@ -72,9 +72,9 @@ export class DrivesService {
     return d;
   }
 
-  /** Central drives: the Treasurer or Secretary. A department's drive: that department's current leaders. */
+  /** Central drives: the Treasurer only. A department's drive: that department's current leaders. */
   private manage(user: any, departmentId: string | null) {
-    return this.scope.requireManage(user, departmentId, { central: ['treasurer', 'secretary'] });
+    return this.scope.requireManage(user, departmentId);
   }
 
   private shape(d: any) {

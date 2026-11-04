@@ -59,7 +59,7 @@ export class AccountingController {
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_UPLOAD_BYTES, files: 1, fields: 5 } }))
   async upload(@Req() req, @Query('departmentId') departmentId: string, @UploadedFile() file: Express.Multer.File) {
     const dept = departmentId && departmentId !== 'central' ? departmentId : null;
-    await this.scope.requireManage(req.user, dept, { central: ['treasurer', 'secretary', 'assistant_secretary', 'chairperson'] });
+    await this.scope.requireManage(req.user, dept);
     return this.uploads.upload(req.user, { id: dept ?? 'central', fellowship_id: req.user.fellowshipId }, file);
   }
 
@@ -97,12 +97,12 @@ export class AccountingController {
 
   // ---- contribution drives: pledges and cash per contributor, target and expenses ----
   @Get('drives') @Roles(...ALL) listDrives(@Req() req, @Query() q) { return this.drives.list(req.user, q); }
-  @Post('drives') @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.DEPARTMENT_CHAIRPERSON, ROLES.DEPARTMENT_SECRETARY) createDrive(@Req() req, @Body() b) { return this.drives.create(req.user, b); }
+  @Post('drives') @Roles(ROLES.TREASURER, ROLES.DEPARTMENT_CHAIRPERSON, ROLES.DEPARTMENT_SECRETARY) createDrive(@Req() req, @Body() b) { return this.drives.create(req.user, b); }
   @Get('drives/:id') @Roles(...ALL) drive(@Req() req, @Param('id') id: string) { return this.drives.detail(req.user, id); }
-  @Put('drives/:id') @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.DEPARTMENT_CHAIRPERSON, ROLES.DEPARTMENT_SECRETARY) updateDrive(@Req() req, @Param('id') id: string, @Body() b) { return this.drives.update(req.user, id, b); }
+  @Put('drives/:id') @Roles(ROLES.TREASURER, ROLES.DEPARTMENT_CHAIRPERSON, ROLES.DEPARTMENT_SECRETARY) updateDrive(@Req() req, @Param('id') id: string, @Body() b) { return this.drives.update(req.user, id, b); }
   @Get('drives/:id/contributors/:key') @Roles(...ALL) driveContributor(@Req() req, @Param('id') id: string, @Param('key') key: string) { return this.drives.contributor(req.user, id, key); }
-  @Post('drives/:id/pledges') @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.DEPARTMENT_CHAIRPERSON, ROLES.DEPARTMENT_SECRETARY) drivePledge(@Req() req, @Param('id') id: string, @Body() b) { return this.drives.addPledge(req.user, id, b); }
-  @Post('drives/:id/payments') @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.DEPARTMENT_CHAIRPERSON, ROLES.DEPARTMENT_SECRETARY) driveCash(@Req() req, @Param('id') id: string, @Body() b) { return this.drives.addCash(req.user, id, b); }
+  @Post('drives/:id/pledges') @Roles(ROLES.TREASURER, ROLES.DEPARTMENT_CHAIRPERSON, ROLES.DEPARTMENT_SECRETARY) drivePledge(@Req() req, @Param('id') id: string, @Body() b) { return this.drives.addPledge(req.user, id, b); }
+  @Post('drives/:id/payments') @Roles(ROLES.TREASURER, ROLES.DEPARTMENT_CHAIRPERSON, ROLES.DEPARTMENT_SECRETARY) driveCash(@Req() req, @Param('id') id: string, @Body() b) { return this.drives.addCash(req.user, id, b); }
 
   // ---- approvals inbox ----
   @Get('approvals') @Roles(...ALL) inbox(@Req() req) { return this.approvals.inbox(req.user); }

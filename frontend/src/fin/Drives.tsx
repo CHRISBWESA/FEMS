@@ -5,7 +5,7 @@ import { ArrowLeftIcon, BanknotesIcon, ClipboardDocumentListIcon, HandRaisedIcon
 import { Alert, Button, Card, ErrorState, Field, Input, Modal, PageHeader, PageLoader, Radio, Select, StatCard, StatGrid, Tabs, Textarea, useToast } from '../components/ui';
 import { DataTable } from '../components/DataTable';
 import {
-  APPROVAL_TYPES, errMsg, fmtDate, fmtMoney, FormModal, label, MemberPicker, MethodSelect, openPdf, PendingApprovals, Row, scopeQuery,
+  errMsg, fmtDate, fmtMoney, FormModal, label, MemberPicker, MethodSelect, openPdf, Row, scopeQuery,
   Status, today, useFin, useLoad,
 } from './common';
 
@@ -25,7 +25,7 @@ const kindLabel = (k?: string) => DRIVE_KINDS.find((x) => x.value === k)?.label 
 
 function useCanManage() {
   const s = useFin();
-  return s.departmentId ? !!s.leaderRole : s.roles.some((r) => ['treasurer', 'secretary'].includes(r));
+  return s.departmentId ? !!s.leaderRole : s.roles.includes('treasurer');
 }
 
 /** The Contributions section: the list of drives, and one drive. */
@@ -84,7 +84,6 @@ function DrivesList() {
         <StatCard label="Pledged" value={fmtMoney(sum('pledged'), s.currency)} hint={`${fmtMoney(owed, s.currency)} still owed`} icon={<HandRaisedIcon className="h-5 w-5" />} />
         <StatCard label="Expenses paid" value={fmtMoney(sum('expensesPaid'), s.currency)} icon={<ReceiptPercentIcon className="h-5 w-5" />} tone="danger" />
       </StatGrid>
-      <PendingApprovals types={APPROVAL_TYPES.contributions} departmentId={s.departmentId} onDone={list.reload} />
       <DataTable rows={list.data} loading={list.loading && !list.data} error={list.error || null} onRetry={list.reload} rowKey={(r: any) => r.id}
         onRowClick={(r: any) => navigate(r.id)} rowClickLabel={(r: any) => `Open ${r.name}`}
         toolbar={<Select value={status} onChange={(e) => setStatus(e.target.value)} options={[{ value: 'active', label: 'Open drives' }, { value: 'closed', label: 'Closed drives' }, { value: '', label: 'All drives' }]} />}
@@ -168,7 +167,6 @@ function DriveDetail() {
 
       {tab === 'contributors' ? (
         <>
-        <PendingApprovals types={APPROVAL_TYPES.contributions} departmentId={s.departmentId} onDone={d.reload} />
         <DataTable rows={drive.contributors} rowKey={(r: any) => r.key} clientPaging pageSize={50}
           onRowClick={(r: any) => setWho(r.key)} rowClickLabel={(r: any) => `Details for ${r.name}`}
           empty={{ title: 'No pledges or cash yet', description: canManage && open ? 'Use "Record pledge" or "Record cash".' : undefined }}
@@ -181,7 +179,6 @@ function DriveDetail() {
         </>
       ) : (
         <div className="space-y-4">
-          <PendingApprovals types={APPROVAL_TYPES.expenses} departmentId={s.departmentId} onDone={d.reload} />
           {canManage && <Button onClick={() => setExpense({ title: '', amount: '', date: today(), purpose: '', payee: '', paymentMethod: 'cash' })}><PlusIcon className="h-4 w-4" /> Add expense</Button>}
           <DataTable rows={drive.expenses} rowKey={(r: any) => r.id}
             empty={{ title: 'No expenses for this drive' }}
@@ -204,13 +201,13 @@ function DriveDetail() {
         {editing && <DriveForm value={editing} onChange={setEditing} />}
       </FormModal>
 
-      <FormModal open={!!expense} onClose={() => setExpense(null)} title={`Expense for ${drive.name}`} width="lg" submitLabel="Send for approval"
+      <FormModal open={!!expense} onClose={() => setExpense(null)} title={`Expense for ${drive.name}`} width="lg" submitLabel="Save expense"
         onSubmit={async () => {
           await axios.post('/finance/expenses', {
             scope: drive.departmentId ? 'department' : undefined, departmentId: drive.departmentId ?? undefined, campaignId: drive.id,
             title: expense.title, amount: Number(expense.amount), date: expense.date, purpose: expense.purpose || undefined, payee: expense.payee || undefined, paymentMethod: expense.paymentMethod,
           }, { withCredentials: true });
-          toast.push('success', 'Expense sent for approval'); setTab('expenses'); d.reload();
+          toast.push('success', 'Expense saved'); setTab('expenses'); d.reload();
         }}>
         {expense && (
           <>
@@ -312,12 +309,12 @@ function ContributorPanel({ driveId, contributorKey, canRecord, onClose, onPay, 
   const [reverseFor, setReverseFor] = useState<any>(null);
   const [reason, setReason] = useState('');
   const c = d.data?.contributor;
-  const canReverse = s.departmentId ? s.leaderRole === 'department_chairperson' : s.roles.some((r) => ['treasurer', 'secretary'].includes(r));
+  const canReverse = s.departmentId ? s.leaderRole === 'department_chairperson' : s.roles.includes('treasurer');
   const reverse = async () => {
     try {
       if (s.departmentId) await axios.post(`/finance/contributions/${reverseFor.id}/reverse`, { reason }, { withCredentials: true });
       else await axios.post(`/finance/contributions/${reverseFor.id}/delete-request`, { reason }, { withCredentials: true });
-      toast.push('success', s.departmentId ? 'Payment reversed' : 'Reversal sent for approval');
+      toast.push('success', 'Payment reversed');
       setReverseFor(null); setReason(''); d.reload(); onChanged();
     } catch (e) { toast.push('error', errMsg(e, 'Could not reverse the payment.')); }
   };

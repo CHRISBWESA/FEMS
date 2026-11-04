@@ -4,7 +4,8 @@ import { isUuid } from '../../shared/utils/uuid.util';
 
 export type LeaderRole = 'department_chairperson' | 'department_secretary';
 
-/** Central fellowship officers who may SEE all finances (oversight). Only the Treasurer manages central money. */
+/** Central officers who may SEE all finances and resources. Only the Treasurer records central money and resources;
+ * the Chairperson, Secretary and their vices view (and approve in the approval chain). */
 export const CENTRAL_VIEWERS = ['treasurer', 'secretary', 'assistant_secretary', 'chairperson', 'assistant_chairperson'];
 
 /**

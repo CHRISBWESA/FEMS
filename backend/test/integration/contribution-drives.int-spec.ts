@@ -20,8 +20,6 @@ describeDb('Contribution Drives (real Postgres, HTTP)', () => {
   async function lead(user: any, departmentId: string, role: string, memberId: string) {
     await prisma.departmentLeader.create({ data: { department_id: departmentId, user_id: user.id, role_in_department: role, active_role: role, fellowship_id: f.id, member_id: memberId } });
   }
-  const decide = (u: any, id: string, expect = 201) => post(u, `/finance/approvals/${id}/decide`, { decision: 'approved' }).expect(expect);
-  const workflowOf = (entityId: string, type: string) => prisma.approval.findFirstOrThrow({ where: { entity_id: entityId, workflow_type: type }, orderBy: { created_at: 'desc' } });
 
   beforeAll(async () => {
     app = await createTestApp();
@@ -48,10 +46,10 @@ describeDb('Contribution Drives (real Postgres, HTTP)', () => {
 
   let drive: any;
 
-  it('the Treasurer or Secretary creates a central drive with a target; others cannot', async () => {
+  it('only the Treasurer creates a central drive with a target; the other officers just view', async () => {
     drive = (await post(treas, '/finance/drives', { name: `Outreach ${uniq()}`, kind: 'outreach', target: 10000, startDate: today() }).expect(201)).body;
     expect(drive).toMatchObject({ kind: 'outreach', target: '10000.00', status: 'active', totals: { collected: '0.00', pledged: '0.00', balance: '0.00', progressPercent: 0 } });
-    await post(sec, '/finance/drives', { name: `Membership ${uniq()}`, kind: 'membership' }).expect(201);
+    await post(sec, '/finance/drives', { name: 'nope', kind: 'membership' }).expect(403);
     await post(chair, '/finance/drives', { name: 'nope' }).expect(403);
     await post(ord, '/finance/drives', { name: 'nope' }).expect(403);
     await post(treas, '/finance/drives', { name: drive.name }).expect(409);
@@ -91,10 +89,7 @@ describeDb('Contribution Drives (real Postgres, HTTP)', () => {
     const e = (await post(treas, '/finance/expenses', { title: 'Transport', amount: 700, date: today(), campaignId: drive.id }).expect(201)).body;
     let d = (await get(treas, `/finance/drives/${drive.id}`).expect(200)).body;
     expect(d.expenses.map((x: any) => x.id)).toContain(e.id);
-    expect(d.totals).toMatchObject({ expensesPaid: '0.00', expensesPending: '700.00' });
-    const wf = await workflowOf(e.id, 'expense');
-    await decide(sec, wf.id);
-    await decide(chair, wf.id);
+    expect(e.displayStatus).toBe('approved'); // no approval step: ready to pay at once
     await post(treas, `/finance/expenses/${e.id}/pay`, {}).expect(201);
     d = (await get(treas, `/finance/drives/${drive.id}`).expect(200)).body;
     expect(d.totals).toMatchObject({ expensesPaid: '700.00', expensesPending: '0.00', balance: '2500.00' });

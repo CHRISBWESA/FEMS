@@ -173,7 +173,8 @@ export class ApprovalEngineService {
     db: Db = this.prisma,
     // skipFirstStage: the person submitting holds the first stage's office for this very record (e.g. a Department
     // Chairperson initiating their own department's transfer) - their initiation is that stage's authorization.
-    opts: { preparedByTreasurer?: boolean; skipFirstStage?: boolean } = {},
+    // autoApprove: no approval is needed - the record is final at once (every stage is recorded as skipped).
+    opts: { preparedByTreasurer?: boolean; skipFirstStage?: boolean; autoApprove?: boolean } = {},
   ): Promise<any> {
     const def = this.getWorkflowDefinition(workflowType);
     if (!def) { throw new BadRequestException(`Unknown workflow type: ${workflowType}`); }
@@ -191,15 +192,15 @@ export class ApprovalEngineService {
         fellowship_id: fellowshipId ?? null,
         metadata: (metadata || undefined) as any,
         current_stage: 0,
-        status: 'DRAFT',
+        status: opts.autoApprove ? 'FINAL_APPROVED' : 'DRAFT',
         created_by: createdBy,
         steps: {
           create: def.stages.map((stage, i) => ({
             stage_order: stage.stageOrder,
             approver_role: stage.approverRole,
             approver_user_id: stage.approverUserIds ? stage.approverUserIds[0] : undefined,
-            status: skipFirst && i === 0 ? 'skipped' : 'pending',
-            comment: skipFirst && i === 0 ? (opts.skipFirstStage ? 'Initiated by the office holder' : 'Prepared by the Treasurer') : undefined,
+            status: opts.autoApprove || (skipFirst && i === 0) ? 'skipped' : 'pending',
+            comment: opts.autoApprove ? 'No approval needed' : skipFirst && i === 0 ? (opts.skipFirstStage ? 'Initiated by the office holder' : 'Prepared by the Treasurer') : undefined,
           })),
         },
       },

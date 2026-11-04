@@ -73,9 +73,9 @@ describeDb('Phase 15 - finance approval chain, release, concurrency, edit/delete
       expect((await prisma.expense.findUnique({ where: { id: e.id } }))!.approval_status).toBe('FINAL_APPROVED');
     });
 
-    it('a secretary who recorded the expense cannot approve it', async () => {
-      const e = (await post(sec, '/finance/expenses', { title: 'Self', amount: 10, date: '2026-09-02', purpose: 'x' }).expect(201)).body;
-      await post(sec, `/finance/expenses/${e.id}/approve`, { decision: 'approved' }).expect(403);
+    it('the Secretary and Chairperson only view: they cannot record expenses or contributions', async () => {
+      await post(sec, '/finance/expenses', { title: 'Self', amount: 10, date: '2026-09-02', purpose: 'x' }).expect(403);
+      await post(chair, '/finance/expenses', { title: 'Self', amount: 10, date: '2026-09-02', purpose: 'x' }).expect(403);
     });
   });
 
@@ -130,8 +130,9 @@ describeDb('Phase 15 - finance approval chain, release, concurrency, edit/delete
 
     it('the requester cannot approve their own edit; the same person cannot approve both stages', async () => {
       const id = await newContribution(30);
-      const req = await post(sec, `/finance/contributions/${id}/edit-request`, { amount: 31, reason: 'r' }).expect(201);
-      await post(sec, `/approvals/${req.body.id}/decide`, { decision: 'approved' }).expect(403); // own request
+      await post(sec, `/finance/contributions/${id}/edit-request`, { amount: 31, reason: 'r' }).expect(403); // the Secretary only views
+      const req = await post(treas, `/finance/contributions/${id}/edit-request`, { amount: 31, reason: 'r' }).expect(201);
+      await post(treas, `/approvals/${req.body.id}/decide`, { decision: 'approved' }).expect(403); // own request
       await post(dual, `/approvals/${req.body.id}/decide`, { decision: 'approved' }).expect(201);
       await post(dual, `/approvals/${req.body.id}/decide`, { decision: 'approved' }).expect(403);
     });

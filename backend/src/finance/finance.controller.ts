@@ -34,19 +34,19 @@ export class FinanceController {
   }
 
   @Post('contributions')
-  @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.ADMIN, ROLES.DEPARTMENT_SECRETARY, ROLES.DEPARTMENT_CHAIRPERSON)
+  @Roles(ROLES.TREASURER, ROLES.ADMIN, ROLES.DEPARTMENT_SECRETARY, ROLES.DEPARTMENT_CHAIRPERSON)
   async createContribution(@Body() body: CreateContributionDto, @Req() req) {
     return this.financeService.recordContribution(body, req.user);
   }
 
   @Post('contributions/:id/edit-request')
-  @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.ADMIN)
+  @Roles(ROLES.TREASURER, ROLES.ADMIN)
   async requestEdit(@Param('id') id: string, @Body() body: any, @Req() req) {
     return this.financeService.requestContributionEdit(id, body, req.user);
   }
 
   @Post('contributions/:id/delete-request')
-  @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.ADMIN)
+  @Roles(ROLES.TREASURER, ROLES.ADMIN)
   async requestDelete(@Param('id') id: string, @Body() body: any, @Req() req) {
     return this.financeService.requestContributionDelete(id, body, req.user);
   }
@@ -59,7 +59,7 @@ export class FinanceController {
   }
 
   @Post('expenses')
-  @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.ADMIN, ROLES.DEPARTMENT_SECRETARY, ROLES.DEPARTMENT_CHAIRPERSON)
+  @Roles(ROLES.TREASURER, ROLES.ADMIN, ROLES.DEPARTMENT_SECRETARY, ROLES.DEPARTMENT_CHAIRPERSON)
   async createExpense(@Body() body: CreateExpenseDto, @Req() req) {
     return this.financeService.createExpense(body, req.user);
   }
@@ -71,13 +71,13 @@ export class FinanceController {
   }
 
   @Post('expenses/:id/edit-request')
-  @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.ADMIN)
+  @Roles(ROLES.TREASURER, ROLES.ADMIN)
   async requestExpenseEdit(@Param('id') id: string, @Body() body: any, @Req() req) {
     return this.financeService.editExpense(id, body, req.user);
   }
 
   @Post('expenses/:id/delete-request')
-  @Roles(ROLES.TREASURER, ROLES.SECRETARY, ROLES.ADMIN)
+  @Roles(ROLES.TREASURER, ROLES.ADMIN)
   async requestExpenseDelete(@Param('id') id: string, @Body() body: any, @Req() req) {
     return this.financeService.deleteExpense(id, body, req.user);
   }

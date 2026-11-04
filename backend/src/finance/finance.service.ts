@@ -10,7 +10,7 @@ import { FinanceAccessService } from './finance-access.service';
 import { FinanceScopeService } from './accounting/finance-scope.service';
 import { ContributionsCoreService } from './accounting/contributions-core.service';
 import { ExpensesFlowService } from './accounting/expenses-flow.service';
-import { buildEditChanges, FinanceKind } from './finance-effects';
+import { applyFinanceEffect, buildEditChanges, FinanceKind } from './finance-effects';
 import {
   assertPeriodOpen,
   validateDate,
@@ -78,8 +78,8 @@ export class FinanceService {
   ) {}
 
   private requireRecorder(user: any, what: string): void {
-    if (!this.access.hasAnyRole(user, ['treasurer', 'secretary', 'admin'])) {
-      throw new ForbiddenException(`Only the Treasurer or Secretary can ${what}.`);
+    if (!this.access.hasAnyRole(user, ['treasurer', 'admin'])) {
+      throw new ForbiddenException(`Only the Treasurer can ${what}.`);
     }
   }
 
@@ -193,10 +193,12 @@ export class FinanceService {
     }
 
     const approval = await this.prisma.$transaction(async (tx) => {
+      // No approvals: the correction or reversal is applied at once (the request is kept as history).
       const created = await this.approvalEngine.createWorkflow(
-        workflowType, id, kind, user.userId, { reason, ...(changes ? { changes } : {}) }, record.fellowship_id, tx,
+        workflowType, id, kind, user.userId, { reason, ...(changes ? { changes } : {}) }, record.fellowship_id, tx, { autoApprove: true },
       );
-      return this.approvalEngine.submit(created.id, tx);
+      await applyFinanceEffect(tx, created, user.userId);
+      return created;
     });
 
     await this.auditService.log({
@@ -208,7 +210,6 @@ export class FinanceService {
       // The reason is free text supplied by the requester; the proposed values live in the approval, not the audit row.
       comment: reason,
     });
-    await this.access.notifyCurrentStage(approval, `${kind} ${action} request`, kind, id, user.userId);
     return approval;
   }
 

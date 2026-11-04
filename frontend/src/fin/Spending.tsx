@@ -5,8 +5,8 @@ import { Alert, Button, Checkbox, Field, Input, Modal, PageHeader, Textarea, use
 import { DataTable } from '../components/DataTable';
 import { useI18n } from '../context/I18nContext';
 import {
-  APPROVAL_TYPES, Attachment, AttachmentPicker, Attachments, CategorySelect, errMsg, fmtDate, fmtMoney, FormModal, label, MethodSelect,
-  PendingApprovals, Row, scopeQuery, Status, today, Trail, useFin, useLoad,
+  Attachment, AttachmentPicker, Attachments, CategorySelect, errMsg, fmtDate, fmtMoney, FormModal, label, MethodSelect,
+  Row, scopeQuery, Status, today, useFin, useLoad,
 } from './common';
 
 /** Plain-language state of an expense (matches the server's). */
@@ -33,7 +33,7 @@ export function Expenses() {
   const detail = useLoad<any>(view ? `/finance/expenses/${view}` : null, [view]);
   const [pay, setPay] = useState<any>(null);
   const isTreasurer = s.roles.includes('treasurer');
-  const canRecord = s.departmentId ? !!s.leaderRole : s.roles.some((r) => ['treasurer', 'secretary'].includes(r));
+  const canRecord = s.departmentId ? !!s.leaderRole : s.roles.includes('treasurer');
   const canPay = (e: any) => (s.departmentId ? !!s.leaderRole && e.fund === 'department' : isTreasurer && e.fund === 'central');
 
   const act = async (fn: () => Promise<any>, ok: string) => {
@@ -46,7 +46,6 @@ export function Expenses() {
         ? 'Spending from the department\'s own money. It is approved by the Treasurer, Secretary and Chairperson.'
         : 'Central spending: the Treasurer records, the Secretary reviews, the Chairperson approves, and the Treasurer pays. Approved is not paid.'}
         actions={canRecord ? <Button variant="primary" onClick={() => { setF({ title: '', amount: '', date: today(), purpose: '', payee: '', categoryId: '', paymentMethod: 'cash', alreadyIncurred: false, description: '' }); setFiles([]); setOpen(true); }}><PlusIcon className="h-4 w-4" /> New expense</Button> : undefined} />
-      <PendingApprovals types={APPROVAL_TYPES.expenses} departmentId={s.departmentId} onDone={list.reload} />
       <DataTable rows={list.data} loading={list.loading && !list.data} error={list.error || null} onRetry={list.reload} rowKey={(r: any) => r.id} clientPaging pageSize={25}
         empty={{ title: 'No expenses' }}
         columns={[
@@ -67,7 +66,7 @@ export function Expenses() {
             paymentMethod: f.paymentMethod,
             alreadyIncurred: f.alreadyIncurred, attachments: files,
           }, { withCredentials: true });
-          toast.push('success', 'Sent for approval'); list.reload();
+          toast.push('success', 'Expense saved'); list.reload();
         }}>
         <Field label="Title" required><Input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -108,7 +107,6 @@ export function Expenses() {
               <Row k="Why central approval" v={detail.data.workflow?.reason} />
             </div>
             <Attachments items={detail.data.attachments} />
-            <div><h3 className="mb-2 text-sm font-semibold">Approval history</h3><Trail approvalId={detail.data.workflow?.id} /></div>
           </div>
         )}
       </Modal>

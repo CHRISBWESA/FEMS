@@ -33,7 +33,7 @@ export class ExpensesFlowService {
     if (ownFunds && !departmentId) throw new BadRequestException('Choose the department whose money pays this expense.');
     const role = ownFunds
       ? await this.scope.requireManage(user, departmentId)
-      : await this.scope.requireManage(user, null, { central: ['treasurer', 'secretary'] });
+      : await this.scope.requireManage(user, null);
     if (!ownFunds && departmentId) await this.scope.department(user, departmentId);
     const fundDept = ownFunds ? departmentId : null;
 
@@ -88,20 +88,18 @@ export class ExpensesFlowService {
           fellowship_id: fellowshipId, department_id: departmentId, title, description, purpose, amount: amount.toFixed(2), date,
           category_id: categoryId, activity_id: activityId, campaign_id: campaignId,
           payee, payment_method: method, receipt_document_id: receiptId, already_incurred: alreadyIncurred,
-          attachments: attachments as any, expense_number: number, recorded_by: user.userId, approval_status: 'SUBMITTED',
+          attachments: attachments as any, expense_number: number, recorded_by: user.userId, approval_status: 'FINAL_APPROVED',
         },
       });
       const wf = await this.engine.createWorkflow(
         workflow, e.id, 'expense', user.userId,
         { departmentId: fundDept, ownFunds, reason: why, amount: amount.toFixed(2) },
-        fellowshipId, tx, { preparedByTreasurer: this.scope.isTreasurer(user) },
+        fellowshipId, tx, { autoApprove: true }, // no approvals: the expense is ready to pay at once
       );
       await tx.expense.update({ where: { id: e.id }, data: { approval_workflow_id: wf.id } });
-      const submitted = await this.engine.submit(wf.id, tx, user.userId);
       await tx.auditLog.create({ data: { user_id: user.userId, action: 'finance.expense_create', entity_type: 'expense', entity_id: e.id, fellowship_id: fellowshipId, new_value: { amount: amount.toFixed(2), title, workflow, departmentId, ownFunds, reason: why } as any } });
-      return { e, submitted };
+      return { e };
     });
-    await this.notify.stage(expense.submitted, 'expense', 'expense', expense.e.id, user.userId);
     return this.detail(user, expense.e.id);
   }
 

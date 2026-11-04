@@ -62,7 +62,7 @@ export function Settings() {
   const [f, setF] = useState<any>(null);
   const [cat, setCat] = useState({ kind: 'contribution', name: '' });
   const isTreasurer = s.roles.includes('treasurer');
-  const canCategories = s.roles.some((r) => ['treasurer', 'secretary'].includes(r));
+  const canCategories = isTreasurer;
   if (!settings.data) return <PageLoader rows={2} />;
   const v = f ?? { currency: settings.data.currency, receiptPrefix: settings.data.receipt_prefix, majorExpenseThreshold: settings.data.major_expense_threshold ?? '', budgetWarningPercent: settings.data.budget_warning_percent, financialYearStartMonth: settings.data.financial_year_start_month, paymentMethods: settings.data.payment_methods.join(', ') };
   return (

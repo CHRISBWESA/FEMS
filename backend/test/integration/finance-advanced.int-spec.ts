@@ -149,9 +149,10 @@ describeDb('Phase 15 - advanced finance: validation, scope, periods, income, rep
   describe('categories', () => {
     let cat: any, incomeCat: any;
 
-    it('categories are per fellowship and per kind; only Treasurer/Secretary manage them', async () => {
+    it('categories are per fellowship and per kind; only the Treasurer manages them', async () => {
       cat = (await post(treas, '/finance/categories', { kind: 'contribution', name: `Tithes ${uniq()}` }).expect(201)).body;
-      incomeCat = (await post(sec, '/finance/categories', { kind: 'income', name: `Grants ${uniq()}` }).expect(201)).body;
+      incomeCat = (await post(treas, '/finance/categories', { kind: 'income', name: `Grants ${uniq()}` }).expect(201)).body;
+      await post(sec, '/finance/categories', { kind: 'income', name: 'nope' }).expect(403);
       await post(treas, '/finance/categories', { kind: 'contribution', name: cat.name }).expect(400);
       await post(treas, '/finance/categories', { kind: 'nonsense', name: 'x' }).expect(400);
       await post(asst, '/finance/categories', { kind: 'income', name: 'nope' }).expect(403);
