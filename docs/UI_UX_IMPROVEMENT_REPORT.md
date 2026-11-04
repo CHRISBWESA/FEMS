@@ -2,7 +2,7 @@
 
 Date: 4 November 2026. Companion documents: `UI_UX_AUDIT_REPORT.md` (findings) and `FEMS_UI_UX_STANDARDS.md` (rules).
 
-Status: committed locally, **not pushed or deployed** (as instructed). No database, API, authentication or permission
+Status: released to `main` on 4 November 2026. No database, API, authentication or permission
 change was made; no feature, page or route was removed.
 
 ## Improvements implemented
